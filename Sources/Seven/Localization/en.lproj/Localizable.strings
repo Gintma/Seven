@@ -70,6 +70,7 @@
 "changingTheRecognitionLanguageRunsOCRAgain" = "Changing the recognition language runs OCR again. Undo to restore the current text.";
 "characterLimit" = "Character Limit";
 "characterLimitValue" = "Up to %lld characters";
+"checkSavePermissionsAndFreeSpace" = "Check write permissions and free space.";
 "checkTheReplacement" = "Check the Replacement";
 "choose" = "Choose…";
 "chooseAModelFromTheListOr" = "Choose a model from the list or add one manually in the menu.";
@@ -133,7 +134,6 @@
 "couldNotReliablyReadTheCurrentField" = "Could not reliably read the current field and selection. The text was left unchanged.";
 "couldNotRestoreTheDefault" = "Could not restore the default: %1$@";
 "couldNotSampleTheAreaCheckScreen" = "Could not sample the area. Check Screen Recording permission.";
-"couldNotSaveTheHistoryCheckThe" = "Could not save the history. Check the destination permissions and free space, then try again.";
 "couldNotSaveTheLocalCredentialYour" = "Could not save the local credential. Your previous credential is still available.";
 "couldNotSaveThisShortcutTryAgain" = "Could not save this shortcut. Try again.";
 "couldNotVerifyThatTheFullField" = "Could not verify that the full field was selected. The text was left unchanged.";
@@ -444,6 +444,7 @@
 "screenshotDimensions" = "Screenshot Dimensions";
 "screenshotEditor" = "Screenshot Editor";
 "screenshotHeightInPixels" = "Screenshot Height in Pixels";
+"screenshotSaveFailed" = "Could Not Save Screenshot";
 "screenshotSelectionDragTheBorderOrAny" = "Screenshot selection. Drag the border or any of the eight handles to resize.";
 "screenshotSettings" = "Screenshot Settings";
 "screenshotShortcuts" = "Screenshot Shortcuts";

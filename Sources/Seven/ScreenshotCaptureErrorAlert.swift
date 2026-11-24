@@ -15,7 +15,12 @@ enum ScreenshotCaptureErrorAlert {
     ) {
         let alert = NSAlert()
         alert.messageText = error.localizedDescription
-        alert.addButton(withTitle: L10n.text("ok"))
+        if error == .permissionDenied {
+            alert.addButton(withTitle: L10n.text("openScreenRecordingSettings"))
+            alert.addButton(withTitle: L10n.text("cancel")).keyEquivalent = "\u{1b}"
+        } else {
+            alert.addButton(withTitle: L10n.text("ok"))
+        }
         let response = present(alert)
         if error == .permissionDenied, response == .alertFirstButtonReturn {
             authorize()

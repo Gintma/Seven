@@ -70,6 +70,7 @@
 "changingTheRecognitionLanguageRunsOCRAgain" = "認識言語を変更すると OCR をやり直します。「取り消す」で元のテキストに戻せます。";
 "characterLimit" = "文字数の上限";
 "characterLimitValue" = "最大 %lld 文字";
+"checkSavePermissionsAndFreeSpace" = "書き込み権限と空き容量を確認してください。";
 "checkTheReplacement" = "置換結果を確認";
 "choose" = "選択…";
 "chooseAModelFromTheListOr" = "一覧からモデルを選ぶか、メニューから手動で追加してください。";
@@ -133,7 +134,6 @@
 "couldNotReliablyReadTheCurrentField" = "入力欄と選択範囲を正確に読み取れませんでした。テキストには変更を加えていません。";
 "couldNotRestoreTheDefault" = "既定のショートカットに戻せませんでした：%1$@";
 "couldNotSampleTheAreaCheckScreen" = "領域を取り込めませんでした。画面収録の権限を確認してください。";
-"couldNotSaveTheHistoryCheckThe" = "履歴を保存できませんでした。保存先のアクセス権と空き容量を確認し、再試行してください。";
 "couldNotSaveTheLocalCredentialYour" = "ローカルの認証情報を保存できませんでした。以前の認証情報は保持されています。";
 "couldNotSaveThisShortcutTryAgain" = "ショートカットを保存できませんでした。もう一度お試しください。";
 "couldNotVerifyThatTheFullField" = "入力欄全体が選択されていることを確認できませんでした。テキストには変更を加えていません。";
@@ -444,6 +444,7 @@
 "screenshotDimensions" = "スクリーンショットの寸法";
 "screenshotEditor" = "スクリーンショットエディタ";
 "screenshotHeightInPixels" = "スクリーンショットの高さ（ピクセル）";
+"screenshotSaveFailed" = "スクリーンショットを保存できませんでした";
 "screenshotSelectionDragTheBorderOrAny" = "スクリーンショットの選択範囲。枠または 8 つのハンドルをドラッグしてサイズを変えられます。";
 "screenshotSettings" = "スクリーンショット設定";
 "screenshotShortcuts" = "スクリーンショットのショートカット";

@@ -70,6 +70,7 @@
 "changingTheRecognitionLanguageRunsOCRAgain" = "识别语言；切换后重新识别原图，可撤销恢复当前文字";
 "characterLimit" = "单次字数";
 "characterLimitValue" = "最多 %lld 字";
+"checkSavePermissionsAndFreeSpace" = "请检查写入权限和可用空间。";
 "checkTheReplacement" = "请检查替换结果";
 "choose" = "选择…";
 "chooseAModelFromTheListOr" = "从列表选择模型，也可在菜单中手动添加。";
@@ -133,7 +134,6 @@
 "couldNotReliablyReadTheCurrentField" = "无法可靠读取当前输入框和选区，未修改文字。";
 "couldNotRestoreTheDefault" = "未能恢复默认：%1$@";
 "couldNotSampleTheAreaCheckScreen" = "无法采样所选区域，请检查屏幕录制权限。";
-"couldNotSaveTheHistoryCheckThe" = "无法保存历史记录，请检查保存位置的权限和可用空间后重试。";
 "couldNotSaveTheLocalCredentialYour" = "无法保存本地密钥，原密钥仍保留。";
 "couldNotSaveThisShortcutTryAgain" = "无法保存该快捷键，请重试。";
 "couldNotVerifyThatTheFullField" = "无法确认当前输入框已全选，未替换文字。";
@@ -318,7 +318,7 @@
 "noScreenshotIsAvailableExitAndSelect" = "没有可用的截图，请退出后重新选择区域。";
 "noSearchResults" = "没有搜索结果";
 "noTextWasRecognizedInTheSelected" = "所选区域没有识别到文字。";
-"noTextWasRecognizedInTheSelection" = "所选区域没有识别到文字，剪贴板未更改。";
+"noTextWasRecognizedInTheSelection" = "未识别到文字，剪贴板未更改。";
 "noTranslationServicesAreAvailableEnableOne" = "没有可用的翻译服务，请在设置中启用翻译服务。";
 "normal" = "正常";
 "notConfigured" = "未配置";
@@ -444,6 +444,7 @@
 "screenshotDimensions" = "截图尺寸";
 "screenshotEditor" = "截图编辑";
 "screenshotHeightInPixels" = "截图高度（像素）";
+"screenshotSaveFailed" = "截图保存失败";
 "screenshotSelectionDragTheBorderOrAny" = "截图选区，可拖动边框或八个控制点调整";
 "screenshotSettings" = "截图设置";
 "screenshotShortcuts" = "截图提示";
@@ -496,7 +497,7 @@
 "sevenAppIcon" = "Seven 应用图标";
 "sevenHistory" = "Seven 历史记录.%1$@";
 "sevenNeedsAccessibilityPermissionToReadSelected" = "Seven 需要辅助功能权限才能读取其他应用中的选中文字。授权后请回到原应用重新选择文本。";
-"sevenNeedsScreenRecordingPermissionToCapture" = "Seven 需要屏幕录制权限才能进行截图。";
+"sevenNeedsScreenRecordingPermissionToCapture" = "需要屏幕录制权限";
 "sevenReplacesSelectedTextOrTheEntire" = "有选区只替换选区，无选区替换整个输入框。不会发送消息。按列表顺序使用第一个已启用、已展开且处于翻译模式的翻译服务。";
 "sevenSettings" = "Seven 设置";
 "shadow" = "阴影";
@@ -563,7 +564,7 @@
 "thai" = "泰语";
 "theAPIKeyCannotContainLineBreaks" = "API Key 中不能包含换行。";
 "theClipboardContentsAreTooLargeTo" = "剪贴板内容过大，无法生成钉图。";
-"theClipboardHasNoImageCopyAn" = "剪贴板中没有图片，请先复制一张图片。";
+"theClipboardHasNoImageCopyAn" = "请先复制一张图片。";
 "theClipboardHasNoUsableImageOr" = "剪贴板中没有可用的图片或文字。";
 "theCredentialFileIsDamagedDeleteIt" = "密钥文件损坏：%1$@。删除该文件后重新填写 API Key。";
 "theCurrentTextFieldChangedReplacementStopped" = "当前输入框已变化，已停止替换。";
@@ -593,7 +594,7 @@
 "thickFilledArrow" = "粗实心箭头";
 "thisAreaIsAlreadyCapturedKeepScrolling" = "此处已采集，可继续上下滚动。";
 "thisFieldDoesNotSupportReplacement" = "此输入框不支持替换";
-"thisImageIsTooLargeResizeIt" = "图片尺寸过大，请先缩小图片后再打开。";
+"thisImageIsTooLargeResizeIt" = "图片过大，请缩小后重试。";
 "thisKeyCopiesTheScreenshot" = "该按键用于复制截图。";
 "thisKeyDeletesTheSelectedAnnotation" = "该按键用于删除所选标注。";
 "thisKeyIsAlreadyUsedFor" = "该按键已用于%1$@。";

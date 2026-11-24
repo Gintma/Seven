@@ -70,6 +70,7 @@
 "changingTheRecognitionLanguageRunsOCRAgain" = "辨識語言；切換後重新辨識原圖，可復原恢復目前文字";
 "characterLimit" = "單次字數";
 "characterLimitValue" = "最多 %lld 字";
+"checkSavePermissionsAndFreeSpace" = "請檢查寫入權限和可用空間。";
 "checkTheReplacement" = "請檢查替換結果";
 "choose" = "選擇…";
 "chooseAModelFromTheListOr" = "從清單選擇模型，也可在選單中手動新增。";
@@ -133,7 +134,6 @@
 "couldNotReliablyReadTheCurrentField" = "無法可靠讀取目前輸入欄和選區，未修改文字。";
 "couldNotRestoreTheDefault" = "未能恢復預設：%1$@";
 "couldNotSampleTheAreaCheckScreen" = "無法擷取所選區域，請檢查螢幕錄影權限。";
-"couldNotSaveTheHistoryCheckThe" = "無法儲存歷史記錄，請檢查儲存位置的權限和可用空間後重試。";
 "couldNotSaveTheLocalCredentialYour" = "無法儲存本機金鑰，原金鑰仍保留。";
 "couldNotSaveThisShortcutTryAgain" = "無法儲存該快速鍵，請重試。";
 "couldNotVerifyThatTheFullField" = "無法確認目前輸入欄已全選，未替換文字。";
@@ -318,7 +318,7 @@
 "noScreenshotIsAvailableExitAndSelect" = "沒有可用的截圖，請結束長截圖後重新選擇區域。";
 "noSearchResults" = "沒有搜尋結果";
 "noTextWasRecognizedInTheSelected" = "所選區域沒有辨識到文字。";
-"noTextWasRecognizedInTheSelection" = "所選區域沒有辨識到文字，剪貼簿未更改。";
+"noTextWasRecognizedInTheSelection" = "未辨識到文字，剪貼簿未變更。";
 "noTranslationServicesAreAvailableEnableOne" = "沒有可用的翻譯服務，請在設定中啟用翻譯服務。";
 "normal" = "正常";
 "notConfigured" = "未配置";
@@ -444,6 +444,7 @@
 "screenshotDimensions" = "截圖尺寸";
 "screenshotEditor" = "截圖編輯";
 "screenshotHeightInPixels" = "截圖高度（像素）";
+"screenshotSaveFailed" = "截圖儲存失敗";
 "screenshotSelectionDragTheBorderOrAny" = "截圖選區，可拖曳邊框或八個控制點調整";
 "screenshotSettings" = "截圖設定";
 "screenshotShortcuts" = "截圖提示";
@@ -496,7 +497,7 @@
 "sevenAppIcon" = "Seven App 圖示";
 "sevenHistory" = "Seven 歷史記錄.%1$@";
 "sevenNeedsAccessibilityPermissionToReadSelected" = "Seven 需要輔助使用權限才能讀取其他 App 的選取文字。授權後請回到原本的 App，重新選取文字。";
-"sevenNeedsScreenRecordingPermissionToCapture" = "Seven 需要螢幕錄影權限才能進行截圖。";
+"sevenNeedsScreenRecordingPermissionToCapture" = "需要螢幕錄影權限";
 "sevenReplacesSelectedTextOrTheEntire" = "有選區只替換選區，無選區替換整個輸入欄。不會傳送訊息。按清單順序使用第一個已啟用、已展開且處於翻譯模式的翻譯服務。";
 "sevenSettings" = "Seven 設定";
 "shadow" = "陰影";
@@ -563,7 +564,7 @@
 "thai" = "泰語";
 "theAPIKeyCannotContainLineBreaks" = "API Key 中不能包含換行。";
 "theClipboardContentsAreTooLargeTo" = "剪貼簿內容過大，無法產生釘圖。";
-"theClipboardHasNoImageCopyAn" = "剪貼簿中沒有圖片，請先複製一張圖片。";
+"theClipboardHasNoImageCopyAn" = "請先複製一張圖片。";
 "theClipboardHasNoUsableImageOr" = "剪貼簿中沒有可用的圖片或文字。";
 "theCredentialFileIsDamagedDeleteIt" = "金鑰檔案損壞：%1$@。刪除該檔案後重新填寫 API Key。";
 "theCurrentTextFieldChangedReplacementStopped" = "目前輸入欄已變化，已停止替換。";
@@ -593,7 +594,7 @@
 "thickFilledArrow" = "粗實心箭頭";
 "thisAreaIsAlreadyCapturedKeepScrolling" = "此處已擷取，可繼續上下滾動。";
 "thisFieldDoesNotSupportReplacement" = "此輸入欄不支援替換";
-"thisImageIsTooLargeResizeIt" = "圖片尺寸過大，請先縮小圖片後再開啟。";
+"thisImageIsTooLargeResizeIt" = "圖片太大，請縮小後重試。";
 "thisKeyCopiesTheScreenshot" = "該按鍵用於複製截圖。";
 "thisKeyDeletesTheSelectedAnnotation" = "該按鍵用於刪除所選標註。";
 "thisKeyIsAlreadyUsedFor" = "該按鍵已用於%1$@。";

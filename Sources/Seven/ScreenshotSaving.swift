@@ -60,15 +60,23 @@ final class ScreenshotSavePreferences {
     static func save(_ image:NSImage,parent:NSWindow?,preferences:ScreenshotSavePreferences,completed:@escaping()->Void) {
         let format=preferences.format
         guard let data=data(image,format:format) else{return}
-        func failure(_ error:Error){let alert=NSAlert(error:error);alert.window.level=NSWindow.Level(rawValue:(parent?.level.rawValue ?? 0)+2);alert.runModal()}
+        func failure() {
+            let alert = NSAlert()
+            alert.alertStyle = .critical
+            alert.messageText = L10n.text("screenshotSaveFailed")
+            alert.informativeText = L10n.text("checkSavePermissionsAndFreeSpace")
+            alert.addButton(withTitle: L10n.text("ok"))
+            alert.window.level = NSWindow.Level(rawValue: (parent?.level.rawValue ?? 0) + 2)
+            alert.runModal()
+        }
         if let directory=preferences.directory {
-            do {_ = try writeUnique(data,directory:directory,name:filename(format:format));completed()}catch{failure(error)}
+            do {_ = try writeUnique(data,directory:directory,name:filename(format:format));completed()}catch{failure()}
             return
         }
         let panel=makePanel(parent:parent,format:format)
         let finish:(NSApplication.ModalResponse)->Void={result in
             guard result == .OK,let url=panel.url else{return}
-            do {try data.write(to:url,options:.atomic);completed()}catch{failure(error)}
+            do {try data.write(to:url,options:.atomic);completed()}catch{failure()}
         }
         if let parent {panel.beginSheetModal(for:parent,completionHandler:finish)}else{panel.begin(completionHandler:finish)}
     }

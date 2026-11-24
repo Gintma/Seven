@@ -70,6 +70,7 @@
 "changingTheRecognitionLanguageRunsOCRAgain" = "Al cambiar el idioma de reconocimiento se vuelve a ejecutar el OCR. Usa Deshacer para recuperar el texto actual.";
 "characterLimit" = "Límite de caracteres";
 "characterLimitValue" = "Hasta %lld caracteres";
+"checkSavePermissionsAndFreeSpace" = "Comprueba los permisos de escritura y el espacio libre.";
 "checkTheReplacement" = "Revisar el reemplazo";
 "choose" = "Elegir…";
 "chooseAModelFromTheListOr" = "Elige un modelo de la lista o añádelo manualmente desde el menú.";
@@ -133,7 +134,6 @@
 "couldNotReliablyReadTheCurrentField" = "No se pudo leer con seguridad el campo y la selección. El texto no se modificó.";
 "couldNotRestoreTheDefault" = "No se pudo restaurar el atajo predeterminado: %1$@";
 "couldNotSampleTheAreaCheckScreen" = "No se pudo capturar el área. Comprueba el permiso de grabación de pantalla.";
-"couldNotSaveTheHistoryCheckThe" = "No se pudo guardar el historial. Comprueba los permisos y el espacio libre en el destino, e inténtalo de nuevo.";
 "couldNotSaveTheLocalCredentialYour" = "No se pudo guardar la credencial local. La anterior se conservó.";
 "couldNotSaveThisShortcutTryAgain" = "No se pudo guardar el atajo. Inténtalo de nuevo.";
 "couldNotVerifyThatTheFullField" = "No se pudo verificar que todo el campo estuviera seleccionado. El texto no se modificó.";
@@ -444,6 +444,7 @@
 "screenshotDimensions" = "Dimensiones de la captura";
 "screenshotEditor" = "Editor de capturas";
 "screenshotHeightInPixels" = "Altura de la captura en píxeles";
+"screenshotSaveFailed" = "No se pudo guardar la captura";
 "screenshotSelectionDragTheBorderOrAny" = "Área de captura. Arrastra el borde o cualquiera de los ocho tiradores para cambiar el tamaño.";
 "screenshotSettings" = "Configuración de captura";
 "screenshotShortcuts" = "Atajos de captura";

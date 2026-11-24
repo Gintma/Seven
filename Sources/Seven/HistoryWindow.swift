@@ -263,7 +263,7 @@ struct HistoryView: View {
             let alert = NSAlert()
             alert.alertStyle = .warning
             alert.messageText = L10n.text("exportFailed")
-            alert.informativeText = L10n.text("couldNotSaveTheHistoryCheckThe")
+            alert.informativeText = L10n.text("checkSavePermissionsAndFreeSpace")
             alert.addButton(withTitle: L10n.text("ok"))
             presentFailure(alert)
         }
