@@ -326,7 +326,7 @@ final class HotKeyAndSelectionTests: XCTestCase {
 
         var attempts = 0
         do {
-            _ = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) {
+            _ = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) { _ in
                 attempts += 1
                 throw SelectionReadError.copyTimedOut
             }
@@ -341,8 +341,9 @@ final class HotKeyAndSelectionTests: XCTestCase {
         let reader = SelectionReader { _, attribute in
             attribute == kAXRoleAttribute ? kAXTextAreaRole as CFString : nil
         }
-        let result = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) {
-            "Text from the target app"
+        let result = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) { expectsText in
+            XCTAssertFalse(expectsText)
+            return "Text from the target app"
         }
         XCTAssertEqual(result, SelectedText(text: "Text from the target app", appKitBounds: nil))
     }
@@ -360,10 +361,76 @@ final class HotKeyAndSelectionTests: XCTestCase {
             default: return nil
             }
         }
-        let result = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) {
-            "Another selection"
+        let result = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) { expectsText in
+            XCTAssertTrue(expectsText)
+            return "Another selection"
         }
         XCTAssertEqual(result, SelectedText(text: "Another selection", appKitBounds: nil))
+    }
+
+    func testUnconfirmedCopyWithoutClipboardChangesEndsPromptly() async throws {
+        let pasteboard = NSPasteboard(name: .init("SevenTests.\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.clearContents()
+        XCTAssertTrue(pasteboard.setString("Existing clipboard", forType: .string))
+        var shortcutCount = 0
+        let started = ContinuousClock.now
+
+        do {
+            _ = try await SelectionReader().readUsingCopyFallback(
+                pasteboard: pasteboard, expectsText: false, targetIsFrontmost: { true }, invokeMenuCopy: { false },
+                sendCopyShortcut: { shortcutCount += 1; return true }
+            )
+            XCTFail("An unchanged pasteboard should not yield selected text")
+        } catch {
+            XCTAssertEqual(error as? SelectionReadError, .copyTimedOut)
+        }
+
+        XCTAssertLessThan(started.duration(to: .now), .milliseconds(1_700))
+        XCTAssertEqual(shortcutCount, 2)
+        XCTAssertEqual(pasteboard.string(forType: .string), "Existing clipboard")
+    }
+
+    func testReportedSelectionKeepsWaitingForSlowClipboardText() async throws {
+        let pasteboard = NSPasteboard(name: .init("SevenTests.\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.clearContents()
+        XCTAssertTrue(pasteboard.setString("Existing clipboard", forType: .string))
+        let copy = Task {
+            try await Task.sleep(for: .milliseconds(1_100))
+            pasteboard.clearContents()
+            XCTAssertTrue(pasteboard.setString("Copied after the short wait", forType: .string))
+        }
+        defer { copy.cancel() }
+        let result = try await SelectionReader().readUsingCopyFallback(
+            pasteboard: pasteboard, expectsText: true, targetIsFrontmost: { true },
+            invokeMenuCopy: { true }, sendCopyShortcut: { false }
+        )
+        try await copy.value
+        XCTAssertEqual(result, "Copied after the short wait")
+        XCTAssertEqual(pasteboard.string(forType: .string), "Existing clipboard")
+    }
+
+    func testClipboardActivityKeepsWaitingForSlowClipboardText() async throws {
+        let pasteboard = NSPasteboard(name: .init("SevenTests.\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+        let copy = Task {
+            try await Task.sleep(for: .milliseconds(1_100))
+            pasteboard.clearContents()
+            XCTAssertTrue(pasteboard.setString("Text after the first write", forType: .string))
+        }
+        defer { copy.cancel() }
+
+        let result = try await SelectionReader().readUsingCopyFallback(
+            pasteboard: pasteboard, expectsText: false, targetIsFrontmost: { true },
+            invokeMenuCopy: { false },
+            sendCopyShortcut: {
+                pasteboard.clearContents()
+                return pasteboard.setData(Data([0]), forType: .png)
+            }
+        )
+        try await copy.value
+        XCTAssertEqual(result, "Text after the first write")
     }
 
     func testSelectionTextDecoderHandlesUTF16RangesAndInvalidReplacementText() {

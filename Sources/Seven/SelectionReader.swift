@@ -146,13 +146,15 @@ final class SelectionReader: @unchecked Sendable {
         return try await readSelection(
             focused: focusedElement(applicationPID: targetPID),
             applicationPID: targetPID,
-            copyFallback: { try await self.readUsingCopyFallback(applicationPID: targetPID) }
+            copyFallback: { expectsText in
+                try await self.readUsingCopyFallback(applicationPID: targetPID, expectsText: expectsText)
+            }
         )
     }
 
     func readSelection(
         focused: AXUIElement?, applicationPID: pid_t?,
-        copyFallback: () async throws -> String
+        copyFallback: (_ expectsText: Bool) async throws -> String
     ) async throws -> SelectedText {
         if let focused {
             if hasEmptyTextSelection(in: focused, applicationPID: applicationPID) {
@@ -162,7 +164,21 @@ final class SelectionReader: @unchecked Sendable {
                 return direct
             }
         }
-        return SelectedText(text: try await copyFallback(), appKitBounds: nil)
+        let expectsText = focused.map(hasReportedSelection(in:)) ?? false
+        return SelectedText(text: try await copyFallback(expectsText), appKitBounds: nil)
+    }
+
+    private func hasReportedSelection(in element: AXUIElement) -> Bool {
+        func includesText(_ value: CFTypeRef) -> Bool {
+            guard let range = textRange(from: value) else { return false }
+            return range.location >= 0 && range.location != NSNotFound && range.length > 0
+        }
+
+        if let range = attribute(kAXSelectedTextRangeAttribute, from: element), includesText(range) {
+            return true
+        }
+        let ranges = attribute(kAXSelectedTextRangesAttribute, from: element) as? [AnyObject]
+        return ranges?.contains(where: includesText) == true
     }
 
     private func hasEmptyTextSelection(in element: AXUIElement, applicationPID: pid_t?) -> Bool {
@@ -398,39 +414,56 @@ final class SelectionReader: @unchecked Sendable {
         return nil
     }
 
-    private func readUsingCopyFallback(applicationPID: pid_t?) async throws -> String {
-        let pasteboard = NSPasteboard.general
+    private func readUsingCopyFallback(applicationPID: pid_t?, expectsText: Bool) async throws -> String {
+        try await readUsingCopyFallback(
+            pasteboard: .general,
+            expectsText: expectsText,
+            targetIsFrontmost: {
+                applicationPID == nil || NSWorkspace.shared.frontmostApplication?.processIdentifier == applicationPID
+            },
+            invokeMenuCopy: { applicationPID.map { self.performMenuItem(applicationPID: $0, command: "c") } ?? false },
+            sendCopyShortcut: { await self.postShortcut(keyCode: UInt16(kVK_ANSI_C), to: applicationPID) }
+        )
+    }
+
+    func readUsingCopyFallback(
+        pasteboard: NSPasteboard,
+        expectsText: Bool,
+        targetIsFrontmost: () -> Bool,
+        invokeMenuCopy: () -> Bool,
+        sendCopyShortcut: () async -> Bool
+    ) async throws -> String {
         let snapshot = PasteboardSnapshot.capture(from: pasteboard)
         pasteboard.clearContents()
         let clearedChangeCount = pasteboard.changeCount
         var restoreChangeCount = clearedChangeCount
         defer { _ = snapshot.restore(to: pasteboard, ifUnchangedSince: restoreChangeCount) }
-        let invokedCopyMenu = applicationPID.map { performMenuItem(applicationPID: $0, command: "c") } ?? false
-        let invokedCopy = invokedCopyMenu ? true : await postShortcut(keyCode: UInt16(kVK_ANSI_C), to: applicationPID)
+        let invokedCopyMenu = invokeMenuCopy()
+        let invokedCopy = invokedCopyMenu ? true : await sendCopyShortcut()
         guard invokedCopy else {
             throw SelectionReadError.copyTimedOut
         }
 
-        let deadline = ContinuousClock.now.advanced(by: .milliseconds(2_400))
-        let retryAt = ContinuousClock.now.advanced(by: .milliseconds(420))
+        let started = ContinuousClock.now
+        let deadline = started.advanced(by: .milliseconds(2_400))
+        let quietDeadline = started.advanced(by: .milliseconds(900))
+        let retryAt = started.advanced(by: .milliseconds(420))
         var sawPasteboardChange = false
         var retriedCopy = false
         while ContinuousClock.now < deadline {
             try Task.checkCancellation()
             try await Task.sleep(for: .milliseconds(30))
-            if let applicationPID,
-               NSWorkspace.shared.frontmostApplication?.processIdentifier != applicationPID {
-                throw SelectionReadError.noSelection
-            }
+            guard targetIsFrontmost() else { throw SelectionReadError.noSelection }
             if pasteboard.changeCount != clearedChangeCount {
                 sawPasteboardChange = true
                 restoreChangeCount = pasteboard.changeCount
                 if let value = SelectionTextDecoder.text(from: pasteboard) { return value }
             }
+            if !expectsText, !sawPasteboardChange, ContinuousClock.now >= quietDeadline { break }
             if !retriedCopy, ContinuousClock.now >= retryAt {
                 retriedCopy = true
-                if !(applicationPID.map { performMenuItem(applicationPID: $0, command: "c") } ?? false) {
-                    _ = await postShortcut(keyCode: UInt16(kVK_ANSI_C), to: applicationPID)
+                if !invokeMenuCopy() {
+                    _ = await sendCopyShortcut()
                 }
             }
         }
