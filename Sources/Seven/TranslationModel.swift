@@ -2,7 +2,7 @@ import AppKit
 
 @MainActor
 final class TranslationModel: ObservableObject {
-    enum RecoveryAction { case serviceSettings, accessibilitySettings, screenRecordingSettings }
+    enum RecoveryAction { case serviceSettings }
     enum PendingHistory: Equatable {
         case preferred(TranslationProviderID)
         case fallback
@@ -42,6 +42,9 @@ final class TranslationModel: ObservableObject {
     @Published var status = "准备好，开始一段翻译。"
     @Published var issue: LocalizedMessage?
     var errorMessage: String? { issue?.text }
+    @Published var clearTranslationOnDismiss: Bool {
+        didSet { settings.clearTranslationOnDismiss = clearTranslationOnDismiss }
+    }
     @Published var pinned: Bool { didSet { settings.pinned = pinned } }
     @Published var serviceInstances: [ServiceInstance]
     @Published var recoveryAction: RecoveryAction?
@@ -125,6 +128,7 @@ final class TranslationModel: ObservableObject {
         self.logger = logger
         self.history = history
         self.serviceInstances = settings.migrateServiceInstances()
+        self.clearTranslationOnDismiss = settings.clearTranslationOnDismiss
         self.pinned = settings.pinned
         self.source = settings.sourceLanguage
         self.target = settings.targetLanguage
@@ -144,6 +148,7 @@ final class TranslationModel: ObservableObject {
 
     // MARK: 请求不变量
 
+    internal static let noServicesIssue = LocalizedMessage.key("noTranslationServicesAreAvailableEnableOne")
     internal static let pausedServiceIssue = LocalizedMessage.key("translationIsPausedExpandThisResultTo")
     internal static let dictionaryInputIssue = LocalizedMessage.key("skippedThisDictionaryLooksUpEnglishWords")
     static let dictionaryMissIssue = LocalizedMessage.key("theOfflineDictionaryHasNoEntryFor")

@@ -40,7 +40,6 @@ extension TranslationModel {
     }
 
     func beginClearTransition() {
-        guard !input.isEmpty else { return }
         speech.stop()
         cancel()
         input = ""
@@ -51,7 +50,17 @@ extension TranslationModel {
     }
 
     func finishClearTransition() {
+        guard input.isEmpty else { return }
         serviceResults = []
+    }
+
+    func clear() {
+        beginClearTransition()
+        finishClearTransition()
+    }
+
+    func clearPanelContentIfEnabled() {
+        if clearTranslationOnDismiss { clear() }
     }
 
     func translateTerm(_ value: String) {
@@ -83,7 +92,7 @@ extension TranslationModel {
         cancel()
         serviceResults = []
         issue = .forError(error)
-        recoveryAction = error == .accessibilityPermission ? .accessibilitySettings : nil
+        recoveryAction = nil
         status = "划词翻译未完成"
     }
 
@@ -99,32 +108,20 @@ extension TranslationModel {
         cancel()
         serviceResults = []
         issue = .forError(error)
-        recoveryAction = error == .permissionDenied ? .screenRecordingSettings : nil
+        recoveryAction = nil
         status = "截图翻译未完成"
     }
 
-    var recoveryTitle: String? {
-        switch recoveryAction {
-        case .serviceSettings: return L10n.text("serviceSettings")
-        case .accessibilitySettings: return L10n.text("openAccessibilitySettings")
-        case .screenRecordingSettings: return L10n.text("openScreenRecordingSettings")
-        case nil: return nil
-        }
+    var canRetryGlobalIssue: Bool {
+        hasInputText && issue == Self.noServicesIssue
     }
 
-    func performRecovery(
-        authorize: @MainActor (PermissionGuide.Permission) -> Void = { PermissionGuide.shared.authorize($0) }
-    ) {
-        switch recoveryAction {
-        case .serviceSettings:
-            openSettings()
-        case .accessibilitySettings:
-            authorize(.accessibility)
-        case .screenRecordingSettings:
-            authorize(.screenRecording)
-        case nil:
-            break
-        }
+    var recoveryTitle: String? {
+        recoveryAction == .serviceSettings ? L10n.text("serviceSettings") : nil
+    }
+
+    func performRecovery() {
+        if recoveryAction == .serviceSettings { openSettings() }
     }
 
     func hide() { speech.stop(); cancel(); onHide?() }

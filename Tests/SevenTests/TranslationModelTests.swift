@@ -367,39 +367,42 @@ final class TranslationModelTests: XCTestCase {
         XCTAssertEqual(model.serviceResults.map(\.phase), [.cancelled])
     }
 
-    func testPermissionRecoveryButtonsUseMatchingGuide() throws {
+    func testCapturePermissionFailuresRouteToGuideWithoutPresentingAnIssue() throws {
         let defaults = try XCTUnwrap(isolatedDefaults())
         let model = TranslationModel(
             service: ControlledService(), credentials: MemoryCredentials(),
             settings: SettingsStore(defaults: defaults)
         )
-        var permissions: [String] = []
-        let authorize: (PermissionGuide.Permission) -> Void = {
-            permissions.append($0 == .accessibility ? "accessibility" : "screenRecording")
+        defer { model.cancel() }
+        model.updateInput("Previous source")
+        var permissions: [PermissionGuide.Permission] = []
+        let authorize: (PermissionGuide.Permission) -> Void = { permissions.append($0) }
+        let present = { XCTFail("Permission denial should only open the permission guide") }
+
+        for failure: AppDelegate.TranslationCaptureFailure in [
+            .selection(.accessibilityPermission), .screenshot(.permissionDenied)
+        ] {
+            AppDelegate.routeTranslationCaptureFailure(failure, model: model, authorize: authorize, present: present)
+            XCTAssertNil(model.errorMessage)
+            XCTAssertNil(model.recoveryTitle)
+            XCTAssertEqual(model.input, "Previous source")
         }
-
-        model.presentSelectionError(.accessibilityPermission)
-        model.performRecovery(authorize: authorize)
-        model.presentScreenshotError(.permissionDenied)
-        model.performRecovery(authorize: authorize)
-        model.presentScreenshotError(.captureFailed)
-        model.performRecovery(authorize: authorize)
-
-        XCTAssertEqual(permissions, ["accessibility", "screenRecording"])
+        XCTAssertEqual(permissions, [.accessibility, .screenRecording])
     }
 
-    func testScreenshotPermissionErrorRecoversWhenRecognitionSucceeds() {
-        let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = isolatedDefaults(suiteName: suite)!
-        defer { defaults.removePersistentDomain(forName: suite) }
+    func testScreenshotCaptureIssueClearsWhenRecognitionSucceeds() throws {
+        let defaults = try XCTUnwrap(isolatedDefaults())
         let model = TranslationModel(
-            service: ControlledService(),
-            credentials: MemoryCredentials(),
+            service: ControlledService(), credentials: MemoryCredentials(),
             settings: SettingsStore(defaults: defaults)
         )
-
-        model.presentScreenshotError(.permissionDenied)
-        XCTAssertEqual(model.recoveryTitle, L10n.text("openScreenRecordingSettings"))
+        defer { model.cancel() }
+        var presentations = 0
+        AppDelegate.routeTranslationCaptureFailure(.screenshot(.noText), model: model, authorize: { _ in
+            XCTFail("Empty recognition should display a translation issue")
+        }, present: { presentations += 1 })
+        XCTAssertEqual(presentations, 1)
+        XCTAssertEqual(model.issue, ScreenshotTranslationError.noText.issue)
 
         model.prepareScreenshotText("Recovered OCR text")
 

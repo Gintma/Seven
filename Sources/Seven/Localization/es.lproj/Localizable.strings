@@ -94,7 +94,7 @@
 "collapseDetails" = "Ocultar %1$@";
 "collapseTranslation" = "Contraer traducción";
 "color" = "Color";
-"connected" = "Conectado";
+"connectionSucceededWithElapsedTime" = "Conexión correcta · %.1f s";
 "copiesAndSavedImagesIncludeTheShadow" = "Las copias y las imágenes guardadas incluyen la sombra y el margen que la rodea.";
 "copy" = "Copiar";
 "copyColorValue" = "Copiar valor del color";
@@ -107,14 +107,14 @@
 "cornerRadius0Px" = "Radio de esquina: 0 px";
 "cornerRadiusPt" = "Radio de esquina: %1$@ pt";
 "cornerRadiusPx" = "Radio de esquina: %1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "No se pudo capturar el área seleccionada. Vuelve a seleccionarla.";
+"couldNotCaptureTheSelectedAreaSelect" = "No se pudo capturar el área seleccionada.";
 "couldNotChangeLaunchAtLogin" = "No se pudo cambiar el inicio de sesión: %1$@";
 "couldNotCopyTheRecognizedTextTry" = "No se pudo copiar el texto reconocido. Inténtalo de nuevo.";
 "couldNotCreateTheOfflineDictionary" = "No se pudo crear el diccionario sin conexión";
 "couldNotDetermineTheSpeechLanguage" = "No se pudo determinar el idioma de lectura";
 "couldNotDownloadTheDictionaryCheckYour" = "No se pudo descargar el diccionario. Comprueba la conexión e inténtalo de nuevo.";
 "couldNotFindTheEndpointOrModel" = "No se encontró el punto de conexión o el modelo. Comprueba la dirección completa y el nombre del modelo.";
-"couldNotGetTheSelectedTextMake" = "No se pudo obtener el texto seleccionado. Comprueba que se pueda seleccionar y copiar, e inténtalo de nuevo.";
+"couldNotGetTheSelectedTextMake" = "No se pudo obtener el texto seleccionado.";
 "couldNotOpenImage" = "No se pudo abrir la imagen";
 "couldNotOpenSystemSettingsTryAgain" = "No se pudo abrir Configuración del Sistema. Inténtalo de nuevo.";
 "couldNotOpenTheOfflineDictionary" = "No se pudo abrir el diccionario sin conexión";
@@ -184,7 +184,6 @@
 "dragTheAppIntoThePermissionList" = "Arrastrar la app a la lista de permisos";
 "dragToolbar" = "Arrastrar la barra de herramientas";
 "dragWithMouse" = "Arrastrar con el puntero";
-"durationSeconds" = "%.1f s";
 "dutch" = "Neerlandés";
 "ecdictLicense" = "ECDICT · Licencia MIT";
 "edit" = "Editar";
@@ -319,7 +318,7 @@
 "noSearchResults" = "No hay resultados";
 "noTextWasRecognizedInTheSelected" = "No se reconoció texto en el área seleccionada.";
 "noTextWasRecognizedInTheSelection" = "No se reconoció texto en la selección. El portapapeles no cambió.";
-"noTranslationServicesAreAvailableEnableOne" = "No hay servicios de traducción disponibles. Activa uno en Configuración.";
+"noTranslationServicesAreAvailableEnableOne" = "No hay servicios de traducción disponibles.";
 "normal" = "Normal";
 "notConfigured" = "Sin configurar";
 "notDownloadedAbout63MBToDownload" = "Sin descargar · Descarga de unos 63 MB, 126 MB tras instalar";
@@ -495,8 +494,8 @@
 "settings.sidebar.toolbar" = "Herramientas";
 "sevenAppIcon" = "Icono de Seven";
 "sevenHistory" = "Historial de Seven.%1$@";
-"sevenNeedsAccessibilityPermissionToReadSelected" = "Seven necesita permiso de Accesibilidad para leer el texto seleccionado en otras apps. Tras concederlo, vuelve a seleccionar el texto en la app original.";
-"sevenNeedsScreenRecordingPermissionToCapture" = "Seven necesita permiso de grabación de pantalla para hacer capturas.";
+"sevenNeedsAccessibilityPermissionToReadSelected" = "Se necesita permiso de accesibilidad para leer el texto seleccionado.";
+"sevenNeedsScreenRecordingPermissionToCapture" = "Se necesita permiso de grabación de pantalla para hacer capturas.";
 "sevenReplacesSelectedTextOrTheEntire" = "Seven reemplaza el texto seleccionado o todo el campo si no hay selección. Nunca envía mensajes. Usa el primer servicio activo y expandido en modo de traducción.";
 "sevenSettings" = "Configuración de Seven";
 "shadow" = "Sombra";
@@ -575,7 +574,7 @@
 "theModelDecidesByDefaultHigherSettings" = "El modelo decide de forma predeterminada. Los niveles más altos pueden requerir más tiempo y aumentar el coste.";
 "theModelIsUnavailableChooseAnotherModel" = "El modelo no está disponible. Elige otro.";
 "theOfflineDictionaryHasNoEntryFor" = "El diccionario sin conexión no contiene esta palabra o frase.";
-"theOtherAppDidNotProvideIts" = "La otra app no devolvió la selección a tiempo. Vuelve a seleccionar el texto o usa «Traducir texto escrito».";
+"theOtherAppDidNotProvideIts" = "La aplicación de destino no proporcionó el texto seleccionado a tiempo.";
 "theRequestTimedOutCheckYourConnection" = "Se agotó el tiempo de espera. Comprueba la conexión o inténtalo más tarde.";
 "theResponseWasCutOffShortenThe" = "La respuesta se interrumpió. Acorta el texto original e inténtalo de nuevo.";
 "theScreenshotHasReachedItsSizeLimit" = "La captura alcanzó el límite de tamaño. Edítala o guárdala.";
@@ -665,6 +664,7 @@
 "widthInPixels" = "Anchura en píxeles";
 "widthPx" = "Anchura: %1$@ px";
 "window" = "Ventana";
+"clearTranslationWhenOpeningWindow" = "Borrar el contenido anterior al abrir la ventana";
 "windowPosition" = "Posición de la ventana";
 "youAreALanguageTeacherPreserveThe" = "Eres docente de idiomas. Conserva el tono original y explica las expresiones difíciles de entender.";
 "youCanTranslateUpTo20000" = "Puedes traducir hasta 20.000 caracteres a la vez.";

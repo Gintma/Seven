@@ -94,7 +94,7 @@
 "collapseDetails" = "Collapse %1$@";
 "collapseTranslation" = "Collapse Translation";
 "color" = "Color";
-"connected" = "Connected";
+"connectionSucceededWithElapsedTime" = "Connected · %.1f s";
 "copiesAndSavedImagesIncludeTheShadow" = "Copies and saved images include the shadow and extra space around it.";
 "copy" = "Copy";
 "copyColorValue" = "Copy color value";
@@ -107,14 +107,14 @@
 "cornerRadius0Px" = "Corner Radius: 0 px";
 "cornerRadiusPt" = "Corner Radius: %1$@ pt";
 "cornerRadiusPx" = "Corner Radius: %1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "Could not capture the selected area. Select it again.";
+"couldNotCaptureTheSelectedAreaSelect" = "Could not capture the selected area.";
 "couldNotChangeLaunchAtLogin" = "Could not change launch at login: %1$@";
 "couldNotCopyTheRecognizedTextTry" = "Could not copy the recognized text. Try again.";
 "couldNotCreateTheOfflineDictionary" = "Could not create the offline dictionary";
 "couldNotDetermineTheSpeechLanguage" = "Could not determine the speech language";
 "couldNotDownloadTheDictionaryCheckYour" = "Could not download the dictionary. Check your connection and try again.";
 "couldNotFindTheEndpointOrModel" = "Could not find the endpoint or model. Check the complete address and model name.";
-"couldNotGetTheSelectedTextMake" = "Could not get the selected text. Make sure it can be selected and copied, then try again.";
+"couldNotGetTheSelectedTextMake" = "Could not read the selected text.";
 "couldNotOpenImage" = "Could Not Open Image";
 "couldNotOpenSystemSettingsTryAgain" = "Could not open System Settings. Try again.";
 "couldNotOpenTheOfflineDictionary" = "Could not open the offline dictionary";
@@ -184,7 +184,6 @@
 "dragTheAppIntoThePermissionList" = "Drag the app into the permission list";
 "dragToolbar" = "Drag Toolbar";
 "dragWithMouse" = "Drag with Mouse";
-"durationSeconds" = "%.1f s";
 "dutch" = "Dutch";
 "ecdictLicense" = "ECDICT · MIT License";
 "edit" = "Edit";
@@ -319,7 +318,7 @@
 "noSearchResults" = "No Search Results";
 "noTextWasRecognizedInTheSelected" = "No text was recognized in the selected area.";
 "noTextWasRecognizedInTheSelection" = "No text was recognized in the selection. The clipboard was left unchanged.";
-"noTranslationServicesAreAvailableEnableOne" = "No translation services are available. Enable one in Settings.";
+"noTranslationServicesAreAvailableEnableOne" = "No translation services are available.";
 "normal" = "Normal";
 "notConfigured" = "Not Configured";
 "notDownloadedAbout63MBToDownload" = "Not downloaded · About 63 MB to download and 126 MB installed";
@@ -495,8 +494,8 @@
 "settings.sidebar.toolbar" = "Toolbar";
 "sevenAppIcon" = "Seven App Icon";
 "sevenHistory" = "Seven History.%1$@";
-"sevenNeedsAccessibilityPermissionToReadSelected" = "Seven needs Accessibility permission to read selected text in other apps. After granting it, select the text again in the original app.";
-"sevenNeedsScreenRecordingPermissionToCapture" = "Seven needs Screen Recording permission to capture screenshots.";
+"sevenNeedsAccessibilityPermissionToReadSelected" = "Accessibility permission is required to read the selected text.";
+"sevenNeedsScreenRecordingPermissionToCapture" = "Screen Recording permission is required to take screenshots.";
 "sevenReplacesSelectedTextOrTheEntire" = "Seven replaces selected text or the entire field if nothing is selected. It never sends a message. It uses the first enabled and expanded service in Translation mode.";
 "sevenSettings" = "Seven Settings";
 "shadow" = "Shadow";
@@ -575,7 +574,7 @@
 "theModelDecidesByDefaultHigherSettings" = "The model decides by default. Higher settings may take longer and cost more.";
 "theModelIsUnavailableChooseAnotherModel" = "The model is unavailable. Choose another model.";
 "theOfflineDictionaryHasNoEntryFor" = "The offline dictionary has no entry for this word or phrase.";
-"theOtherAppDidNotProvideIts" = "The other app did not provide its selection in time. Select the text again or use Translate Typed Text.";
+"theOtherAppDidNotProvideIts" = "The target app did not provide the selected text in time.";
 "theRequestTimedOutCheckYourConnection" = "The request timed out. Check your connection or try again later.";
 "theResponseWasCutOffShortenThe" = "The response was cut off. Shorten the source text and try again.";
 "theScreenshotHasReachedItsSizeLimit" = "The screenshot has reached its size limit. Edit or save it.";
@@ -665,6 +664,7 @@
 "widthInPixels" = "Width in Pixels";
 "widthPx" = "Width: %1$@ px";
 "window" = "Window";
+"clearTranslationWhenOpeningWindow" = "Clear previous content when opening the window";
 "windowPosition" = "Window Position";
 "youAreALanguageTeacherPreserveThe" = "You are a language teacher. Preserve the original tone and explain expressions that are difficult to understand.";
 "youCanTranslateUpTo20000" = "You can translate up to 20,000 characters at a time.";

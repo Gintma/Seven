@@ -53,7 +53,7 @@ extension TranslationModel {
         }
 
         guard !results.isEmpty else {
-            issue = .key("noTranslationServicesAreAvailableEnableOne")
+            issue = Self.noServicesIssue
             recoveryAction = .serviceSettings
             status = "检查服务设置后重试。"
             return
@@ -113,7 +113,6 @@ extension TranslationModel {
             serviceResults[index].text = ""
             serviceResults[index].dictionaryEntry = nil
             serviceResults[index].issue = message
-            serviceResults[index].elapsedMessage = nil
             refreshOverallState(generation: id)
             return
         }
@@ -122,7 +121,6 @@ extension TranslationModel {
         serviceResults[index].text = ""
         serviceResults[index].dictionaryEntry = nil
         serviceResults[index].issue = nil
-        serviceResults[index].elapsedMessage = nil
         isLoading = true
         issue = nil
         recoveryAction = nil
@@ -245,7 +243,6 @@ extension TranslationModel {
     ) {
         switch provider {
         case .ecdict:
-            let start = Date()
             serviceTasks[.ecdict] = Task { [weak self, dictionaryService] in
                 let outcome: Result<DictionaryEntry?, Error>
                 do {
@@ -254,12 +251,12 @@ extension TranslationModel {
                     outcome = .failure(error)
                 }
                 guard let self, !Task.isCancelled else { return }
-                self.finishDictionary(outcome, generation: id, startedAt: start)
+                self.finishDictionary(outcome, generation: id)
             }
 
         case .appleTranslation:
             let source = appleTranslationSource(for: text, target: requestTarget)
-            let request = AppleTranslationRequest(id: UUID(), generation: id, startedAt: Date(), text: text,
+            let request = AppleTranslationRequest(id: UUID(), generation: id, text: text,
                 sourceIdentifier: Self.localeIdentifier(for: source), targetIdentifier: Self.localeIdentifier(for: requestTarget) ?? "zh-Hans")
             serviceTasks[provider]?.cancel()
             appleTranslationRequest = nil
@@ -318,7 +315,7 @@ extension TranslationModel {
         serviceResults[index].phase = .loading
         serviceResults[index].issue = nil
         isLoading = true
-        appleTranslationRequest = AppleTranslationRequest(id: UUID(), generation: id, startedAt: Date(), text: text,
+        appleTranslationRequest = AppleTranslationRequest(id: UUID(), generation: id, text: text,
             sourceIdentifier: Self.localeIdentifier(for: appleTranslationSource(for: text, target: target)),
             targetIdentifier: Self.localeIdentifier(for: target) ?? "zh-Hans", prepareOnly: true)
     }
@@ -336,7 +333,6 @@ extension TranslationModel {
             .appleTranslation,
             text: text,
             generation: request.generation,
-            startedAt: request.startedAt,
             sourceText: request.text,
             mode: .translate
         )
@@ -352,8 +348,7 @@ extension TranslationModel {
 
     private func finishDictionary(
         _ outcome: Result<DictionaryEntry?, Error>,
-        generation id: UUID,
-        startedAt: Date
+        generation id: UUID
     ) {
         guard generation == id, let index = resultIndex(.ecdict) else { return }
         serviceTasks[.ecdict] = nil
@@ -362,7 +357,6 @@ extension TranslationModel {
             serviceResults[index].dictionaryEntry = entry
             serviceResults[index].text = entry.formattedText
             serviceResults[index].phase = .success
-            serviceResults[index].elapsedMessage = elapsedMessage(since: startedAt)
         case .success(nil):
             // 未收录不是错误，重试也不会有结果：灰色说明，不带重试。
             serviceResults[index].phase = .skipped
@@ -382,7 +376,6 @@ extension TranslationModel {
         _ provider: TranslationProviderID,
         text: String,
         generation id: UUID,
-        startedAt: Date?,
         sourceText: String,
         mode: TranslationMode,
         dictionaryEntry: DictionaryEntry? = nil
@@ -394,7 +387,6 @@ extension TranslationModel {
         result.dictionaryEntry = dictionaryEntry
         result.phase = .success
         result.issue = nil
-        result.elapsedMessage = startedAt.map(elapsedMessage)
         result.didFinishTranslation = result.isTranslation
         serviceResults[index] = result
         if pendingHistory == .preferred(provider) {
@@ -430,7 +422,6 @@ extension TranslationModel {
                     provider,
                     text: output.text,
                     generation: id,
-                    startedAt: start,
                     sourceText: request.text,
                     mode: .translate,
                     dictionaryEntry: output.dictionaryEntry
@@ -473,7 +464,6 @@ extension TranslationModel {
                     provider,
                     text: result,
                     generation: id,
-                    startedAt: start,
                     sourceText: request.text,
                     mode: request.configuration.mode
                 )
@@ -553,10 +543,6 @@ extension TranslationModel {
 
     internal func resultIndex(_ provider: TranslationProviderID) -> Int? {
         serviceResults.firstIndex { $0.id == provider }
-    }
-
-    private func elapsedMessage(since start: Date) -> LocalizedMessage {
-        .key("durationSeconds", .duration(Date().timeIntervalSince(start)))
     }
 
     private static func localeIdentifier(for language: String) -> String? {

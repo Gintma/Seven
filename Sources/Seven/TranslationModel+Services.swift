@@ -118,8 +118,7 @@ extension TranslationModel {
             phase: .idle,
             text: "",
             dictionaryEntry: nil,
-            errorMessage: nil,
-            elapsed: nil
+            errorMessage: nil
         )
     }
 

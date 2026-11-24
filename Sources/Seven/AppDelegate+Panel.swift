@@ -11,9 +11,7 @@ extension AppDelegate {
     @discardableResult
     internal func setupTranslationPanel() -> TranslationPanel {
         if let panel { return panel }
-        let panel = TranslationPanel(contentRect: NSRect(x: 0, y: 0, width: TranslationPanelSize.defaultWidth, height: 440),
-                                 styleMask: [.titled, .closable, .resizable],
-                                 backing: .buffered, defer: false)
+        let panel = TranslationPanel(model: model)
         self.panel = panel
         panel.title = "Seven"
         panel.titleVisibility = .hidden
@@ -25,7 +23,6 @@ extension AppDelegate {
         toolbar.displayMode = .iconOnly
         panel.toolbar = toolbar
         panel.toolbarStyle = .unifiedCompact
-        panel.isReleasedWhenClosed = false
         panel.level = .statusBar
         panel.hidesOnDeactivate = false
         panel.isMovableByWindowBackground = false
@@ -56,11 +53,15 @@ extension AppDelegate {
 
     @objc func showPanel() {
         inputReplacement.cancel()
+        setupTranslationPanel().prepareForInputPresentation()
         presentPanel(near: NSEvent.mouseLocation)
     }
 
     internal func presentPanel(near anchor: NSPoint, avoiding exclusion: NSRect? = nil) {
         let panel = setupTranslationPanel()
+        if !panel.isVisible {
+            (panel.contentViewController as? AppKitTranslationViewController)?.reloadFromModel(animated: false)
+        }
         if !(model.pinned && panel.isVisible) {
             // 记住上次位置：第一次出现在鼠标旁，之后用户拖到哪里下次就在哪里。
             // 跟随鼠标：每次出现在鼠标旁（选中文字翻译时避开选区）。宽度都保持用户上次的宽度。
@@ -103,8 +104,9 @@ extension AppDelegate {
     private func hidePanelAfterFocusChange(applicationInactive: Bool) {
         guard let panel else { return }
         DispatchQueue.main.async { [weak self, weak panel] in
-            guard let self, let panel, PanelVisibilityPolicy.shouldHide(
-                isKeyWindow: applicationInactive ? false : panel.isKeyWindow,
+            // 重新打开或跨桌面移动可能已恢复焦点。
+            guard let self, let panel, panel.isVisible, PanelVisibilityPolicy.shouldHide(
+                isKeyWindow: panel.isKeyWindow && (!applicationInactive || NSApp.isActive),
                 isPinned: self.model.pinned,
                 hasAttachedSheet: panel.attachedSheet != nil,
                 hasAnotherApplicationWindow: NSApp.keyWindow != nil && NSApp.keyWindow !== panel

@@ -160,6 +160,10 @@ final class SettingsStore {
     func setServiceExpanded(_ expanded: Bool, provider: TranslationProviderID) {
         defaults.set(expanded, forKey: "serviceExpanded.\(provider.rawValue).v1")
     }
+    var clearTranslationOnDismiss: Bool {
+        get { defaults.bool(forKey: "clearTranslationOnDismiss.v1") }
+        set { defaults.set(newValue, forKey: "clearTranslationOnDismiss.v1") }
+    }
     var pinned: Bool {
         get { defaults.bool(forKey: "pinned") }
         set { defaults.set(newValue, forKey: "pinned") }

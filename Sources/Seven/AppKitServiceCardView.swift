@@ -14,7 +14,6 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
     private let iconView = NSImageView()
     private let titleField = NSTextField(labelWithString: "")
     private let progress = NSProgressIndicator()
-    private let elapsedField = NSTextField(labelWithString: "")
     private let speechButton = SpeechToggleButton(label: L10n.text("readTranslationAloud"))
     private let copyButton = AnimatedSymbolButton(symbol: "doc.on.doc", label: L10n.text("copyTranslation"), weight: .medium, scale: .small)
     private let chevronButton = AnimatedSymbolButton(symbol: "chevron.right", label: L10n.text("expandTranslation"), size: 11)
@@ -78,7 +77,6 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
     func applyTheme(_ palette: ThemePalette) {
         fillColor = palette.blockFill
         titleField.textColor = palette.ink
-        elapsedField.textColor = palette.inkMuted
     }
 
     required init?(coder: NSCoder) { nil }
@@ -108,8 +106,6 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
         titleField.stringValue = result.title
         iconView.image = BrandIconRenderer.image(provider: result.id, serviceName: model.instance(result.id)?.brandName ?? result.title, size: Design.Icon.brand)
         updateProgress()
-        elapsedField.stringValue = showsBody ? (result.elapsed ?? "") : ""
-        elapsedField.alphaValue = elapsedField.stringValue.isEmpty ? 0 : 1
         let showsActions = showsBody && !result.text.isEmpty
         speechButton.alphaValue = showsActions ? 1 : 0
         copyButton.alphaValue = showsActions ? 1 : 0
@@ -188,8 +184,6 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
         progress.controlSize = .small
         progress.translatesAutoresizingMaskIntoConstraints = false
         progress.isDisplayedWhenStopped = false
-        elapsedField.translatesAutoresizingMaskIntoConstraints = false
-        elapsedField.font = Design.Text.noteDigits.nsFont
 
         let spacer = NSView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -198,7 +192,7 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
         leftStack.spacing = Design.Space.s
         leftStack.alignment = .centerY
         leftStack.translatesAutoresizingMaskIntoConstraints = false
-        let rightStack = NSStackView(views: [elapsedField, speechButton, copyButton, chevronButton])
+        let rightStack = NSStackView(views: [speechButton, copyButton, chevronButton])
         rightStack.orientation = .horizontal
         rightStack.spacing = Design.Space.xs
         rightStack.alignment = .centerY

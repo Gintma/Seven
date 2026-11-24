@@ -219,7 +219,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
     }
 
-    private func reloadFromModel(animated: Bool, completion: (() -> Void)? = nil) {
+    func reloadFromModel(animated: Bool, completion: (() -> Void)? = nil) {
         guard isViewLoaded, !isApplyingModel else { return }
         isApplyingModel = true
         view.layoutSubtreeIfNeeded()
