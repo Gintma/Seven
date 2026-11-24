@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Carbon
 import XCTest
 @testable import Seven
@@ -310,6 +311,59 @@ final class HotKeyAndSelectionTests: XCTestCase {
 
         XCTAssertFalse(snapshot.restore(to: pasteboard, ifUnchangedSince: oldVersion))
         XCTAssertEqual(pasteboard.string(forType: .string), "user copied something new")
+    }
+
+    func testCollapsedTextSelectionSkipsClipboardFallback() async throws {
+        var caret = CFRange(location: 4, length: 0)
+        let range = try XCTUnwrap(AXValueCreate(.cfRange, &caret))
+        let reader = SelectionReader { _, attribute in
+            switch attribute {
+            case kAXRoleAttribute: return kAXTextAreaRole as CFString
+            case kAXSelectedTextRangeAttribute: return range
+            default: return nil
+            }
+        }
+
+        var attempts = 0
+        do {
+            _ = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) {
+                attempts += 1
+                throw SelectionReadError.copyTimedOut
+            }
+            XCTFail("A caret without a selection should report an empty selection")
+        } catch {
+            XCTAssertEqual(error as? SelectionReadError, .noSelection)
+        }
+        XCTAssertEqual(attempts, 0)
+    }
+
+    func testMissingSelectionRangeStillUsesClipboardFallback() async throws {
+        let reader = SelectionReader { _, attribute in
+            attribute == kAXRoleAttribute ? kAXTextAreaRole as CFString : nil
+        }
+        let result = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) {
+            "Text from the target app"
+        }
+        XCTAssertEqual(result, SelectedText(text: "Text from the target app", appKitBounds: nil))
+    }
+
+    func testAdditionalSelectionStillUsesClipboardFallback() async throws {
+        var caret = CFRange(location: 4, length: 0)
+        var selection = CFRange(location: 1, length: 2)
+        let caretValue = try XCTUnwrap(AXValueCreate(.cfRange, &caret))
+        let selectionValue = try XCTUnwrap(AXValueCreate(.cfRange, &selection))
+        let reader = SelectionReader { _, attribute in
+            switch attribute {
+            case kAXRoleAttribute: return kAXTextAreaRole as CFString
+            case kAXSelectedTextRangeAttribute: return caretValue
+            case kAXSelectedTextRangesAttribute: return [caretValue, selectionValue] as CFArray
+            default: return nil
+            }
+        }
+        let result = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) {
+            "Another selection"
+        }
+        XCTAssertEqual(result, SelectedText(text: "Another selection", appKitBounds: nil))
     }
 
     func testSelectionTextDecoderHandlesUTF16RangesAndInvalidReplacementText() {
