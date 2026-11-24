@@ -62,7 +62,7 @@ final class ScreenshotSavePreferences {
         guard let data=data(image,format:format) else{return}
         func failure() {
             let alert = NSAlert()
-            alert.alertStyle = .critical
+            alert.alertStyle = .warning
             alert.messageText = L10n.text("screenshotSaveFailed")
             alert.informativeText = L10n.text("checkSavePermissionsAndFreeSpace")
             alert.addButton(withTitle: L10n.text("ok"))
