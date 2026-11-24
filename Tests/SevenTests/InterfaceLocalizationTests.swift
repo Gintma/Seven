@@ -152,40 +152,44 @@ extension InterfaceLocalizationTests {
     }
 
     func testBuiltInDisplayNamesSwitchWithoutRewritingSavedNames() throws {
-        let legacyNames: [(ServiceProvider, String, String)] = [
-            (.apple, "Apple 翻译", "Apple Translation"),
-            (.google, "Google 翻译", "Google Translate"),
-            (.youdao, "有道翻译", "Youdao Translate"),
-            (.dictionary, "简明英汉词典", "English–Chinese Dictionary")
+        let legacyNames: [(ServiceProvider, String)] = [
+            (.apple, "Apple 翻译"),
+            (.google, "Google 翻译"),
+            (.youdao, "有道翻译"),
+            (.dictionary, "简明英汉词典")
         ]
-        let instances = try legacyNames.map { provider, saved, _ in
+        let instances = try legacyNames.map { provider, saved in
             try JSONDecoder().decode(ServiceInstance.self, from: JSONEncoder().encode(
                 ServiceInstance(provider: provider, name: saved)
             ))
         }
         let custom = ServiceInstance(provider: .custom, name: "工作")
-        L10n.$languageOverride.withValue(.english) {
-            XCTAssertEqual(instances.map(\.displayName), legacyNames.map { $0.2 })
-            XCTAssertEqual(instances.map(\.name), legacyNames.map { $0.1 })
-            XCTAssertEqual(custom.displayName, "工作")
-            XCTAssertEqual(ServiceInstance(provider: .custom).displayName, "Custom")
+        func verify(_ language: InterfaceLanguage) -> [String] {
+            L10n.$languageOverride.withValue(language) {
+                XCTAssertEqual(instances.map(\.displayName), legacyNames.map { $0.0.title })
+                XCTAssertEqual(instances.map(\.name), legacyNames.map { $0.1 })
+                XCTAssertEqual(custom.displayName, custom.name)
+                return instances.map(\.displayName)
+            }
         }
-        L10n.$languageOverride.withValue(.simplifiedChinese) {
-            XCTAssertEqual(instances.map(\.displayName), legacyNames.map { $0.1 })
-        }
+        XCTAssertNotEqual(verify(.english), verify(.simplifiedChinese))
     }
 
     func testStoredErrorsAndOCRFallbackFollowDisplayLanguage() {
         let error = TranslationError.transport(.key("service.requestTimedOut", .key("googleTranslate")))
         let message = LocalizedMessage.forError(error)
-        L10n.$languageOverride.withValue(.english) {
-            XCTAssertEqual(message.text, "The request to Google Translate timed out. Try again later.")
-            XCTAssertEqual(OCRRecognitionLanguages.name("da"), "Danish")
+        let resolve: (InterfaceLanguage) -> (error: String, languageName: String) = { language in
+            L10n.$languageOverride.withValue(language) {
+                let name = OCRRecognitionLanguages.name("da")
+                XCTAssertEqual(name, L10n.locale.localizedString(forIdentifier: "da"))
+                XCTAssertEqual(message.text, L10n.format("service.requestTimedOut", L10n.text("googleTranslate")))
+                return (message.text, name)
+            }
         }
-        L10n.$languageOverride.withValue(.simplifiedChinese) {
-            XCTAssertEqual(message.text, "Google 翻译请求超时，请稍后重试。")
-            XCTAssertEqual(OCRRecognitionLanguages.name("da"), "丹麦语")
-        }
+        let english = resolve(.english)
+        let chinese = resolve(.simplifiedChinese)
+        XCTAssertNotEqual(english.error, chinese.error)
+        XCTAssertNotEqual(english.languageName, chinese.languageName)
     }
 }
 
@@ -206,11 +210,12 @@ extension InterfaceLocalizationTests {
 
         L10n.$languageOverride.withValue(.english) {
             model.refreshServicePresentation()
-            XCTAssertEqual(model.serviceResults.first?.title, "Google Translate")
+            XCTAssertEqual(model.serviceResults.first?.title, ServiceProvider.google.title)
             XCTAssertEqual(model.serviceResults.first?.phase, .streaming)
             XCTAssertEqual(model.serviceResults.first?.text, "partial text")
             XCTAssertTrue(model.isLoading)
-            XCTAssertEqual(model.serviceResults.first?.errorMessage, "The service returned no result.")
+            XCTAssertEqual(model.serviceResults.first?.issue, .key("translation.noServiceResult"))
+            XCTAssertEqual(model.serviceResults.first?.errorMessage, L10n.text("translation.noServiceResult"))
             XCTAssertEqual(settings.serviceInstances?.first?.name, "Google 翻译")
         }
     }
@@ -227,11 +232,9 @@ extension InterfaceLocalizationTests {
         model.input = "Sample input"
         model.pinned = true
 
-        func descendants(_ view: NSView) -> [NSView] { view.subviews + view.subviews.flatMap(descendants) }
-
-        for (phase, chinese, english) in [
-            (TranslationResultPhase.failure, "请填写 API Key。", "Enter an API key."),
-            (.cancelled, "已取消", "Canceled")
+        for (phase, messageKey) in [
+            (TranslationResultPhase.failure, "enterAnAPIKey"),
+            (.cancelled, "translation.canceled")
         ] {
             var result = try XCTUnwrap(model.visibleServices().first)
             result.phase = phase
@@ -239,21 +242,24 @@ extension InterfaceLocalizationTests {
             model.serviceResults = [result]
             let card = AppKitServiceCardView(model: model, provider: service.id)
 
-            L10n.$languageOverride.withValue(.simplifiedChinese) {
+            let text = try XCTUnwrap(screenshotDescendants(of: card).compactMap { $0 as? StreamingResultTextView }.first)
+            let chinese = L10n.$languageOverride.withValue(.simplifiedChinese) {
                 card.apply(result, hasCurrentResult: true, suppressBody: false, animated: false)
+                XCTAssertEqual(text.string, L10n.text(messageKey))
+                return text.string
             }
-            let text = try XCTUnwrap(descendants(card).compactMap { $0 as? NSTextView }.first)
-            XCTAssertEqual(text.string, chinese)
 
-            L10n.$languageOverride.withValue(.english) {
+            try L10n.$languageOverride.withValue(.english) {
                 model.refreshServicePresentation()
                 card.refreshInterfaceLanguage()
                 XCTAssertEqual(model.serviceResults.first, result)
                 card.apply(model.serviceResults[0], hasCurrentResult: true, suppressBody: false, animated: false)
-                XCTAssertEqual(text.string, english)
+                XCTAssertEqual(text.string, L10n.text(messageKey))
+                XCTAssertNotEqual(text.string, chinese)
                 if phase == .failure {
-                    let retry = descendants(card).compactMap { $0 as? NSButton }.first { $0.title == "Retry" }
-                    XCTAssertEqual(retry?.accessibilityLabel(), "Retry OpenAI")
+                    let retry = try XCTUnwrap(screenshotDescendants(of: card).compactMap { $0 as? NSButton }
+                        .first { $0.action == NSSelectorFromString("retryResult") })
+                    XCTAssertEqual(retry.accessibilityLabel(), L10n.format("retry2", result.title))
                 }
             }
         }

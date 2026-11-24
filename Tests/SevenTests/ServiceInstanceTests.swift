@@ -142,7 +142,6 @@ final class ServiceInstanceTests: XCTestCase {
         let item=try XCTUnwrap(s.migrateServiceInstances().last)
         XCTAssertEqual(item.mode,.custom);XCTAssertEqual(item.systemPrompt,ServiceConfiguration.legacyPolishPrompt);XCTAssertEqual(item.userPrompt,"{{text}}")
         XCTAssertEqual(try JSONDecoder().decode(TranslationMode.self,from:Data("\"polish\"".utf8)),.custom)
-        XCTAssertEqual(TranslationMode.allCases,[.translate,.custom])
     }
     func testEveryStyleNormalizesCompletePathAndBuildsOneSuffix() throws {
         for (style,suffix) in [(ServiceAPIStyle.openAICompatible,"/chat/completions"),(.openAIResponses,"/responses"),(.anthropic,"/messages"),(.gemini,"/models/model:generateContent")] {

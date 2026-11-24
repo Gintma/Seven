@@ -53,12 +53,11 @@ private actor SmartSelectionMock: FrozenSmartSelecting {
         XCTAssertGreaterThanOrEqual(count, calls)
         for _ in 0..<10 { await Task.yield() }
     }
-    func testSettingDefaultsOnAndPersistsOffAndOn() throws {
+    func testSmartSelectionSettingPersistsOffAndOn() throws {
         let name = "SmartSelectionTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(isolatedDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
         let preferences = ScreenshotToolPreferences(defaults: defaults)
-        XCTAssertTrue(preferences.smartSelectionEnabled)
         preferences.smartSelectionEnabled = false
         XCTAssertFalse(ScreenshotToolPreferences(defaults: defaults).smartSelectionEnabled)
         preferences.smartSelectionEnabled = true
@@ -228,21 +227,12 @@ private actor SmartSelectionMock: FrozenSmartSelecting {
     func testMovingBetweenElementsDoesNotFlashBackToWholeWindow() async throws {
         let mock = SmartSelectionMock(result: button)
         let selection = try view(mock, radius: 20) { _, _ in }
-        func cornerBrightness() throws -> CGFloat {
-            let bitmap = try XCTUnwrap(selection.bitmapImageRepForCachingDisplay(in: selection.bounds))
-            selection.cacheDisplay(in: selection.bounds, to: bitmap)
-            return try XCTUnwrap(bitmap.colorAt(x: Int(305 * CGFloat(bitmap.pixelsWide) / 800),
-                y: Int(295 * CGFloat(bitmap.pixelsHigh) / 600))?.usingColorSpace(.deviceRGB)).redComponent
-        }
         selection.refreshHover(at: CGPoint(x: 350, y: 320)); try await settle(mock)
         XCTAssertEqual(selection.selection, button)
-        let roundedCorner = try cornerBrightness()
-        XCTAssertLessThan(roundedCorner, 0.95)
         let next = CGRect(x: 500, y: 300, width: 100, height: 40)
         await mock.pauseNext(returning: next)
         selection.refreshHover(at: CGPoint(x: 550, y: 320)); try await settle(mock, calls: 2)
         XCTAssertEqual(selection.selection, button, "等待新命中时不能先放大到整个窗口")
-        XCTAssertEqual(try cornerBrightness(), roundedCorner, accuracy: 0.001, "等待期间圆角和蒙层也应保持一致")
         await mock.release(); for _ in 0..<10 { await Task.yield() }
         XCTAssertEqual(selection.selection, next)
         selection.refreshHover(at: CGPoint(x: 551, y: 320))

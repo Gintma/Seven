@@ -23,7 +23,6 @@ private actor HeldScreenshotRecognizer: TextRecognizing {
         let image = NSImage(size: NSSize(width: 2, height: 2)); image.addRepresentation(bitmap)
         return image
     }
-    private func descendants(_ view: NSView) -> [NSView] { view.subviews + view.subviews.flatMap(descendants) }
 
     func testDisposingOCRWindowCancelsTaskAndIgnoresLateMockResult() async throws {
         _ = NSApplication.shared
@@ -38,8 +37,7 @@ private actor HeldScreenshotRecognizer: TextRecognizing {
         for _ in 0..<100 where !(await recognizer.returnedWhileCancelled) { try await Task.sleep(for: .milliseconds(5)) }
         let cancelled = await recognizer.returnedWhileCancelled
         XCTAssertTrue(cancelled)
-        let root = try XCTUnwrap(controller.window?.contentView)
-        XCTAssertEqual(descendants(root).compactMap { $0 as? NSTextView }.first?.string, "")
+        XCTAssertEqual(controller.textView.string, "")
     }
 
     func testAlreadyCancelledRecognitionReturnsCancellationWithoutStartingWork() async throws {

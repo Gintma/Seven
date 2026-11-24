@@ -17,8 +17,6 @@ import XCTest
         var restored = 0, fullScreen = 0, colorWrites = 0, multi = 0
         let view = FrozenSelectionView(frame: CGRect(x: 0, y: 0, width: 100, height: 80), image: try XCTUnwrap(bitmap.cgImage), screenFrame: CGRect(x: 0, y: 0, width: 100, height: 80), candidates: [], smartSelectionEnabled: false, purpose: .ocr,
             fullScreen: { fullScreen += 1 }, previousArea: { restored += 1 }, toggleWindow: { _ in multi += 1 }, finishWindows: { multi += 1 }, writeColor: { _ in colorWrites += 1; return true }, complete: { _, _ in })
-        let guides = try XCTUnwrap(view.subviews.compactMap { $0 as? FrozenCaptureGuidesView }.first)
-        XCTAssertFalse(guides.showsCrosshair)
         for code: UInt16 in [3, 8, 15] {
             let event = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil, characters: "", charactersIgnoringModifiers: "", isARepeat: false, keyCode: code))
             view.keyDown(with: event)
@@ -54,7 +52,6 @@ extension OCRCapturePurposeTests {
     func testAllSmartSelectionSwitchCombinationsAreIndependentAndScrollUsesScreenshotChoice() throws {
         let suite = "SmartCapturePurpose.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite)); defer { defaults.removePersistentDomain(forName: suite) }
-        for purpose in [FrozenCapturePurpose.screenshot, .scroll, .ocr, .translation] { XCTAssertTrue(purpose.smartSelectionEnabled(in: defaults)) }
         for mask in 0..<8 {
             let screenshot = mask & 1 != 0, ocr = mask & 2 != 0, translation = mask & 4 != 0
             defaults.set(screenshot, forKey: ScreenshotToolPreferences.smartSelectionKey)

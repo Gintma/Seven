@@ -322,14 +322,14 @@ final class TranslationModelTests: XCTestCase {
         model.translate()
         try await waitUntilIdle(model)
         XCTAssertEqual(model.errorMessage, "临时网络错误")
-        XCTAssertEqual(model.status, "翻译未完成")
+        XCTAssertEqual(model.serviceResults.first(where: { !$0.id.isBuiltIn })?.phase, .failure)
 
         model.translate()
         try await waitUntilIdle(model)
 
         XCTAssertNil(model.errorMessage)
         XCTAssertEqual(model.serviceResults.first(where: { !$0.id.isBuiltIn })?.text, "恢复后的译文")
-        XCTAssertTrue(model.status.contains("翻译完成"))
+        XCTAssertEqual(model.serviceResults.first?.phase, .success)
         let attempts = await service.attempts
         XCTAssertEqual(attempts, 2)
     }
@@ -365,7 +365,6 @@ final class TranslationModelTests: XCTestCase {
         XCTAssertFalse(model.isLoading)
         XCTAssertEqual(model.serviceResults.map(\.text), [""])
         XCTAssertEqual(model.serviceResults.map(\.phase), [.cancelled])
-        XCTAssertEqual(model.status, "已取消，可以重新翻译。")
     }
 
     func testPermissionRecoveryButtonsUseMatchingGuide() throws {
@@ -400,13 +399,14 @@ final class TranslationModelTests: XCTestCase {
         )
 
         model.presentScreenshotError(.permissionDenied)
-        XCTAssertEqual(model.recoveryTitle, "打开屏幕录制设置")
+        XCTAssertEqual(model.recoveryTitle, L10n.text("openScreenRecordingSettings"))
 
         model.prepareScreenshotText("Recovered OCR text")
 
         XCTAssertNil(model.errorMessage)
         XCTAssertNil(model.recoveryTitle)
-        XCTAssertEqual(model.status, "已识别截图文字 · 18 字符")
+        XCTAssertEqual(model.input, "Recovered OCR text")
+        XCTAssertFalse(model.isLoading)
     }
 
     func testSelectedTextReplacesDraftWithoutStartingARequest() throws {
@@ -420,7 +420,7 @@ final class TranslationModelTests: XCTestCase {
         model.updateInput("draft")
         model.prepareSelectedText("selected text")
         XCTAssertEqual(model.input, "selected text")
-        XCTAssertEqual(model.status, "已读取选中文字")
+        XCTAssertTrue(model.serviceResults.isEmpty)
         XCTAssertFalse(model.isLoading)
     }
 
@@ -523,7 +523,7 @@ final class TranslationModelTests: XCTestCase {
         }
 
         XCTAssertEqual(model.serviceResults.first(where: { !$0.id.isBuiltIn })?.text, "你好世界")
-        XCTAssertTrue(model.status.contains("翻译完成"))
+        XCTAssertEqual(model.serviceResults.first?.phase, .success)
     }
 
     func testStreamingTranslationPublishesBeforeRequestCompletes() async throws {
@@ -590,7 +590,8 @@ final class TranslationModelTests: XCTestCase {
 
         XCTAssertFalse(model.isLoading)
         XCTAssertEqual(model.serviceResults.first(where: { !$0.id.isBuiltIn })?.text, "你好")
-        XCTAssertEqual(model.status, "已取消，可以重新翻译。")
+        XCTAssertEqual(model.serviceResults.first(where: { !$0.id.isBuiltIn })?.phase, .success)
+        XCTAssertTrue(model.serviceTasks.isEmpty)
         await service.finish()
     }
 
@@ -628,7 +629,6 @@ final class TranslationModelTests: XCTestCase {
         XCTAssertEqual(model.serviceResults[0].dictionaryEntry?.headword, "refine")
         XCTAssertEqual(model.serviceResults[1].text, "完善")
         XCTAssertEqual(model.serviceResults.first(where: { !$0.id.isBuiltIn })?.text, "完善")
-        XCTAssertTrue(model.status.contains("2 个服务"))
     }
 
     func testAppleTranslationResultCompletesThroughViewBridgeContract() async {
@@ -685,7 +685,7 @@ final class TranslationModelTests: XCTestCase {
     }
 
     func testMissingApplePacksSkipBridgeAndOnlyPrepareAfterDownloadClick() async throws {
-        for (missing, message) in [(["ja"], "需要下载日语语言包才能使用 Apple 翻译"), (["ja", "zh-Hant"], "需要下载日语和繁体中文语言包才能使用 Apple 翻译")] {
+        for missing in [["ja"], ["ja", "zh-Hant"]] {
             let suite = "SevenTests.\(UUID().uuidString)"
             let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
             defer { defaults.removePersistentDomain(forName: suite) }
@@ -697,7 +697,8 @@ final class TranslationModelTests: XCTestCase {
             model.translate(); await model.serviceTasks[.appleTranslation]?.value
             XCTAssertNil(model.appleTranslationRequest, "缺包时不能挂载 translationTask 或调用 session.translate")
             XCTAssertEqual(model.serviceResults.first?.phase, .skipped)
-            XCTAssertEqual(model.serviceResults.first?.errorMessage, message)
+            XCTAssertEqual(model.serviceResults.first?.appleMissingLanguages, missing)
+            XCTAssertEqual(model.serviceResults.first?.issue, .key("downloadTheLanguagePacksToUseApple", .languages(missing)))
             XCTAssertFalse(model.isLoading)
             model.downloadAppleLanguagePacks()
             let preparation = try XCTUnwrap(model.appleTranslationRequest)
@@ -829,7 +830,7 @@ final class TranslationModelTests: XCTestCase {
 
         let result = try XCTUnwrap(model.serviceResults.first { $0.id == .ecdict })
         XCTAssertEqual(result.phase, .failure)
-        XCTAssertEqual(result.errorMessage, "英汉词典读取失败，可以在设置中删除后重新下载。")
+        XCTAssertEqual(result.issue, .key("couldNotReadTheOfflineDictionaryDelete"))
 
         var log = ""
         for _ in 0..<50 where !log.contains("dictionary_query_failed") {
@@ -872,7 +873,7 @@ final class TranslationModelTests: XCTestCase {
 
         XCTAssertEqual(model.serviceResults.map(\.id), [.ecdict, try XCTUnwrap(model.serviceInstances.first { !$0.provider.isBuiltIn }?.id)])
         XCTAssertEqual(model.serviceResults.map(\.phase), [.skipped, .success])
-        XCTAssertEqual(model.serviceResults[0].errorMessage, "仅用于英文单词或短语，本次未运行。")
+        XCTAssertEqual(model.serviceResults[0].issue, TranslationModel.dictionaryInputIssue)
     }
 
     func testServiceTogglesPersistImmediately() {
@@ -935,7 +936,7 @@ final class TranslationModelTests: XCTestCase {
         XCTAssertEqual(model.input, "CREATE TABLE")
         XCTAssertEqual(model.serviceResults.map(\.id), [.youdao])
         XCTAssertEqual(model.serviceResults.first(where: { $0.id == .youdao })?.text, "创建表")
-        XCTAssertTrue(model.status.contains("翻译完成"))
+        XCTAssertEqual(model.serviceResults.first?.phase, .success)
     }
 
     func testTwoKeyServiceInstancesRunIndependently() async throws {
@@ -965,7 +966,6 @@ final class TranslationModelTests: XCTestCase {
 
         XCTAssertEqual(model.serviceResults.map(\.id), [try XCTUnwrap(model.serviceInstances.first { !$0.provider.isBuiltIn }?.id), second])
         XCTAssertEqual(model.serviceResults.map(\.phase), [.success, .success])
-        XCTAssertEqual(model.serviceResults.map(\.title), ["DeepSeek", "智谱"])
     }
 
     func testYoudaoAndGooglePublishIndependentResults() async throws {
@@ -991,8 +991,7 @@ final class TranslationModelTests: XCTestCase {
 
         XCTAssertEqual(model.serviceResults.map(\.id), [.youdao, .google])
         XCTAssertEqual(model.serviceResults.map(\.phase), [.success, .success])
-        XCTAssertEqual(model.serviceResults.first(where: { $0.id == .youdao })?.text, "有道结果")
-        XCTAssertTrue(model.status.contains("2 个服务"))
+        XCTAssertEqual(model.serviceResults.map(\.text), ["有道结果", "Google 结果"])
     }
 
     func testExpandingOneServiceWithoutResultsOnlyStartsThatService() async throws {

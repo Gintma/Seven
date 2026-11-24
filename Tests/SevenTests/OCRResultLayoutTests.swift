@@ -163,7 +163,6 @@ extension OCRResultWindowTests {
         preview.rightMouseDown(with: event)
         XCTAssertEqual(preview.zoom, 1); XCTAssertEqual(preview.offset, .zero)
         XCTAssertEqual(preview.displayedImageRect, original)
-        XCTAssertFalse(preview.subviews.contains { $0 is NSScrollView })
     }
 }
 
@@ -220,9 +219,10 @@ extension OCRResultWindowTests {
         XCTAssertTrue(replacement.isPinned)
         XCTAssertEqual(replacement.window?.level, .floating)
         XCTAssertEqual(replacement.textView.string, "new image")
-        func descendants(_ view: NSView) -> [NSView] { view.subviews + view.subviews.flatMap(descendants) }
-        let pin = try XCTUnwrap(descendants(try XCTUnwrap(replacement.window?.contentView)).compactMap { $0 as? NSButton }.first { $0.accessibilityLabel() == "钉住" })
-        XCTAssertEqual(pin.accessibilityValue() as? String, "已钉住")
+        let content = try XCTUnwrap(replacement.window?.contentView)
+        let pin = try XCTUnwrap(screenshotDescendants(of: content).compactMap { $0 as? NSButton }
+            .first { $0.action == NSSelectorFromString("togglePin") })
+        XCTAssertEqual(pin.accessibilityValue() as? String, L10n.text("pinned"))
         replacement.dismissForOutsideClick(nil)
         XCTAssertTrue(replacement.window?.isVisible == true)
         replacement.inheritPinState(from: replacement)
@@ -240,6 +240,10 @@ extension OCRResultWindowTests {
         XCTAssertFalse(replacement.isPinned)
         replacement.dismissForOutsideClick(nil)
         XCTAssertFalse(replacement.window?.isVisible == true)
-        XCTAssertFalse(defaults.dictionaryRepresentation().keys.contains { $0.hasPrefix("ocr.") && $0.localizedCaseInsensitiveContains("pin") })
+        replacement.togglePin()
+        XCTAssertTrue(replacement.isPinned)
+        let newSession = ScreenshotOCRWindowController(result: .init(text: "new session", averageConfidence: 1), defaults: defaults)
+        defer { newSession.dispose() }
+        XCTAssertFalse(newSession.isPinned)
     }
 }

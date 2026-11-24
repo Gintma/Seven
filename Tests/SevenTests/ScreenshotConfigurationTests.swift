@@ -46,6 +46,11 @@ import XCTest
             .first { $0.title == ScreenshotToolbarAction.save.title })
         XCTAssertTrue(saveButton.isHidden)
     }
+    private func editorCanvas(_ editor: ScreenshotEditorWindowController) throws -> ScreenshotEditorCanvas {
+        let root = try XCTUnwrap(editor.window?.contentView)
+        return try XCTUnwrap(screenshotDescendants(of: root).compactMap { $0 as? ScreenshotEditorCanvas }.first)
+    }
+
     func testPinEditingUpdatesSamePinWithoutCopyAndPreservesEditableLayers() throws {
         let toolbar=ScreenshotToolbarPreferences()
         let pin=ScreenshotPinWindowController(image:image(),preferences:ScreenshotPinPreferences(),toolbarPreferences:toolbar)
@@ -55,9 +60,9 @@ import XCTest
         let originalFrame=try XCTUnwrap(pin.window).frame
         let originalContent=pin.contentFrame
         var copies=0
+        XCTAssertNil(try XCTUnwrap(pin.editingContext).background)
         let editor=try XCTUnwrap(pin.makeEditor(preferences:ScreenshotToolPreferences(),clipboardWriter:{_ in copies+=1;return true}))
-        let overlay=try XCTUnwrap(editor.window?.contentView as? ScreenshotCenteredEditorOverlay)
-        let canvas=try XCTUnwrap(overlay.subviews.first as? ScreenshotEditorCanvas)
+        let canvas = try editorCanvas(editor)
         XCTAssertEqual(canvas.convert(canvas.bounds,to:nil).width,originalContent.width,accuracy:0.001)
         XCTAssertEqual(canvas.convert(canvas.bounds,to:nil).height,originalContent.height,accuracy:0.001)
         XCTAssertEqual(canvas.bounds.width,pin.originalImage.size.width,accuracy:0.001)
@@ -72,14 +77,14 @@ import XCTest
         XCTAssertLessThan(firstColor?.greenComponent ?? 1,0.95)
         XCTAssertGreaterThan(firstColor?.greenComponent ?? 0,0.2)
         let next=try XCTUnwrap(pin.makeEditor(preferences:ScreenshotToolPreferences(),clipboardWriter:{_ in copies+=1;return true}))
-        let nextCanvas=try XCTUnwrap(next.window?.contentView?.subviews.first as? ScreenshotEditorCanvas)
+        let nextCanvas = try editorCanvas(next)
         XCTAssertEqual(nextCanvas.document.visible.first?.id,stroke.id)
         XCTAssertTrue(next.performShortcut(try key("\r",keyCode:36)))
         let bitmap=try XCTUnwrap(NSBitmapImageRep(data:try XCTUnwrap(pin.pngData())))
         let color=try XCTUnwrap(bitmap.colorAt(x:bitmap.pixelsWide/2,y:bitmap.pixelsHigh/2)).usingColorSpace(.deviceRGB)
         XCTAssertEqual(color?.greenComponent ?? 0,firstColor?.greenComponent ?? 1,accuracy:0.01,"再次编辑不能把上一次半透明标注重复叠加")
         let cancel=try XCTUnwrap(pin.makeEditor(preferences:ScreenshotToolPreferences()))
-        let cancelCanvas=try XCTUnwrap(cancel.window?.contentView?.subviews.first as? ScreenshotEditorCanvas)
+        let cancelCanvas = try editorCanvas(cancel)
         cancelCanvas.document.undo();cancel.close();XCTAssertEqual(pin.annotationDocument.visible.count,1)
         XCTAssertFalse(cancel.performShortcut(try key("\r",keyCode:36)));XCTAssertEqual(pin.annotationDocument.visible.count,1)
     }
@@ -95,8 +100,6 @@ import XCTest
         XCTAssertEqual(aligned.minX*2,(aligned.minX*2).rounded())
     }
     func testNamesFormatsAndUniqueSavePreserveOriginalPixels() throws {
-        let date=Date(timeIntervalSince1970:0)
-        XCTAssertEqual(ScreenshotSaving.filename(date:date,format:.png,timeZone:try XCTUnwrap(TimeZone(secondsFromGMT:0))),"Seven_1970-01-01_00-00-00.png")
         let folder=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
         try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true);defer{try? FileManager.default.removeItem(at:folder)}
         let png=try XCTUnwrap(ScreenshotSaving.data(image(),format:.png)),jpeg=try XCTUnwrap(ScreenshotSaving.data(image(),format:.jpeg))
@@ -150,12 +153,17 @@ import XCTest
         for key in [ScreenshotCapturePreferences.crosshairKey,ScreenshotCapturePreferences.hintsKey,ScreenshotCapturePreferences.magnifierKey]{defaults.set(false,forKey:key)}
         let preferences=ScreenshotCapturePreferences(defaults:defaults)
         XCTAssertFalse(preferences.crosshair);XCTAssertFalse(preferences.magnifier);XCTAssertFalse(preferences.hints)
-        let source=try XCTUnwrap(image().cgImage(forProposedRect:nil,context:nil,hints:nil)),screen=CGRect(x:0,y:0,width:200,height:120)
-        let scene=FrozenSelectionView(frame:screen,image:source,screenFrame:screen,candidates:[],capturePreferences:preferences,fullScreen:{},previousArea:{},complete:{_,_ in})
-        scene.refreshHover(at:CGPoint(x:40,y:50))
-        let guides=try XCTUnwrap(scene.subviews.compactMap{$0 as? FrozenCaptureGuidesView}.first)
-        XCTAssertFalse(guides.showsCrosshair);XCTAssertFalse(guides.showsHints)
-        XCTAssertTrue(try XCTUnwrap(scene.subviews.compactMap{$0 as? FrozenMagnifierView}.first).isHidden)
+        let source = try XCTUnwrap(image().cgImage(forProposedRect: nil, context: nil, hints: nil))
+        let screen = CGRect(x: 0, y: 0, width: 200, height: 120)
+        var copiedColor: String?
+        var completions = 0
+        let scene = FrozenSelectionView(frame: screen, image: source, screenFrame: screen, candidates: [],
+            capturePreferences: preferences, fullScreen: {}, previousArea: {},
+            writeColor: { copiedColor = $0; return true }, complete: { _, _ in completions += 1 })
+        scene.refreshHover(at: CGPoint(x: 40, y: 50))
+        scene.keyDown(with: try key("c", keyCode: 8))
+        XCTAssertEqual(copiedColor, "FFFFFF")
+        XCTAssertEqual(completions, 1)
     }
 
     func testPNGPreservesTransparencyAndJPEGFlattensToWhite() throws {

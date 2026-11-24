@@ -72,7 +72,7 @@ import XCTest
     }
     func testCompletionSoundOnlyPlaysOnSuccessfulCaptureAndCanBeDisabled() throws {
         let name="CaptureSound.\(UUID().uuidString)",defaults=try XCTUnwrap(UserDefaults(suiteName:name));defer{defaults.removePersistentDomain(forName:name)}
-        XCTAssertTrue(ScreenshotCapturePreferences(defaults:defaults).completionSound)
+        defaults.set(true, forKey: ScreenshotCapturePreferences.completionSoundKey)
         var played=0,succeeds=false
         let editor=makeScreenshotEditorForTesting(image:image(),preferences:ScreenshotToolPreferences(defaults:defaults),clipboardWriter:{_ in succeeds},soundPlayer:{played+=1});defer{editor.close()}
         XCTAssertTrue(editor.performShortcut(try key("\r",code:36)));XCTAssertEqual(played,0)

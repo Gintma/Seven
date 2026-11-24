@@ -146,7 +146,9 @@ final class SpeechCoverageRoutingTests: XCTestCase {
             systemVoiceLanguages:{ [] })
         let text = String(repeating:"Habari ",count:100)
         XCTAssertFalse(controller.canSpeak(text:text,declaredLanguage:"sw"))
-        XCTAssertEqual(controller.availabilityLabel(content:.source,text:text,declaredLanguage:"sw"),"文字超过可用朗读服务的字数上限")
+        XCTAssertTrue(controller.canSpeak(text: "x", declaredLanguage: "sw"))
+        XCTAssertEqual(controller.availabilityLabel(content: .source, text: text, declaredLanguage: "sw"),
+                       L10n.text("thisTextExceedsTheCharacterLimitOf"))
     }
 
     func testUncoveredPersianIsDisabledAndNeverSpeaksDefaultVoice() throws {
@@ -157,8 +159,10 @@ final class SpeechCoverageRoutingTests: XCTestCase {
         let controller = SpeechController(settings:SettingsStore(defaults:defaults),systemBackend:system,
             systemVoiceLanguages:{["en-US"]})
         XCTAssertFalse(controller.canSpeak(text:"سلام",declaredLanguage:"fa"))
-        XCTAssertEqual(controller.availabilityLabel(content:.source,text:"",declaredLanguage:"fa"),"朗读原文")
-        XCTAssertEqual(controller.availabilityLabel(content:.source,text:"سلام",declaredLanguage:"fa"),"暂不支持朗读波斯语")
+        XCTAssertEqual(controller.availabilityLabel(content: .source, text: "", declaredLanguage: "fa"),
+                       controller.label(for: .source))
+        XCTAssertEqual(controller.availabilityLabel(content: .source, text: "سلام", declaredLanguage: "fa"),
+                       L10n.format("speechIsUnavailableFor", LanguageCatalog.name("fa")))
         controller.toggle(content:.source,text:"سلام",declaredLanguage:"fa")
         XCTAssertEqual(controller.state,.idle)
         XCTAssertTrue(system.languages.isEmpty)

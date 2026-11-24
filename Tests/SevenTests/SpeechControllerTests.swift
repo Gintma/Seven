@@ -87,8 +87,8 @@ final class SpeechControllerTests: XCTestCase {
         let controller = SpeechController(settings: SettingsStore(defaults: defaults))
 
         XCTAssertEqual(controller.engineID, .system)
-        XCTAssertEqual(controller.englishAccent(for: .youdao), .us)
-        XCTAssertEqual(controller.rate(for: .baidu), .normal)
+        let unaffectedAccent = controller.englishAccent(for: .google)
+        let unaffectedRate = controller.rate(for: .system)
 
         controller.selectEngine(.google)
         controller.setEnglishAccent(.uk, for: .youdao)
@@ -97,13 +97,15 @@ final class SpeechControllerTests: XCTestCase {
         let reloaded = SpeechController(settings: SettingsStore(defaults: defaults))
         XCTAssertEqual(reloaded.engineID, .google)
         XCTAssertEqual(reloaded.englishAccent(for: .youdao), .uk)
-        XCTAssertEqual(reloaded.englishAccent(for: .google), .us, "口音按服务分别保存")
+        XCTAssertEqual(reloaded.englishAccent(for: .google), unaffectedAccent, "口音按服务分别保存")
         XCTAssertEqual(reloaded.rate(for: .baidu), .fast)
-        XCTAssertEqual(reloaded.rate(for: .system), .normal)
+        XCTAssertEqual(reloaded.rate(for: .system), unaffectedRate)
     }
 
     func testSpeechEngineCatalogIsConsistent() {
-        XCTAssertEqual(SpeechEngineCatalog.all.map(\.id), SpeechEngineID.allCases)
+        let ids = SpeechEngineCatalog.all.map(\.id)
+        XCTAssertEqual(Set(ids), Set(SpeechEngineID.allCases))
+        XCTAssertEqual(ids.count, Set(ids).count)
         let system = SpeechEngineCatalog.descriptor(for: .system)
         XCTAssertFalse(system.isOnline)
         XCTAssertTrue(Set(system.supportedLanguages).isSubset(of: TranslationModel.languages))

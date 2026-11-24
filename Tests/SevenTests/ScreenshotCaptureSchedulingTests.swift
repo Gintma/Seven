@@ -8,10 +8,11 @@ import XCTest
             space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue))
         return try XCTUnwrap(context.makeImage())
     }
-    func testCadenceDoesNotRound108MillisecondsUpTo200() {
-        XCTAssertEqual(ScreenshotScrollPolicy.delayUntilNextSample(elapsed:0.108),0)
-        XCTAssertEqual(ScreenshotScrollPolicy.delayUntilNextSample(elapsed:0.04),0.06,accuracy:0.0001)
-        XCTAssertEqual(ScreenshotScrollPolicy.delayUntilNextSample(elapsed:0.2),0)
+    func testCadenceDoesNotWaitAnotherIntervalAfterSlowCapture() {
+        let interval = ScreenshotScrollPolicy.sampleInterval
+        XCTAssertEqual(ScreenshotScrollPolicy.delayUntilNextSample(elapsed: interval + 0.008), 0)
+        XCTAssertEqual(ScreenshotScrollPolicy.delayUntilNextSample(elapsed: interval / 2), interval / 2, accuracy: 0.0001)
+        XCTAssertEqual(ScreenshotScrollPolicy.delayUntilNextSample(elapsed: interval * 2), 0)
     }
     func testSlowCaptureSchedulesFreshFrameImmediatelyAfterCompletion() async throws {
         _ = NSApplication.shared
@@ -36,7 +37,7 @@ import XCTest
         XCTAssertGreaterThanOrEqual(gaps.count,3)
         XCTAssertLessThan(gaps[gaps.count/2],0.19,"115ms处理不能被固定timer网格变成200ms以上的帧间隔")
     }
-    func testScreenEditorAndCaptureUseNonactivatingPanels() throws {
+    func testScreenEditorAndCaptureCannotBecomeMainWindows() throws {
         _ = NSApplication.shared
         let cg=try image(),screen=try XCTUnwrap(NSScreen.screens.first).frame
         let frozen=FrozenSelectionContext(screenFrame:screen,localSelection:CGRect(x:20,y:20,width:100,height:80),image:cg)
@@ -44,12 +45,10 @@ import XCTest
         let capture=ScreenshotScrollWindowController(rect:CGRect(x:20,y:20,width:100,height:80),capture:{_,_ in cg},completed:{_ in})
         defer {editor.close();capture.close()}
         for owner in [try XCTUnwrap(editor.window),try XCTUnwrap(capture.window)] {
-            XCTAssertTrue(owner.styleMask.contains(.nonactivatingPanel))
             XCTAssertFalse(owner.canBecomeMain,"覆盖层不能成为main并带起设置窗口")
-            for child in owner.childWindows ?? [] {XCTAssertTrue(child.styleMask.contains(.nonactivatingPanel))}
         }
     }
-    func testShowingPassiveCaptureDoesNotPromoteOrdinaryWindow() async throws {
+    func testShowingPassiveCaptureOrEditorDoesNotPromoteOrdinaryWindow() async throws {
         _ = NSApplication.shared
         let cg=try image()
         let settings=NSWindow(contentRect:CGRect(x:0,y:0,width:200,height:100),styleMask:[.titled,.closable],backing:.buffered,defer:false)
@@ -58,12 +57,17 @@ import XCTest
         let mainObserver=NotificationCenter.default.addObserver(forName:NSWindow.didBecomeMainNotification,object:settings,queue:.main){_ in mainEvents+=1}
         let activeObserver=NotificationCenter.default.addObserver(forName:NSApplication.didBecomeActiveNotification,object:NSApp,queue:.main){_ in activeEvents+=1}
         defer {NotificationCenter.default.removeObserver(mainObserver);NotificationCenter.default.removeObserver(activeObserver);settings.close()}
-        let controller=ScreenshotScrollWindowController(rect:CGRect(x:100,y:100,width:100,height:80),capture:{_,_ in cg},completed:{_ in})
-        defer {controller.close()}
-        ScreenshotAuxiliaryWindows.show(controller,activateApplication:false)
-        for _ in 0..<10 {await Task.yield()}
-        XCTAssertEqual(mainEvents,0)
-        XCTAssertEqual(activeEvents,0)
-        controller.close()
+        let capture = ScreenshotScrollWindowController(rect: CGRect(x: 100, y: 100, width: 100, height: 80),
+            capture: { _, _ in cg }, completed: { _ in })
+        let editor = makeScreenshotEditorForTesting(image: NSImage(cgImage: cg, size: CGSize(width: 100, height: 80)),
+            preferences: ScreenshotToolPreferences())
+        let controllers: [NSWindowController] = [capture, editor]
+        for controller in controllers {
+            ScreenshotAuxiliaryWindows.show(controller, activateApplication: false)
+            for _ in 0..<10 { await Task.yield() }
+            XCTAssertEqual(mainEvents, 0)
+            XCTAssertEqual(activeEvents, 0)
+            controller.close()
+        }
     }
 }

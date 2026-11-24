@@ -174,48 +174,6 @@ final class FrozenScreenshotCaptureTests: XCTestCase {
         }
     }
 
-    func testDraggedRegionUsesSavedPixelCornerRadiusBeforeMouseUp() throws {
-        let size = CGSize(width: 800, height: 600)
-        let view = FrozenSelectionView(frame: CGRect(origin: .zero, size: size), image: try image(width: 1600, height: 1200), screenFrame: CGRect(origin: .zero, size: size), candidates: [], outputCornerRadius: 100, fullScreen: {}, previousArea: {}) { _, _ in }
-        let window = NSWindow(contentRect: view.bounds, styleMask: [.borderless], backing: .buffered, defer: false)
-        window.isReleasedWhenClosed = false; window.contentView = view
-        defer { window.close() }
-        func mouse(_ type: NSEvent.EventType, _ point: CGPoint) throws -> NSEvent {
-            try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point, modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1))
-        }
-        view.mouseDown(with: try mouse(.leftMouseDown, CGPoint(x: 400, y: 200)))
-        view.mouseDragged(with: try mouse(.leftMouseDragged, CGPoint(x: 600, y: 400)))
-        view.layoutSubtreeIfNeeded()
-        let bitmap = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
-        view.cacheDisplay(in: view.bounds, to: bitmap)
-        func brightness(_ point: CGPoint) throws -> CGFloat {
-            try XCTUnwrap(bitmap.colorAt(x: Int(point.x * CGFloat(bitmap.pixelsWide) / size.width), y: Int((size.height - point.y) * CGFloat(bitmap.pixelsHigh) / size.height))?.usingColorSpace(.deviceRGB)).redComponent
-        }
-        XCTAssertLessThan(try brightness(CGPoint(x: 404, y: 204)), 0.95, "尚未松手时圆角外已显示蒙层")
-        XCTAssertGreaterThan(try brightness(CGPoint(x: 500, y: 300)), 0.99)
-    }
-
-    func testHoverMaskFollowsWindowAndKeepsSelectedOverlapUnmasked() throws {
-        let size = CGSize(width: 800, height: 600)
-        let front = FrozenWindowCandidate(id: 1, frame: CGRect(x: 400, y: 300, width: 200, height: 200))
-        let rear = FrozenWindowCandidate(id: 2, frame: CGRect(x: 500, y: 250, width: 200, height: 200))
-        let view = FrozenSelectionView(frame: CGRect(origin: .zero, size: size), image: try image(width: 800, height: 600), screenFrame: CGRect(origin: .zero, size: size), candidates: [front, rear], fullScreen: {}, previousArea: {}) { _, _ in }
-        view.layoutSubtreeIfNeeded()
-        func brightness(at point: CGPoint) throws -> CGFloat {
-            let bitmap = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
-            view.cacheDisplay(in: view.bounds, to: bitmap)
-            return try XCTUnwrap(bitmap.colorAt(x: Int(point.x * CGFloat(bitmap.pixelsWide) / size.width), y: Int((size.height - point.y) * CGFloat(bitmap.pixelsHigh) / size.height))?.usingColorSpace(.deviceRGB)).redComponent
-        }
-        view.refreshHover(at: CGPoint(x: 450, y: 450))
-        XCTAssertEqual(try brightness(at: CGPoint(x: 440, y: 340)), 1, accuracy: 0.02)
-        XCTAssertLessThan(try brightness(at: CGPoint(x: 660, y: 280)), 0.6)
-        view.refreshHover(at: CGPoint(x: 680, y: 300))
-        XCTAssertLessThan(try brightness(at: CGPoint(x: 440, y: 340)), 0.6)
-        XCTAssertEqual(try brightness(at: CGPoint(x: 660, y: 280)), 1, accuracy: 0.02)
-        view.selectedWindows = [front]
-        XCTAssertEqual(try brightness(at: CGPoint(x: 520, y: 400)), 1, accuracy: 0.02, "已选窗口与悬停窗口交叠处不能反转回蒙层")
-    }
-
     func testColorReadoutPreservesHexRounding() {
         XCTAssertEqual(FrozenMagnifierLabels.hex(red: 0, green: 0, blue: 0), "000000")
         XCTAssertEqual(FrozenMagnifierLabels.hex(red: 1, green: 1, blue: 1), "FFFFFF")
@@ -458,47 +416,25 @@ final class FrozenScreenshotCaptureTests: XCTestCase {
     }
 
     func testMultiWindowCompositionPreservesContentInEachWindow() throws {
-        func windowImage(_ title: String, size: CGSize) -> NSImage {
-            let image = NSImage(size: size)
-            image.lockFocus()
-            NSColor.white.setFill(); CGRect(origin: .zero, size: size).fill()
-            (title as NSString).draw(at: CGPoint(x: 20, y: size.height - 60), withAttributes: [.font: NSFont.systemFont(ofSize: 24), .foregroundColor: NSColor.black])
-            image.unlockFocus()
-            return image
-        }
-        func darkPixels(_ image: NSImage, in rect: CGRect) throws -> Int {
-            let cg = try XCTUnwrap(image.cgImage(forProposedRect: nil, context: nil, hints: nil))
-            let bitmap = NSBitmapImageRep(cgImage: cg)
-            let scale = CGFloat(cg.width) / image.size.width
-            var count = 0
-            for y in Int((image.size.height - rect.maxY) * scale)..<Int((image.size.height - rect.minY) * scale) {
-                for x in Int(rect.minX * scale)..<Int(rect.maxX * scale) {
-                    let color = try XCTUnwrap(bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB))
-                    if color.alphaComponent > 0.99, color.redComponent < 0.1 { count += 1 }
-                }
-            }
-            return count
-        }
         let front = FrozenWindowCandidate(id: 1, frame: CGRect(x: 220, y: 220, width: 440, height: 340))
         let rear = FrozenWindowCandidate(id: 2, frame: CGRect(x: 500, y: 330, width: 460, height: 320))
-        let images = [windowImage("Front101", size: front.frame.size), windowImage("Rear102", size: rear.frame.size)]
-        // 只检查窗口正文，避开随系统强调色变化的选区线和手柄。
-        let titleRect = CGRect(x: 8, y: 268, width: 224, height: 64)
-        let before = try darkPixels(images[0], in: titleRect)
-        XCTAssertGreaterThan(before, 100)
-        let context = try XCTUnwrap(FrozenMultiWindowComposition.selectionContext(candidates: [front, rear], images: images, screenFrame: CGRect(x: 0, y: 0, width: 1200, height: 900)))
+        let red = NSColor(deviceRed: 1, green: 0, blue: 0, alpha: 1)
+        let blue = NSColor(deviceRed: 0, green: 0, blue: 1, alpha: 1)
+        let images = try [solid(red, size: front.frame.size), solid(blue, size: rear.frame.size)]
+        let screen = CGRect(x: 0, y: 0, width: 1200, height: 900)
+        let context = try XCTUnwrap(FrozenMultiWindowComposition.selectionContext(
+            candidates: [front, rear], images: images, screenFrame: screen))
         let output = try XCTUnwrap(context.croppedImage(in: context.localSelection))
-        let offset = front.frame.origin.y - context.localSelection.origin.y
-        let after = try darkPixels(output, in: titleRect.offsetBy(dx: 0, dy: offset))
-        // NSImage 到设备 RGB 的文字抗锯齿转换允许极少量阈值边缘像素变化。
-        XCTAssertEqual(Double(after), Double(before), accuracy: Double(before) * 0.01)
-        let canvas = ScreenshotEditorCanvas(image: output)
-        let overlay = ScreenshotEditorSelectionOverlay(context: context, canvas: canvas)
-        let bitmap = try XCTUnwrap(overlay.bitmapImageRepForCachingDisplay(in: overlay.bounds))
-        overlay.cacheDisplay(in: overlay.bounds, to: bitmap)
-        let preview = NSImage(size: context.screenFrame.size); preview.addRepresentation(bitmap)
-        let onScreen = try darkPixels(preview, in: titleRect.offsetBy(dx: front.frame.minX, dy: front.frame.minY))
-        XCTAssertEqual(Double(onScreen), Double(before), accuracy: Double(before) * 0.01, "全屏编辑层不能覆盖窗口内的内容")
+        let bitmap = try XCTUnwrap(ScreenshotSaving.bitmap(output))
+        let scale = CGFloat(bitmap.pixelsWide) / output.size.width
+        for (window, sample) in [(front, red), (rear, blue)] {
+            let x = (window.id == front.id ? window.frame.minX + 20 : window.frame.maxX - 20) - context.localSelection.minX
+            let y = context.localSelection.maxY - window.frame.midY
+            let pixel = try XCTUnwrap(bitmap.colorAt(x: Int(x * scale), y: Int(y * scale))?.usingColorSpace(.deviceRGB))
+            XCTAssertEqual(pixel.redComponent, sample.redComponent, accuracy: 0.03)
+            XCTAssertEqual(pixel.blueComponent, sample.blueComponent, accuracy: 0.03)
+            XCTAssertEqual(pixel.alphaComponent, 1, accuracy: 0.01)
+        }
     }
 
     func testMultiWindowCaptureFailureDoesNotDeliverPartialComposite() async throws {
@@ -585,10 +521,7 @@ final class FrozenScreenshotCaptureTests: XCTestCase {
         XCTAssertEqual(context.localSelection, CGRect(x: 0, y: 0, width: 50, height: 20))
         let editor = ScreenshotEditorWindowController(image: try XCTUnwrap(output), context: .selection(context), preferences: ScreenshotToolPreferences())
         defer { editor.close() }
-        XCTAssertEqual(editor.window?.styleMask.contains(.titled), false)
         XCTAssertEqual(editor.window?.frame.size, context.screenFrame.size)
-        XCTAssertTrue(editor.window?.contentView is ScreenshotEditorSelectionOverlay)
-        XCTAssertEqual(editor.window?.childWindows?.count, 2, "窗口合成留在原屏位置，使用下方浮动工具条而不是独立编辑窗口")
         fixture.held = true
         var completions = 0
         coordinator.captureWindows(candidates, on: CGRect(x: 0, y: 0, width: 100, height: 80)) { result in

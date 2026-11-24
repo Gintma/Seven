@@ -29,13 +29,16 @@ final class ECDictionaryTests: XCTestCase {
         ))
 
         XCTAssertEqual(entry.headword, "refine")
-        XCTAssertEqual(entry.pronunciations, [.init(label: "音标", value: "ri'fain")])
+        XCTAssertEqual(entry.pronunciations.map(\.value), ["ri'fain"])
         XCTAssertEqual(entry.blocks.map(\.text), ["vt. 精炼, 净化", "vi. 改进"])
         XCTAssertEqual(entry.englishDefinitions.count, 2)
-        XCTAssertEqual(entry.forms.map(\.label), ["现在分词", "过去分词", "过去式", "第三人称单数"])
-        XCTAssertTrue(entry.labels.contains("四级"))
-        XCTAssertTrue(entry.labels.contains("牛津 3000"))
-        XCTAssertTrue(entry.labels.contains("柯林斯 2 星"))
+        XCTAssertEqual(entry.forms.map(\.value), ["refining", "refined", "refined", "refines"])
+        XCTAssertEqual(Set(entry.forms.map(\.label)).count, entry.forms.count)
+        XCTAssertTrue(entry.forms.allSatisfy { !$0.label.isEmpty })
+        // CET4, CET6, IELTS, Oxford, Collins and the provided frequency each yield a badge.
+        XCTAssertEqual(Set(entry.labels).count, 6)
+        XCTAssertTrue(entry.labels.allSatisfy { !$0.isEmpty })
+        XCTAssertTrue(entry.labels.contains { $0.contains("6600") })
     }
 
     func testEntryParserRestoresEscapedNewlinesFromOfficialCSV() {
@@ -59,7 +62,7 @@ final class ECDictionaryTests: XCTestCase {
             exchange: "0:give/1:p"
         ))
 
-        XCTAssertEqual(entry.forms, [.init(id: 0, label: "原形", value: "give")])
+        XCTAssertEqual(entry.forms.map(\.value), ["give"])
     }
 
     func testCSVImporterPreservesQuotedNewlinesAndSupportsExactAndFuzzyQueries() throws {

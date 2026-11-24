@@ -465,10 +465,10 @@ final class InputReplacementTests: XCTestCase {
         XCTAssertFalse(panel.isKeyWindow)
         let origin = panel.frame.origin
         let root = try XCTUnwrap(panel.contentView)
-        let button = try XCTUnwrap(root.subviews.compactMap { $0 as? NSButton }.first)
+        let button = try XCTUnwrap(screenshotDescendants(of: root).compactMap { $0 as? NSButton }
+            .first { $0.action == NSSelectorFromString("dismiss") })
         button.performClick(nil)
         XCTAssertTrue(cancelled)
-        let label = try XCTUnwrap(root.subviews.compactMap { $0 as? NSTextField }.first)
         hud.prepareForWrite()
         XCTAssertTrue(panel.isVisible)
         XCTAssertFalse(button.isEnabled)
@@ -479,8 +479,11 @@ final class InputReplacementTests: XCTestCase {
         let failureMessage: LocalizedMessage = "输入位置或内容已变化"
         let failureDetail: LocalizedMessage = "前台应用已变化，已停止替换。"
         hud.showResult(failureMessage, success: false, detail: failureDetail)
-        XCTAssertEqual(label.stringValue, failureMessage.text)
-        XCTAssertEqual(label.toolTip, failureDetail.text)
+        let messageField = try XCTUnwrap(screenshotDescendants(of: root).compactMap { $0 as? NSTextField }
+            .first { $0.accessibilityHelp() == failureDetail.text })
+        XCTAssertEqual(messageField.stringValue, failureMessage.text)
+        XCTAssertEqual(root.toolTip, failureDetail.text)
+        XCTAssertEqual(panel.frame.origin, origin)
         XCTAssertTrue(button.isHidden)
         XCTAssertLessThanOrEqual(panel.frame.width, Design.ReplacementHUD.maximumWidth)
     }
@@ -598,13 +601,16 @@ final class InputReplacementTests: XCTestCase {
     func testFailurePresentationMergesReasonsButKeepsSpecificDetails() {
         let changed: [InputReplacementError] = [.focusChanged, .controlChanged, .contentChanged, .selectionChanged]
         let presentations = changed.map { InputReplacementFailurePresentation(error: $0) }
-        XCTAssertEqual(Set(presentations.map(\.reason)), ["输入位置或内容已变化"])
-        XCTAssertEqual(Set(presentations.map(\.detail)).count, changed.count)
-        XCTAssertEqual(InputReplacementFailurePresentation(error: InputReplacementError.failed).reason, "请检查替换结果")
+        XCTAssertTrue(presentations.allSatisfy { $0.reasonMessage == .key("inputLocationOrTextChanged") })
+        XCTAssertEqual(presentations.map(\.detailMessage), changed.map { $0.issue })
+        XCTAssertEqual(InputReplacementFailurePresentation(error: InputReplacementError.failed).reasonMessage,
+                       .key("checkTheReplacement"))
         let network = InputReplacementFailurePresentation(error: TranslationError.http(429))
-        XCTAssertEqual(network.reason, "翻译失败")
-        XCTAssertTrue(network.detail.contains("额度不足"))
-        XCTAssertEqual(InputReplacementFailurePresentation(error: SelectionReadError.accessibilityPermission).reason, "请授权辅助功能")
+        XCTAssertEqual(network.reasonMessage, .key("translationFailed"))
+        XCTAssertEqual(network.detailMessage, .key("tooManyRequestsOrInsufficientQuotaTry"))
+        let permission = InputReplacementFailurePresentation(error: SelectionReadError.accessibilityPermission)
+        XCTAssertEqual(permission.detailMessage, SelectionReadError.accessibilityPermission.issue)
+        XCTAssertNotEqual(permission.reasonMessage, network.reasonMessage)
     }
 
     func testTwoMissingCopyResponsesAreSilentEmptyInput() async throws {
@@ -619,7 +625,6 @@ final class InputReplacementTests: XCTestCase {
             XCTAssertEqual(error as? InputReplacementError, .empty)
         }
         XCTAssertEqual(board.string(forType: .string), "user clipboard")
-        XCTAssertEqual(InputReplacementFailurePresentation(error: InputReplacementError.empty).reason, "没有可翻译的文字")
     }
 
     func testEmptyContentEvidencePrecedesSelectionAndDoesNotGuessFromPlaceholder() throws {
@@ -660,8 +665,9 @@ final class InputReplacementTests: XCTestCase {
         defer { unreadable.cancel(); empty.cancel() }
         let shown = NSApp.windows.filter { !before.contains(ObjectIdentifier($0)) && $0.isVisible }
         XCTAssertEqual(shown.count, 1)
-        let surface = try XCTUnwrap(shown.first?.contentView as? InputReplacementSurface)
-        XCTAssertEqual(surface.subviews.compactMap { $0 as? NSTextField }.first?.stringValue, "无法读取输入内容")
+        let surface = try XCTUnwrap(shown.first?.contentView)
+        XCTAssertEqual(surface.toolTip, InputReplacementError.unreadable.issue.text)
+        XCTAssertFalse(unreadable.isRunning)
         XCTAssertEqual(modelsCreated, 0)
     }
 

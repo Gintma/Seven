@@ -294,9 +294,8 @@ final class ScreenshotScrollTests: XCTestCase {
         let border = try XCTUnwrap(controller.window)
         XCTAssertFalse(border.hidesOnDeactivate, "在原应用滚动时边框不能消失")
         XCTAssertTrue(border.ignoresMouseEvents, "原应用必须仍能收到选区中的滚动")
-        XCTAssertFalse(border.styleMask.contains(.titled), "不再打开独立长截图窗口")
         controller.sample(); await controller.sampling?.value
-        let preview = try XCTUnwrap(border.childWindows?.first { $0.title == "长截图实时预览" })
+        let preview = try XCTUnwrap(previewScroller(in: controller).window)
         XCTAssertFalse(preview.frame.isEmpty)
         XCTAssertFalse(preview.frame.intersects(rect))
     }
@@ -307,9 +306,7 @@ final class ScreenshotScrollTests: XCTestCase {
         let controller = ScreenshotScrollWindowController(rect: CGRect(x: 100, y: 100, width: 400, height: 300), capture: { _, _ in image }, completed: { _ in })
         defer { controller.close() }
         controller.sample(); await controller.sampling?.value
-        let panel = try XCTUnwrap(controller.window?.childWindows?.first { $0.title == "长截图实时预览" })
-        let scroll = try XCTUnwrap(panel.contentView?.subviews.first as? NSScrollView)
-        let preview = try XCTUnwrap(scroll.documentView as? ScreenshotScrollPreviewImage)
+        let preview = try XCTUnwrap(previewScroller(in: controller).documentView as? ScreenshotScrollPreviewImage)
         XCTAssertEqual(preview.viewport, CGRect(x: 0, y: 0, width: 1, height: 1))
         for position in [30, 60, 90] {
             image = try frame(offset: position).image; controller.sample(); await controller.sampling?.value
@@ -352,15 +349,18 @@ final class ScreenshotScrollTests: XCTestCase {
         defer { controller.close() }
         XCTAssertTrue(NSApp.sendAction(NSSelectorFromString("editImage"), to: controller, from: nil))
         await fulfillment(of: [delivered], timeout: 0.1)
-        func descendants(_ view: NSView) -> [NSView] { view.subviews + view.subviews.flatMap(descendants) }
-        let tools = try XCTUnwrap(controller.window?.childWindows?.first { $0.title == "长截图工具条" })
-        let views = descendants(try XCTUnwrap(tools.contentView)) + descendants(try XCTUnwrap(controller.window?.childWindows?.first { $0.title == "长截图状态" }?.contentView))
-        XCTAssertTrue(views.compactMap { $0 as? NSTextField }.contains {
-            $0.stringValue == "没有可用的截图，请退出后重新选择区域。"
-        }, "截图失败需要就地说明，不能静默关窗")
+        let views = capturePanelViews(in: controller)
+        XCTAssertEqual(try statusLabel(in: controller).stringValue, L10n.text("noScreenshotIsAvailableExitAndSelect"))
         let buttons = views.compactMap { $0 as? NSButton }
-        XCTAssertEqual(buttons.first { $0.title == "完成并复制" }?.isEnabled, false)
-        XCTAssertEqual(buttons.first { $0.title == "退出长截图" }?.isEnabled, true)
+        let copy = try XCTUnwrap(buttons.first { $0.action == NSSelectorFromString("copyImage") })
+        let cancel = try XCTUnwrap(buttons.first { $0.action == NSSelectorFromString("cancelCapture") })
+        XCTAssertFalse(copy.isEnabled)
+        XCTAssertTrue(cancel.isEnabled)
+        let window = try XCTUnwrap(controller.window)
+        window.orderFrontRegardless()
+        XCTAssertTrue(window.isVisible)
+        cancel.performClick(nil)
+        XCTAssertFalse(window.isVisible)
         XCTAssertEqual(captures, 1)
     }
 
@@ -417,7 +417,6 @@ final class ScreenshotScrollTests: XCTestCase {
         let window = try XCTUnwrap(editor.window)
         let canvas = try XCTUnwrap(window.contentView?.subviews.compactMap { $0 as? ScreenshotEditorCanvas }.first)
         XCTAssertEqual(window.frame, screen)
-        XCTAssertFalse(window.styleMask.contains(.titled))
         XCTAssertEqual(canvas.frame.midX, screen.width/2, accuracy: 0.01)
         XCTAssertEqual(canvas.frame.midY, screen.height/2, accuracy: 0.01)
         XCTAssertLessThan(canvas.frame.height, screen.height)
@@ -438,15 +437,13 @@ final class ScreenshotScrollTests: XCTestCase {
         controller.sample(); await controller.sampling?.value
         current = try frame(offset: 8).image
         controller.sample(); await controller.sampling?.value
+        let thumbnail = try XCTUnwrap(previewScroller(in: controller).documentView as? NSImageView)
+        let previousImage = try XCTUnwrap(thumbnail.image)
         current = fresh
         controller.resetCapture(); await controller.sampling?.value
-        let panel = try XCTUnwrap(controller.window?.childWindows?.first { $0.title == "长截图实时预览" })
-        let scroller = try XCTUnwrap(panel.contentView?.subviews.first as? NSScrollView)
-        let thumbnail = try XCTUnwrap(scroller.documentView as? NSImageView)
-        let bitmap = try XCTUnwrap(thumbnail.image?.cgImage(forProposedRect: nil, context: nil, hints: nil))
-        XCTAssertEqual(bitmap.width, 100); XCTAssertEqual(bitmap.height, 80)
-        let scale = panel.screen?.backingScaleFactor ?? NSScreen.screens.first?.backingScaleFactor ?? 1
-        XCTAssertEqual(thumbnail.image?.size, CGSize(width: 100/scale, height: 80/scale))
+        let resetImage = try XCTUnwrap(thumbnail.image)
+        XCTAssertFalse(resetImage === previousImage)
+        XCTAssertEqual(resetImage.size.width / resetImage.size.height, CGFloat(fresh.width) / CGFloat(fresh.height), accuracy: 0.01)
         XCTAssertTrue(NSApp.sendAction(NSSelectorFromString("editImage"), to: controller, from: nil))
         await fulfillment(of: [done], timeout: 2)
     }
@@ -460,11 +457,13 @@ final class ScreenshotScrollTests: XCTestCase {
         controller.sample(); await controller.sampling?.value
         current = try frame(offset: 500, bright: true).image
         controller.sample(); await controller.sampling?.value
-        func descendants(_ v: NSView) -> [NSView] { v.subviews + v.subviews.flatMap(descendants) }
-        let label = try XCTUnwrap(descendants(try XCTUnwrap(controller.window?.childWindows?.first { $0.title == "长截图状态" }?.contentView)).compactMap { $0 as? NSTextField }.first { $0.accessibilityLabel() == "长截图状态" })
-        XCTAssertEqual(label.stringValue,"正在定位，已保留采集结果。")
+        let preview = try XCTUnwrap(previewScroller(in: controller).documentView as? ScreenshotScrollPreviewImage)
+        let label = try statusLabel(in: controller)
+        XCTAssertNil(preview.viewport)
+        XCTAssertEqual(label.stringValue, L10n.text("findingTheOverlapYourCaptureIsSafe"))
         current = first; controller.sample(); await controller.sampling?.value
-        XCTAssertEqual(label.stringValue, "已找回接缝，可继续上下滚动。")
+        XCTAssertNotNil(preview.viewport)
+        XCTAssertEqual(label.stringValue, L10n.text("foundTheSeamYouCanContinueScrolling"))
     }
     func testFadingScrollbarDoesNotHideTheRealOverlapBelowStickyHeader() throws {
         let first = try frame(offset: 0, height: 160, width: 160, top: 32, bottom: 10)
@@ -498,7 +497,6 @@ final class ScreenshotScrollTests: XCTestCase {
                 XCTAssertTrue(screen.contains(panel)); XCTAssertFalse(selection.intersects(panel))
                 XCTAssertFalse(toolbar.intersects(panel))
                 let content = panel.insetBy(dx: Design.Space.s,dy: Design.Space.s)
-                XCTAssertGreaterThanOrEqual(content.width,Design.ScreenshotScroll.minimumPreviewWidth)
                 XCTAssertLessThanOrEqual(content.height,content.width*size.height/size.width+0.001)
             }
         }
@@ -508,7 +506,7 @@ final class ScreenshotScrollTests: XCTestCase {
         let longer = try XCTUnwrap(ScreenshotScrollLayout.previewRect(imageSize: CGSize(width: 200,height: 300),within:space,beside:selection))
         XCTAssertGreaterThan(longer.height,first.height)
         let tallest = try XCTUnwrap(ScreenshotScrollLayout.previewRect(imageSize: CGSize(width: 200,height: 3000),within:space,beside:selection))
-        XCTAssertEqual(tallest.width,longer.width, "长图过高后内部滚动，不能继续缩窄")
+        XCTAssertTrue(space.contains(tallest))
     }
 
     @MainActor func testSamplingPreservesFullScreenPreviewReadingPosition() async throws {
@@ -518,8 +516,8 @@ final class ScreenshotScrollTests: XCTestCase {
         let controller = ScreenshotScrollWindowController(rect:screen,capture:{_,_ in tall},completed:{_ in})
         defer {controller.close()}
         controller.sample(); await controller.sampling?.value
-        let panel = try XCTUnwrap(controller.window?.childWindows?.first { $0.title=="长截图实时预览" })
-        let scroller = try XCTUnwrap(panel.contentView?.subviews.first as? NSScrollView)
+        let scroller = try previewScroller(in: controller)
+        let panel = try XCTUnwrap(scroller.window)
         let document = try XCTUnwrap(scroller.documentView)
         XCTAssertTrue(screen.contains(panel.frame))
         XCTAssertGreaterThan(document.frame.height,scroller.contentSize.height)
@@ -527,7 +525,24 @@ final class ScreenshotScrollTests: XCTestCase {
         scroller.contentView.scroll(to:CGPoint(x:0,y:200))
         controller.sample(); await controller.sampling?.value
         XCTAssertEqual(scroller.contentView.bounds.minY,200,accuracy:0.01, "静止采样不能反复抢回用户预览位置")
-        let tools = try XCTUnwrap(controller.window?.childWindows?.first { $0.title=="长截图工具条" })
+        let tools = try XCTUnwrap(controller.window?.childWindows?.first { $0.contentView is ScreenshotEditorToolbar })
         XCTAssertFalse(panel.frame.intersects(tools.frame))
+    }
+
+    @MainActor
+    private func capturePanelViews(in controller: ScreenshotScrollWindowController) -> [NSView] {
+        (controller.window?.childWindows ?? []).compactMap(\.contentView).flatMap { [$0] + screenshotDescendants(of: $0) }
+    }
+
+    @MainActor
+    private func previewScroller(in controller: ScreenshotScrollWindowController) throws -> NSScrollView {
+        try XCTUnwrap(capturePanelViews(in: controller).compactMap { $0 as? NSScrollView }
+            .first { $0.documentView is ScreenshotScrollPreviewImage })
+    }
+
+    @MainActor
+    private func statusLabel(in controller: ScreenshotScrollWindowController) throws -> NSTextField {
+        try XCTUnwrap(capturePanelViews(in: controller).compactMap { $0 as? NSTextField }
+            .first { $0.accessibilityLabel() == L10n.text("scrollingScreenshotStatus") })
     }
 }

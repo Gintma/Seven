@@ -20,13 +20,19 @@ func makeScreenshotEditorForTesting(
 
 @MainActor
 func screenshotEditorToolbarContent(_ editor: ScreenshotEditorWindowController) throws -> NSView {
-    let toolbar = editor.window?.childWindows?.first { $0.title == L10n.text("screenshotToolbar") }
-    return try XCTUnwrap(toolbar?.contentView)
+    let childContent = (editor.window?.childWindows ?? []).compactMap(\.contentView)
+    let toolbar = childContent.lazy.flatMap { [$0] + screenshotDescendants(of: $0) }
+        .first { $0 is ScreenshotEditorToolbar }
+    return try XCTUnwrap(toolbar)
 }
 
 @MainActor
 func screenshotEditorTestSubviews(_ editor: ScreenshotEditorWindowController) throws -> [NSView] {
-    func descendants(_ view: NSView) -> [NSView] { view.subviews + view.subviews.flatMap(descendants) }
     let overlay = try XCTUnwrap(editor.window?.contentView)
-    return descendants(overlay) + descendants(try screenshotEditorToolbarContent(editor))
+    return screenshotDescendants(of: overlay) + screenshotDescendants(of: try screenshotEditorToolbarContent(editor))
+}
+
+@MainActor
+func screenshotDescendants(of view: NSView) -> [NSView] {
+    view.subviews + view.subviews.flatMap { screenshotDescendants(of: $0) }
 }

@@ -77,12 +77,14 @@ final class HotKeyAndSelectionTests: XCTestCase {
             defaults: defaults, storageKey: "inputHotKey.v1", defaultShortcut: .inputDefault,
             identifierID: 3, actionLabel: "输入翻译"
         )
-        manager.conflictingAction = { $0 == .selectionDefault ? "划词翻译" : nil }
+        let otherAction = LocalizedMessage.key("translateSelection")
+        manager.conflictingAction = { $0 == .selectionDefault ? otherAction : nil }
 
         manager.update(.selectionDefault)
 
         XCTAssertEqual(manager.shortcut, .inputDefault, "被占用的组合不应保存")
-        XCTAssertEqual(manager.statusMessage, "该组合已用于划词翻译，请换一个组合")
+        XCTAssertEqual(manager.statusMessage,
+                       LocalizedMessage.key("thisShortcutIsAlreadyUsedForChoose", .message(otherAction)).text)
         XCTAssertNil(manager.problem, "录制中的失败只在弹出框提示，设置行不重复显示")
     }
 
@@ -98,15 +100,16 @@ final class HotKeyAndSelectionTests: XCTestCase {
         }
 
         let feedback = selection.reset()
-        L10n.$languageOverride.withValue(.simplifiedChinese) {
-            XCTAssertEqual(feedback?.text, "未能恢复默认：该组合已用于输入翻译，请换一个组合")
-        }
-        L10n.$languageOverride.withValue(.english) {
-            XCTAssertEqual(feedback?.text,
-                           "Could not restore the default: This shortcut is already used for Translate Typed Text. Choose a different one.")
-            XCTAssertEqual(selection.shortcut, reassigned)
-            XCTAssertNil(selection.problem)
-        }
+        let expected = LocalizedMessage.key("couldNotRestoreTheDefault", .message(
+            .key("thisShortcutIsAlreadyUsedForChoose", .message(.key("translateTypedText")))))
+        XCTAssertEqual(feedback, expected)
+        let chinese = L10n.$languageOverride.withValue(.simplifiedChinese) { feedback?.text }
+        let english = L10n.$languageOverride.withValue(.english) { feedback?.text }
+        XCTAssertNotNil(chinese)
+        XCTAssertNotNil(english)
+        XCTAssertNotEqual(chinese, english)
+        XCTAssertEqual(selection.shortcut, reassigned)
+        XCTAssertNil(selection.problem)
     }
 
     func testShiftOnlyCombinationsAreNotGlobalShortcuts() throws {
@@ -137,7 +140,7 @@ final class HotKeyAndSelectionTests: XCTestCase {
 
         XCTAssertEqual(manager.shortcut, .inputDefault)
         XCTAssertFalse(manager.update(shiftA))
-        XCTAssertEqual(manager.statusMessage, "需包含 ⌘、⌥ 或 ⌃，请换一个组合")
+        XCTAssertEqual(manager.statusMessage, L10n.text("includeOrAndTryADifferentShortcut"))
     }
 
     @MainActor
@@ -156,7 +159,7 @@ final class HotKeyAndSelectionTests: XCTestCase {
         let other = HotKeyManager(defaults: defaults, storageKey: "test.other", defaultShortcut: .inputDefault,
                                   identifierID: 91, actionLabel: "输入翻译")
         XCTAssertFalse(other.update(rare), "同一组合不能重复注册")
-        XCTAssertEqual(other.statusMessage, "快捷键已被其他应用占用，请换一个组合", "失败原因不应被恢复旧组合时的提示覆盖")
+        XCTAssertEqual(other.statusMessage, L10n.text("anotherAppAlreadyUsesThisShortcutChoose"))
         XCTAssertNotEqual(other.shortcut, rare)
         other.stop()
 
@@ -221,7 +224,7 @@ final class HotKeyAndSelectionTests: XCTestCase {
                                     identifierID: 94, actionLabel: "输入翻译")
         starter.start()
         XCTAssertFalse(starter.isRegistered)
-        XCTAssertEqual(starter.problem, "快捷键已被其他应用占用，请换一个组合")
+        XCTAssertEqual(starter.problem, L10n.text("anotherAppAlreadyUsesThisShortcutChoose"))
         starter.stop()
 
         // 恢复默认失败交给设置行处理，原先已注册的组合仍然有效。
@@ -231,7 +234,7 @@ final class HotKeyAndSelectionTests: XCTestCase {
                                     carbonModifiers: UInt32(controlKey | optionKey | cmdKey), keyLabel: "F15")
         XCTAssertTrue(other.update(free))
         XCTAssertNil(other.problem)
-        XCTAssertEqual(other.reset()?.text, "未能恢复默认：快捷键已被其他应用占用，请换一个组合")
+        XCTAssertEqual(other.reset(), .key("couldNotRestoreTheDefault", .message(.key("anotherAppAlreadyUsesThisShortcutChoose"))))
         XCTAssertTrue(other.isRegistered)
         XCTAssertNil(other.problem)
         XCTAssertEqual(other.shortcut, free, "恢复失败时保留原组合")

@@ -201,7 +201,7 @@ final class StateMachineReproTests: XCTestCase {
         let card = AppKitServiceCardView(model: model, provider: provider)
         card.apply(result, hasCurrentResult: true, suppressBody: false, animated: false)
         let buttons = descendants(card).compactMap { $0 as? NSButton }
-        let copy = try XCTUnwrap(buttons.first { $0.accessibilityLabel() == "复制译文" })
+        let copy = try XCTUnwrap(buttons.first { $0.action == NSSelectorFromString("copyResult") })
         let speech = try XCTUnwrap(buttons.first { $0 is SpeechToggleButton })
         XCTAssertTrue(copy.isEnabled)
         XCTAssertTrue(speech.isEnabled)

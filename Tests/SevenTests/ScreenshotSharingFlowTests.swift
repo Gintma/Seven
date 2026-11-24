@@ -76,7 +76,8 @@ import XCTest
         let context=FrozenSelectionContext(screenFrame:CGRect(x:0,y:0,width:320,height:240),localSelection:CGRect(x:20,y:20,width:180,height:100),image:cg)
         let editor=ScreenshotEditorWindowController(image:try XCTUnwrap(context.croppedImage(in:context.localSelection)),context: .selection(context),preferences:ScreenshotToolPreferences());defer{editor.close()}
         editor.showWindow(nil)
-        let root=try XCTUnwrap(editor.window),size=try XCTUnwrap(root.childWindows?.first{$0.title=="截图尺寸"})
+        let root = try XCTUnwrap(editor.window)
+        let size = try XCTUnwrap(root.childWindows?.first { $0.contentView is ScreenshotSelectionSizeToolbar })
         XCTAssertTrue(root.firstResponder is ScreenshotEditorCanvas)
         XCTAssertFalse(size.firstResponder is NSTextView);XCTAssertFalse(size.firstResponder is NSTextField)
         func views(_ view:NSView)->[NSView] {view.subviews+view.subviews.flatMap(views)}

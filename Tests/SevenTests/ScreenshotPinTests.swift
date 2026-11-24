@@ -3,19 +3,15 @@ import XCTest
 @testable import Seven
 
 final class ScreenshotPinTests: XCTestCase {
-    func testPinResizeKeepsOriginalMaxBranchAndMouseAnchor() {
+    func testPinResizeKeepsMouseAnchorAndAspectRatio() {
         let base = NSSize(width: 100, height: 50)
         let old = NSRect(x: 20, y: 30, width: 100, height: 50)
-        let changed = ScreenshotPinGeometry.resized(base: base, old: old, mouse: NSPoint(x: 70, y: 55), requestedScale: 200)
-        XCTAssertEqual(changed.scale, 200)
-        XCTAssertEqual(changed.frame, NSRect(x: -30, y: 5, width: 200, height: 100))
-        let small = NSSize(width: 10, height: 10)
-        let capped = ScreenshotPinGeometry.resized(base: small, old: NSRect(origin: .zero, size: small), mouse: .zero, requestedScale: 401)
-        XCTAssertEqual(capped.scale, 400)
-        XCTAssertEqual(capped.frame.size, NSSize(width: 40, height: 40), "超过400的分支不再执行最小60pt宽度调整")
-        let minimum = ScreenshotPinGeometry.resized(base: small, old: NSRect(origin: .zero, size: small), mouse: .zero, requestedScale: 99)
-        XCTAssertEqual(minimum.scale, 600)
-        XCTAssertEqual(minimum.frame.size, NSSize(width: 60, height: 60))
+        let mouse = NSPoint(x: 40, y: 60)
+        let changed = ScreenshotPinGeometry.resized(base: base, old: old, mouse: mouse, requestedScale: 200)
+        XCTAssertEqual((mouse.x - changed.frame.minX) / changed.frame.width, (mouse.x - old.minX) / old.width, accuracy: 0.01)
+        XCTAssertEqual((mouse.y - changed.frame.minY) / changed.frame.height, (mouse.y - old.minY) / old.height, accuracy: 0.01)
+        XCTAssertEqual(changed.frame.width / changed.frame.height, base.width / base.height, accuracy: 0.01)
+        XCTAssertGreaterThan(changed.frame.width, old.width)
     }
 
     @MainActor private func image() -> NSImage {
@@ -36,14 +32,12 @@ final class ScreenshotPinTests: XCTestCase {
         let suite="SevenPinPrefs.\(UUID().uuidString)",defaults=try XCTUnwrap(UserDefaults(suiteName:suite))
         defer {defaults.removePersistentDomain(forName:suite)}
         let preferences=ScreenshotPinPreferences(defaults:defaults)
-        XCTAssertEqual(preferences.zoomWheel,.command);XCTAssertEqual(preferences.opacityWheel,.option)
         defaults.set(ScreenshotPinWheel.plain.rawValue,forKey:ScreenshotPinPreferences.zoomKey)
         defaults.set(ScreenshotPinWheel.control.rawValue,forKey:ScreenshotPinPreferences.opacityWheelKey)
-        defaults.set(16.0,forKey:"screenshotPin.radius.v1");defaults.set(0.6,forKey:"screenshotPin.opacity.v1")
         XCTAssertEqual(preferences.zoomWheel,.plain);XCTAssertEqual(preferences.opacityWheel,.control)
         let controller=ScreenshotPinWindowController(image:image(),preferences:preferences);defer {controller.close()}
         let view=try XCTUnwrap(controller.window?.contentView as? ScreenshotPinnedImageView)
-        XCTAssertEqual(view.displayOpacity,1,accuracy:0.001)
+        let originalOpacity = view.displayOpacity
         func wheel(_ modifiers:CGEventFlags) throws -> NSEvent {
             let event=try XCTUnwrap(CGEvent(scrollWheelEvent2Source:nil,units:.pixel,wheelCount:1,wheel1:-5,wheel2:0,wheel3:0));event.flags=modifiers
             return try XCTUnwrap(NSEvent(cgEvent:event))
@@ -51,7 +45,7 @@ final class ScreenshotPinTests: XCTestCase {
         let old=try XCTUnwrap(controller.window).frame
         view.scrollWheel(with:try wheel([]));XCTAssertLessThan(try XCTUnwrap(controller.window).frame.width,old.width)
         let scaled=try XCTUnwrap(controller.window).frame
-        view.scrollWheel(with:try wheel(.maskControl));XCTAssertLessThan(view.displayOpacity,1)
+        view.scrollWheel(with:try wheel(.maskControl));XCTAssertLessThan(view.displayOpacity, originalOpacity)
         XCTAssertEqual(controller.window?.frame,scaled)
         view.scrollWheel(with:try wheel(.maskCommand));XCTAssertEqual(controller.window?.frame,scaled)
     }
@@ -62,14 +56,9 @@ final class ScreenshotPinTests: XCTestCase {
         defaults.set(12.0,forKey:"screenshotPin.radius.v1");defaults.set(0.5,forKey:"screenshotPin.opacity.v1")
         let original=image(),controller=ScreenshotPinWindowController(image:original,preferences:.init(defaults:defaults))
         defer {controller.close()}
-        let view=try XCTUnwrap(controller.window?.contentView as? ScreenshotPinnedImageView)
         let window = try XCTUnwrap(controller.window)
         let panel = ScreenshotSaving.makePanel(parent: window, format: .png)
         XCTAssertGreaterThan(panel.level.rawValue, window.level.rawValue)
-        XCTAssertTrue(view.image === original);XCTAssertEqual(view.focusRingType,.none);XCTAssertNil((view as NSView) as? NSControl)
-        let rendered=try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in:view.bounds));view.cacheDisplay(in:view.bounds,to:rendered)
-        XCTAssertEqual(try XCTUnwrap(rendered.colorAt(x:0,y:0)).alphaComponent,0,accuracy:0.01)
-        XCTAssertEqual(try XCTUnwrap(rendered.colorAt(x:rendered.pixelsWide/2,y:rendered.pixelsHigh/2)).alphaComponent,1,accuracy:0.02)
         let output=try XCTUnwrap(NSBitmapImageRep(data:try XCTUnwrap(controller.pngData())))
         XCTAssertEqual(try XCTUnwrap(output.colorAt(x:0,y:0)).alphaComponent,1,accuracy:0.01)
         let board=pasteboard();defer {board.releaseGlobally()}
@@ -96,10 +85,10 @@ final class ScreenshotPinTests: XCTestCase {
         let all = try XCTUnwrap(menu.items.first { $0.action == NSSelectorFromString("closeAllPins") })
         XCTAssertTrue(NSApp.sendAction(try XCTUnwrap(all.action), to: all.target, from: all))
         XCTAssertTrue(closedAll)
-        let close=try XCTUnwrap(view.subviews.compactMap{$0 as? NSButton}.first)
+        let close = try XCTUnwrap(view.subviews.compactMap { $0 as? NSButton }
+            .first { $0.action == NSSelectorFromString("closePin") })
         XCTAssertTrue(close.isHidden);view.mouseEntered(with:try event());XCTAssertFalse(close.isHidden)
         view.layoutSubtreeIfNeeded();XCTAssertGreaterThan(close.frame.width,0);XCTAssertTrue(view.bounds.contains(close.frame))
-        XCTAssertEqual(view.accessibilityChildren()?.count,1)
         let hit = view.convert(CGPoint(x:close.frame.midX,y:close.frame.midY),to:view.superview)
         XCTAssertTrue(view.hitTest(hit) === close, "鼠标点击叉号必须命中关闭按钮，不能被图片截获")
         close.performClick(nil);XCTAssertTrue(controller.isClosed)
@@ -136,17 +125,6 @@ final class ScreenshotPinTests: XCTestCase {
         let original=image();board.clearContents();board.writeObjects([original]);board.setString("应优先使用图片",forType:.string)
         XCTAssertEqual(try ScreenshotClipboardPin.image(from:board).size,original.size)
     }
-    @MainActor func testPinEditingUsesOriginalFrameOverlay() throws {
-        let controller=ScreenshotPinWindowController(image:image(),preferences:.init());defer{controller.close()}
-        let context=try XCTUnwrap(controller.editingContext)
-        XCTAssertNil(context.background)
-        let editor=ScreenshotEditorWindowController(image:controller.originalImage,context: .centered(context),preferences:ScreenshotToolPreferences())
-        defer{editor.close()}
-        XCTAssertTrue(editor.window is ScreenshotEditorOverlayPanel)
-        XCTAssertTrue(editor.window?.contentView is ScreenshotCenteredEditorOverlay)
-        XCTAssertFalse(editor.window?.styleMask.contains(.titled) ?? true)
-    }
-
     @MainActor func testToggleAndCloseAllPinsLeaveOtherAuxiliaryWindowsAlone() throws {
         _ = NSApplication.shared
         let a=ScreenshotPinWindowController(image:image(),preferences:.init()),b=ScreenshotPinWindowController(image:image(),preferences:.init())

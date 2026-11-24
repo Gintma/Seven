@@ -21,7 +21,7 @@ private actor RecordingOnlineService: OnlineTranslationServing {
 
 private struct UnsupportedOnlineService: OnlineTranslationServing {
     func translate(_ request: OnlineTranslationRequest) async throws -> OnlineTranslationOutput {
-        throw TranslationError.unsupportedLanguage("有道翻译不支持这段文字的语言")
+        throw TranslationError.unsupportedLanguage(.key("youdaoTranslateDoesNotSupportTheLanguage"))
     }
 }
 
@@ -96,8 +96,8 @@ final class LanguageBarLabelTests: XCTestCase {
     }
 
     func testHistoryDisplayNameAcceptsCodesAndLegacyNames() {
-        XCTAssertEqual(LanguageCatalog.displayName(stored: "zh-Hans"), "简体中文")
-        XCTAssertEqual(LanguageCatalog.displayName(stored: "English"), "英语")
+        XCTAssertEqual(LanguageCatalog.displayName(stored: "zh-Hans"), LanguageCatalog.name("zh-Hans"))
+        XCTAssertEqual(LanguageCatalog.displayName(stored: "English"), LanguageCatalog.name("en"))
         XCTAssertEqual(LanguageCatalog.displayName(stored: "润色"), "润色")
     }
 }
@@ -229,7 +229,7 @@ final class LanguageBarModelTests: XCTestCase {
         try await waitUntilIdle(model)
 
         XCTAssertTrue(model.canSwapLanguages)
-        XCTAssertEqual(model.swapTitle, "用有道翻译的译文交换")
+        XCTAssertEqual(model.swapTitle, L10n.format("swapWithTheTranslationFrom", ServiceProvider.youdao.title))
 
         model.swapLanguages()
         try await waitUntilIdle(model)
@@ -252,7 +252,7 @@ final class LanguageBarModelTests: XCTestCase {
 
         let result = try XCTUnwrap(model.serviceResults.first { $0.id == .youdao })
         XCTAssertEqual(result.phase, .skipped)
-        XCTAssertEqual(result.errorMessage, "有道翻译不支持斯瓦希里语")
+        XCTAssertEqual(result.issue, .key("translation.unsupportedLanguage", .provider(.youdao), .language("sw")))
         let requests = await youdao.requests
         XCTAssertTrue(requests.isEmpty)
 
@@ -264,13 +264,15 @@ final class LanguageBarModelTests: XCTestCase {
 
     func testCommonLanguagesAppendRemoveAndPersistOrder() {
         let model = makeModel(RecordingOnlineService(response: "x"))
-        XCTAssertEqual(model.commonLanguages, LanguageCatalog.defaultCommon)
-        XCTAssertEqual(model.otherLanguages.count, 21)
-
-        model.setCommonLanguage("sw", isCommon: true)
-        model.setCommonLanguage("pt", isCommon: true)
-        model.setCommonLanguage("fr", isCommon: false)
-        let expected = ["zh-Hans", "zh-Hant", "en", "ja", "ko", "de", "es", "ru", "sw", "pt"]
+        let initial = model.commonLanguages
+        guard let removed = initial.first, model.otherLanguages.count >= 2 else {
+            return XCTFail("需要已有常用语言和两种待添加语言")
+        }
+        XCTAssertEqual(model.otherLanguages, LanguageCatalog.codes.filter { !initial.contains($0) })
+        let additions = Array(model.otherLanguages.prefix(2))
+        for code in additions { model.setCommonLanguage(code, isCommon: true) }
+        model.setCommonLanguage(removed, isCommon: false)
+        let expected = initial.filter { $0 != removed } + additions
         XCTAssertEqual(model.commonLanguages, expected)
 
         let reopened = makeModel(RecordingOnlineService(response: "x"))
@@ -309,8 +311,10 @@ final class LanguageBarModelTests: XCTestCase {
 
     func testLastCommonLanguageCannotBeRemoved() {
         let model = makeModel(RecordingOnlineService(response: "x"))
-        for code in LanguageCatalog.defaultCommon { model.setCommonLanguage(code, isCommon: false) }
-        XCTAssertEqual(model.commonLanguages, ["ru"])
+        let initial = model.commonLanguages
+        for code in initial { model.setCommonLanguage(code, isCommon: false) }
+        XCTAssertEqual(model.commonLanguages, Array(initial.suffix(1)))
+        XCTAssertEqual(model.commonLanguages.count, 1)
     }
 
     func testInvalidStoredCommonLanguagesAreIgnored() {
@@ -324,10 +328,11 @@ final class LanguageBarModelTests: XCTestCase {
         for code in ["ar", "fa", "he", "ur"] {
             let choice = SettingsLanguageChoice(code: code)
             XCTAssertEqual(Locale.Language(identifier: code).characterDirection, .rightToLeft)
-            XCTAssertEqual(choice.rowText().string, "\u{2068}" + choice.nativeName + "\u{2069}\u{2002}—\u{2002}" + choice.title)
+            let isolatedName = "\u{2068}" + choice.nativeName + "\u{2069}"
+            XCTAssertTrue(choice.rowText().string.hasPrefix(isolatedName))
+            XCTAssertTrue(choice.rowText().string.hasSuffix(choice.title))
             let paragraph = choice.rowText().attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
             XCTAssertEqual(paragraph?.baseWritingDirection, .leftToRight)
-            XCTAssertEqual(paragraph?.alignment, .left)
             XCTAssertEqual(SettingsLanguageChoice.displayNativeName(choice.nativeName, code: code), "\u{2068}" + choice.nativeName + "\u{2069}")
             XCTAssertEqual(SettingsLanguageChoice.filtered(codes: [code], query: choice.nativeName).map(\.id), [code])
         }
@@ -382,7 +387,7 @@ final class LanguageBarModelTests: XCTestCase {
 
         let result = try XCTUnwrap(model.serviceResults.first { $0.id == .youdao })
         XCTAssertEqual(result.phase, .skipped)
-        XCTAssertEqual(result.errorMessage, "有道翻译不支持这段文字的语言")
+        XCTAssertEqual(result.issue, .key("youdaoTranslateDoesNotSupportTheLanguage"))
         XCTAssertNil(model.errorMessage)
     }
 
@@ -395,7 +400,7 @@ final class LanguageBarModelTests: XCTestCase {
 
         let result = try XCTUnwrap(model.serviceResults.first { $0.id == .ecdict })
         XCTAssertEqual(result.phase, .skipped)
-        XCTAssertEqual(result.errorMessage, "仅用于英文单词或短语，本次未运行。")
+        XCTAssertEqual(result.issue, TranslationModel.dictionaryInputIssue)
     }
 
     func testEnablingAndDisablingServicesUpdatesShownResults() async throws {

@@ -48,12 +48,12 @@ extension StateMachineReproTests {
         XCTAssertEqual(hud.panel.frame.minY, previous.y, accuracy: 1)
         coordinator.start(pid: 2)
 
-        XCTAssertEqual(hud.panel.contentView?.toolTip, "请在可编辑的输入框中使用")
+        XCTAssertEqual(hud.panel.contentView?.toolTip, InputReplacementError.readOnly.issue.text)
         XCTAssertEqual(hud.panel.frame.minY, current.y, accuracy: 1)
 
         coordinator.start(pid: 3)
         try await reached("当前目标准备失败后显示 HUD", until: { hud.panel.isVisible })
-        XCTAssertEqual(hud.panel.contentView?.toolTip, "请在可编辑的输入框中使用")
+        XCTAssertEqual(hud.panel.contentView?.toolTip, InputReplacementError.readOnly.issue.text)
         XCTAssertEqual(hud.panel.frame.minY, rejectedAnchor.y, accuracy: 1)
     }
 }

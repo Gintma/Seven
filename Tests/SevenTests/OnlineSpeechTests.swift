@@ -489,7 +489,7 @@ final class OnlineSpeechTests: XCTestCase {
 
         controller.toggle(content: .translation(.youdao), text: "give up", declaredLanguage: "en")
         XCTAssertEqual(controller.appearance(for: .translation(.youdao)), .playingShort)
-        XCTAssertEqual(controller.label(for: .translation(.youdao)), "重新朗读译文")
+        XCTAssertEqual(controller.activeContent, .translation(.youdao))
         controller.toggle(content: .translation(.youdao), text: "give up", declaredLanguage: "en")
         XCTAssertEqual(system.spoken.map(\.text), ["give up", "give up"], "短内容再点从头重读")
         XCTAssertEqual(controller.state, .speaking)
@@ -497,7 +497,7 @@ final class OnlineSpeechTests: XCTestCase {
         let sentence = "The cat sat on the purple mat yesterday."
         controller.toggle(content: .source, text: sentence, declaredLanguage: "en")
         XCTAssertEqual(controller.appearance(for: .source), .playingLong)
-        XCTAssertEqual(controller.label(for: .source), "暂停朗读原文")
+        XCTAssertEqual(controller.activeContent, .source)
         controller.toggle(content: .source, text: sentence, declaredLanguage: "en")
         XCTAssertEqual(controller.appearance(for: .source), .paused)
         controller.toggle(content: .source, text: sentence, declaredLanguage: "en")
@@ -516,7 +516,7 @@ final class OnlineSpeechTests: XCTestCase {
 
         try await Task.sleep(for: .milliseconds(380))
         XCTAssertEqual(controller.appearance(for: .source), .loading)
-        XCTAssertEqual(controller.label(for: .source), "正在加载原文朗读，点击取消")
+        XCTAssertTrue(controller.loadingIndicatorVisible)
 
         await fetcher.release()
         try await waitWhileLoading(controller)

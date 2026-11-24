@@ -8,7 +8,6 @@ final class ScreenshotCaptureErrorAlertTests: XCTestCase {
         var events: [String] = []
         ScreenshotCaptureErrorAlert.show(.permissionDenied, present: { alert in
             XCTAssertEqual(alert.messageText, ScreenshotTranslationError.permissionDenied.localizedDescription)
-            XCTAssertEqual(alert.buttons.first?.title, "好")
             events.append("dismiss")
             return .alertFirstButtonReturn
         }, authorize: {

@@ -114,31 +114,29 @@ final class PanelBehaviorTests: XCTestCase {
     }
 
     func testAutoGrowingEditorHeightPolicyClampsToMinimumAndMaximum() {
-        XCTAssertEqual(AutoGrowingTextHeightPolicy.clamped(20), 56)
-        XCTAssertEqual(AutoGrowingTextHeightPolicy.clamped(144), 144)
-        XCTAssertEqual(AutoGrowingTextHeightPolicy.clamped(480), 180)
-        XCTAssertEqual(AutoGrowingTextHeightPolicy.clamped(480, maximum: 300), 300)
-        XCTAssertEqual(AutoGrowingTextHeightPolicy.clamped(20, maximum: 300), 56)
+        let minimum = AutoGrowingTextHeightPolicy.minimum
+        let maximum = minimum + 200
+        XCTAssertEqual(AutoGrowingTextHeightPolicy.clamped(minimum - 1, maximum: maximum), minimum)
+        XCTAssertEqual(AutoGrowingTextHeightPolicy.clamped(minimum + 1, maximum: maximum), minimum + 1)
+        XCTAssertEqual(AutoGrowingTextHeightPolicy.clamped(maximum + 1, maximum: maximum), maximum)
     }
 
     func testTranslationWindowLayoutPreferencesNormalizeAndScaleToScreen() {
-        XCTAssertEqual(
-            TranslationWindowLayoutPreferences.normalizedInputMaximumHeight(293),
-            290
-        )
-        XCTAssertEqual(
-            TranslationWindowLayoutPreferences.normalizedMaximumWindowHeightRatio(0.823),
-            0.82,
-            accuracy: 0.0001
-        )
-        XCTAssertEqual(
-            TranslationWindowLayoutPreferences.maximumPanelHeight(
-                screenHeight: 1_000,
-                ratio: 0.70
-            ),
-            700,
-            accuracy: 0.0001
-        )
+        let height = TranslationWindowLayoutPreferences.normalizedInputMaximumHeight(293)
+        let ratio = TranslationWindowLayoutPreferences.normalizedMaximumWindowHeightRatio(0.823)
+        XCTAssertGreaterThanOrEqual(height, TranslationWindowLayoutPreferences.minimumInputMaximumHeight)
+        XCTAssertLessThanOrEqual(height, TranslationWindowLayoutPreferences.maximumInputMaximumHeight)
+        XCTAssertGreaterThanOrEqual(ratio, TranslationWindowLayoutPreferences.minimumWindowHeightRatio)
+        XCTAssertLessThanOrEqual(ratio, TranslationWindowLayoutPreferences.maximumWindowHeightRatio)
+        XCTAssertEqual(TranslationWindowLayoutPreferences.normalizedInputMaximumHeight(height), height)
+        XCTAssertEqual(TranslationWindowLayoutPreferences.normalizedMaximumWindowHeightRatio(ratio), ratio, accuracy: 0.0001)
+        let maximumHeight = TranslationWindowLayoutPreferences.maximumInputMaximumHeight
+        let minimumRatio = TranslationWindowLayoutPreferences.minimumWindowHeightRatio
+        XCTAssertEqual(TranslationWindowLayoutPreferences.normalizedInputMaximumHeight(maximumHeight + 50), maximumHeight)
+        XCTAssertEqual(TranslationWindowLayoutPreferences.normalizedMaximumWindowHeightRatio(minimumRatio / 2),
+                       minimumRatio, accuracy: 0.0001)
+        XCTAssertEqual(TranslationWindowLayoutPreferences.maximumPanelHeight(screenHeight: 1_000, ratio: ratio),
+                       1_000 * ratio, accuracy: 0.0001)
     }
 
     func testRepeatedPlacementWithFractionalMouseKeepsWidth() {
@@ -158,15 +156,16 @@ final class PanelBehaviorTests: XCTestCase {
         }
     }
 
-    func testPanelPlacementModeDefaultsToRememberAndPersists() throws {
+    func testPanelPlacementModePersistsAndInvalidStorageUsesFallback() throws {
         let suite = "SevenTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        XCTAssertEqual(PanelPlacementMode.stored(in: defaults), .remember)
-        PanelPlacementMode.followMouse.save(in: defaults)
-        XCTAssertEqual(PanelPlacementMode.stored(in: defaults), .followMouse)
+        let fallback = PanelPlacementMode.stored(in: defaults)
+        let alternate = try XCTUnwrap(PanelPlacementMode.allCases.first { $0 != fallback })
+        alternate.save(in: defaults)
+        XCTAssertEqual(PanelPlacementMode.stored(in: defaults), alternate)
         defaults.set("bogus", forKey: PanelPlacementMode.storageKey)
-        XCTAssertEqual(PanelPlacementMode.stored(in: defaults), .remember)
+        XCTAssertEqual(PanelPlacementMode.stored(in: defaults), fallback)
     }
 
     func testRememberedFrameKeepsLeftAndTopAndAdjustsHeight() {

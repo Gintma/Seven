@@ -81,14 +81,14 @@ import XCTest
         defer { window.close() }
         root.layoutSubtreeIfNeeded()
         let button = try XCTUnwrap(descendants(root).compactMap { $0 as? NSPopUpButton }.first)
-        let submenu = try XCTUnwrap(button.menu?.item(withTitle: "删除模型")?.submenu)
-        XCTAssertEqual(submenu.items.map(\.title), ["two", "three"])
+        let submenu = try XCTUnwrap(button.menu?.item(withTitle: L10n.text("deleteModel"))?.submenu)
+        XCTAssertNil(submenu.item(withTitle: state.selection))
         let oldTwo = try XCTUnwrap(submenu.item(withTitle: "two"))
         state.selection = "two"
         await Task.yield(); root.layoutSubtreeIfNeeded()
         NSApp.sendAction(try XCTUnwrap(oldTwo.action), to: oldTwo.target, from: oldTwo)
         XCTAssertEqual(state.manual, ["one", "two", "three"], "切为当前模型后，旧副菜单项也不能删除它")
-        let remove = try XCTUnwrap(button.menu?.item(withTitle: "删除模型")?.submenu?.item(withTitle: "three"))
+        let remove = try XCTUnwrap(button.menu?.item(withTitle: L10n.text("deleteModel"))?.submenu?.item(withTitle: "three"))
         NSApp.sendAction(try XCTUnwrap(remove.action), to: remove.target, from: remove)
         XCTAssertEqual(state.manual, ["one", "two"])
         XCTAssertEqual(state.selection, "two")

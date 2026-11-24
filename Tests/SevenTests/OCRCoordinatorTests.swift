@@ -82,19 +82,21 @@ private actor OCRHeldRecognizer:TextRecognizing {
     }
     func testResultWindowUsesRecognizedTextWithoutAnotherOCRPassAndAllowsTranslation() throws {
         let controller=ScreenshotOCRWindowController(result:.init(text:"可编辑结果",averageConfidence:1),defaults:nil);defer{controller.dispose()}
-        func views(_ view:NSView)->[NSView] {view.subviews+view.subviews.flatMap(views)}
-        let all=views(try XCTUnwrap(controller.window?.contentView)),text=try XCTUnwrap(all.compactMap{$0 as? NSTextView}.first)
-        XCTAssertEqual(text.string,"可编辑结果");XCTAssertTrue(text.isEditable)
+        let content = try XCTUnwrap(controller.window?.contentView)
+        let translate = try XCTUnwrap(screenshotDescendants(of: content).compactMap { $0 as? NSButton }
+            .first { $0.action == NSSelectorFromString("translateText") })
+        XCTAssertEqual(controller.textView.string, "可编辑结果")
+        XCTAssertTrue(controller.textView.isEditable)
         var translated:String?;controller.onTranslate={translated=$0}
-        text.string="编辑后的结果"
-        try XCTUnwrap(all.compactMap{$0 as? NSButton}.first{$0.accessibilityLabel()=="翻译"}).performClick(nil)
+        controller.textView.string = "编辑后的结果"
+        translate.performClick(nil)
         XCTAssertEqual(translated,"编辑后的结果")
     }
     func testOCRCaptureImportAndOpenShortcutsDefaultUnsetAndRoundTrip() throws {
         let name="OCRShortcuts.\(UUID().uuidString)",defaults=try XCTUnwrap(UserDefaults(suiteName:name));defer{defaults.removePersistentDomain(forName:name)}
         let fresh=OCRShortcuts(defaults:defaults)
-        XCTAssertEqual(fresh.managers.count,5)
-        XCTAssertEqual(OCRMode.allCases,[.standard,.silent]);XCTAssertTrue(fresh.managers.allSatisfy{!$0.isEnabled && !$0.isRegistered})
+        XCTAssertTrue([fresh.standard, fresh.silent, fresh.openWindow, fresh.clipboard, fresh.file]
+            .allSatisfy { !$0.isEnabled && !$0.isRegistered })
         let first=KeyboardShortcut(keyCode:UInt32(kVK_ANSI_7),carbonModifiers:UInt32(controlKey|optionKey),keyLabel:"7")
         let second=KeyboardShortcut(keyCode:UInt32(kVK_ANSI_8),carbonModifiers:UInt32(controlKey|optionKey),keyLabel:"8")
         defaults.set(try JSONEncoder().encode(first),forKey:"ocr.captureHotKey.v1")

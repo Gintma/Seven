@@ -58,12 +58,12 @@ final class LaunchAtLoginTests: XCTestCase {
         let service = MemoryLaunchAtLoginService()
         service.state = .unavailable
         let controller = LaunchAtLoginController(service: service, logger: NoopDiagnosticLogger())
-        XCTAssertEqual(controller.message, "系统暂时无法获取登录项状态。")
+        XCTAssertEqual(controller.message, L10n.text("loginItemStatusUnavailable"))
         controller.refresh()
         controller.setEnabled(true)
         XCTAssertFalse(controller.enabled)
         XCTAssertEqual(controller.state, .unavailable)
-        XCTAssertEqual(controller.message, "系统暂时无法获取登录项状态。")
+        XCTAssertEqual(controller.message, L10n.text("loginItemStatusUnavailable"))
     }
 
     func testRefreshClearsUnavailableMessageAfterRecovery() {

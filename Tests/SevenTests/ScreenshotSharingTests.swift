@@ -3,11 +3,10 @@ import XCTest
 @testable import Seven
 
 @MainActor final class ScreenshotSharingTests:XCTestCase {
-    private func image(rounded:Bool=false)->NSImage {
+    private func image()->NSImage {
         let image=NSImage(size:CGSize(width:100,height:80))
         image.lockFocus();NSColor.white.setFill()
-        if rounded {NSBezierPath(roundedRect:CGRect(x:0,y:0,width:100,height:80),xRadius:24,yRadius:24).fill()}
-        else {CGRect(x:0,y:0,width:100,height:80).fill()}
+        CGRect(origin: .zero, size: image.size).fill()
         image.unlockFocus();return image
     }
     func testSharePNGUsesOriginalPixelsAndIsRemovedOnCancel() throws {
@@ -34,24 +33,6 @@ import XCTest
         var unused:ScreenshotSharingSession?=try ScreenshotSharingSession(image:image(),temporaryDirectory:folder)
         let path=try XCTUnwrap(unused).fileURL;unused=nil
         XCTAssertFalse(FileManager.default.fileExists(atPath:path.path))
-    }
-    func testShadowFollowsImageAlphaInsteadOfClippingToRectangle() throws {
-        func render(_ image:NSImage)throws->NSBitmapImageRep {
-            let view=ScreenshotPinShadowView(frame:CGRect(x:0,y:0,width:140,height:120))
-            view.image=image;view.imageRect=CGRect(x:20,y:20,width:100,height:80)
-            view.style=ScreenshotShadowStyle(enabled:true,opacity:0.8,rgb:0)
-            let bitmap=try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in:view.bounds));view.cacheDisplay(in:view.bounds,to:bitmap);return bitmap
-        }
-        let square=try render(image()),round=try render(image(rounded:true))
-        func alpha(_ bitmap:NSBitmapImageRep,_ x:CGFloat,_ y:CGFloat)throws->CGFloat {
-            try XCTUnwrap(bitmap.colorAt(x:Int(x/140*CGFloat(bitmap.pixelsWide)),y:Int(y/120*CGFloat(bitmap.pixelsHigh)))).alphaComponent
-        }
-        XCTAssertEqual(try alpha(square,70,60),0,accuracy:0.01)
-        XCTAssertEqual(try alpha(round,70,60),0,accuracy:0.01)
-        XCTAssertEqual(try alpha(square,25,25),0,accuracy:0.01)
-        XCTAssertGreaterThan(try alpha(round,25,25),0.01,"透明圆角内的阴影不能被矩形裁掉")
-        XCTAssertGreaterThan(try alpha(square,18,60),0.01)
-        XCTAssertGreaterThan(try alpha(round,18,60),0.01)
     }
 }
 

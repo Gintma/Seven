@@ -227,7 +227,8 @@ final class LanguageDetectionModelTests: XCTestCase {
         try await waitUntilIdle(model)
 
         XCTAssertEqual(model.detectedSource, "sw")
-        XCTAssertEqual(model.serviceResults.first { $0.id == .youdao }?.errorMessage, "有道翻译不支持斯瓦希里语")
+        XCTAssertEqual(model.serviceResults.first { $0.id == .youdao }?.issue,
+                       .key("translation.unsupportedLanguage", .provider(.youdao), .language("sw")))
         let googleCalls = await google.calls, baiduCalls = await baidu.calls, requests = await youdao.requests
         XCTAssertEqual(googleCalls, 1)
         XCTAssertEqual(baiduCalls, 0)
@@ -323,14 +324,15 @@ final class LanguageDetectionModelTests: XCTestCase {
         for _ in 0..<100 where await google.calls < 1 { try await Task.sleep(for: .milliseconds(5)) }
 
         model.translate()
-        XCTAssertEqual(model.status, "正在识别语言…")
+        XCTAssertTrue(model.isSourceLanguagePending)
         await google.release()
         try await waitUntilIdle(model)
 
         let calls = await google.calls
         XCTAssertEqual(calls, 1, "不重复请求")
         XCTAssertEqual(model.detectedSource, "sw")
-        XCTAssertEqual(model.serviceResults.first { $0.id == .youdao }?.errorMessage, "有道翻译不支持斯瓦希里语")
+        XCTAssertEqual(model.serviceResults.first { $0.id == .youdao }?.issue,
+                       .key("translation.unsupportedLanguage", .provider(.youdao), .language("sw")))
     }
 
     func testSwitchingSourceCancelsHeldDetectionAndDiscardsItsResult() async throws {
@@ -433,7 +435,8 @@ final class LanguageDetectionModelTests: XCTestCase {
         try await waitUntilIdle(model)
         let after = await youdao.requests.count
         XCTAssertEqual(after, 1)
-        XCTAssertEqual(model.serviceResults.first { $0.id == .youdao }?.errorMessage, "有道翻译不支持斯瓦希里语")
+        XCTAssertEqual(model.serviceResults.first { $0.id == .youdao }?.issue,
+                       .key("translation.unsupportedLanguage", .provider(.youdao), .language("sw")))
     }
 
     /// 服务在语言识别完成前被停用时，加载状态必须复位。
@@ -452,7 +455,7 @@ final class LanguageDetectionModelTests: XCTestCase {
         await model.waitForLanguageDetection()
         try await Task.sleep(for: .milliseconds(30))
         XCTAssertFalse(model.isLoading, "没有任何请求在跑时不能一直显示加载中")
-        XCTAssertNotEqual(model.status, "正在识别语言…")
+        XCTAssertFalse(model.serviceResults.contains { $0.id == .youdao })
     }
 
     func testChangingInputDuringDetectionDiscardsStaleResult() async throws {
@@ -461,7 +464,7 @@ final class LanguageDetectionModelTests: XCTestCase {
         model.updateInput(swahili)
         model.translate()
         for _ in 0..<100 where await google.calls < 1 { try await Task.sleep(for: .milliseconds(5)) }
-        XCTAssertEqual(model.status, "正在识别语言…")
+        XCTAssertTrue(model.isSourceLanguagePending)
 
         model.updateInput("Good morning")
         await google.release()

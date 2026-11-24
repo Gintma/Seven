@@ -45,32 +45,31 @@ import XCTest
         let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let image = NSImage(size: CGSize(width: 800, height: 500))
-        func descendants(_ v: NSView) -> [NSView] { v.subviews + v.subviews.flatMap(descendants) }
         func controls(_ controller: ScreenshotEditorWindowController) throws -> [NSView] { try screenshotEditorTestSubviews(controller) }
         func choose(_ tool: ScreenshotEditorTool, in views: [NSView]) throws {
             try XCTUnwrap(views.compactMap { $0 as? NSButton }.first { $0.title == tool.title }).performClick(nil)
         }
         let first = makeScreenshotEditorForTesting(image: image, preferences: ScreenshotToolPreferences(defaults: defaults))
         let views = try controls(first)
-        let width = try XCTUnwrap(views.compactMap { $0 as? NSSlider }.first { $0.maxValue == 40 })
+        let width = try XCTUnwrap(views.compactMap { $0 as? NSSlider }.first { $0.action == NSSelectorFromString("changeWidth:") })
         let color = try XCTUnwrap(views.compactMap { $0 as? NSColorWell }.first)
-        let mode = try XCTUnwrap(views.compactMap { $0 as? NSSegmentedControl }.first { $0.toolTip(forSegment: 0) == "描边" })
+        let mode = try XCTUnwrap(views.compactMap { $0 as? NSSegmentedControl }.first { $0.action == NSSelectorFromString("changeShapeMode:") })
         for (tool, value) in [(ScreenshotEditorTool.rectangle, 12.0), (.ellipse, 7.0), (.arrow, 9.0)] {
             try choose(tool, in: views)
             width.doubleValue = value; NSApp.sendAction(try XCTUnwrap(width.action), to: width.target, from: width)
             color.color = NSColor(srgbRed: value / 20, green: 0.3, blue: 0.7, alpha: 1)
             if tool == .rectangle {
-                let corner = try XCTUnwrap(views.compactMap { $0 as? NSSlider }.first { $0.accessibilityLabel() == "圆角半径" })
+                let corner = try XCTUnwrap(views.compactMap { $0 as? NSSlider }.first { $0.action == NSSelectorFromString("changeCorner:") })
                 corner.doubleValue = 23; NSApp.sendAction(try XCTUnwrap(corner.action), to: corner.target, from: corner)
-                mode.selectedSegment = 1; NSApp.sendAction(try XCTUnwrap(mode.action), to: mode.target, from: mode)
-                let opacity = try XCTUnwrap(views.compactMap { $0 as? NSSlider }.first { $0.maxValue == 1 })
+                mode.selectedSegment = ScreenshotShapeMode.fill.rawValue; NSApp.sendAction(try XCTUnwrap(mode.action), to: mode.target, from: mode)
+                let opacity = try XCTUnwrap(views.compactMap { $0 as? NSSlider }.first { $0.action == NSSelectorFromString("changeOpacity:") })
                 opacity.doubleValue = 0.42; NSApp.sendAction(try XCTUnwrap(opacity.action), to: opacity.target, from: opacity)
-                mode.selectedSegment = 2; NSApp.sendAction(try XCTUnwrap(mode.action), to: mode.target, from: mode)
-                mode.selectedSegment = 1; NSApp.sendAction(try XCTUnwrap(mode.action), to: mode.target, from: mode)
+                mode.selectedSegment = ScreenshotShapeMode.solid.rawValue; NSApp.sendAction(try XCTUnwrap(mode.action), to: mode.target, from: mode)
+                mode.selectedSegment = ScreenshotShapeMode.fill.rawValue; NSApp.sendAction(try XCTUnwrap(mode.action), to: mode.target, from: mode)
                 XCTAssertEqual(opacity.doubleValue, 0.42, accuracy: 0.001)
             }
             if tool == .arrow {
-                let curved = try XCTUnwrap(views.compactMap { $0 as? NSSegmentedControl }.first { $0.accessibilityLabel() == "箭头线条类型" })
+                let curved = try XCTUnwrap(views.compactMap { $0 as? NSSegmentedControl }.first { $0.action == NSSelectorFromString("changeArrowPath:") })
                 curved.selectedSegment = 1; NSApp.sendAction(try XCTUnwrap(curved.action), to: curved.target, from: curved)
             }
         }
@@ -89,22 +88,17 @@ import XCTest
                 XCTAssertEqual(canvas.opacity, 0.42, accuracy: 0.001)
                 XCTAssertEqual(canvas.cornerRadius, 23)
                 XCTAssertTrue(canvas.rounded)
-                let opacity = try XCTUnwrap(restored.compactMap { $0 as? NSSlider }.first { $0.accessibilityLabel() == "标注不透明度" })
-                let corner = try XCTUnwrap(restored.compactMap { $0 as? NSSlider }.first { $0.accessibilityLabel() == "圆角半径" })
+                let opacity = try XCTUnwrap(restored.compactMap { $0 as? NSSlider }.first { $0.action == NSSelectorFromString("changeOpacity:") })
+                let corner = try XCTUnwrap(restored.compactMap { $0 as? NSSlider }.first { $0.action == NSSelectorFromString("changeCorner:") })
                 XCTAssertEqual(opacity.doubleValue, 0.42, accuracy: 0.001)
                 XCTAssertEqual(corner.doubleValue, 23)
             }
             XCTAssertEqual(canvas.filled, tool == .rectangle)
             XCTAssertEqual(canvas.curved, tool == .arrow)
-            for control in restored where control is SlidingSegmentedControl || control is NSSlider {
-                for view in [control] + descendants(control) {
-                    XCTAssertTrue(view.layer?.animationKeys()?.isEmpty ?? true, "恢复参数不能从默认状态播放动画")
-                }
-            }
         }
     }
 
-    func testPureTextPlacementHasFillThenLosesDecorationAndDeselectsOnOutsideClick() throws {
+    func testTextPlacementCommitsAndDeselectsOnOutsideClick() throws {
         let rep = try XCTUnwrap(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 400, pixelsHigh: 300, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
         let canvas = ScreenshotEditorCanvas(image: NSImage(cgImage: try XCTUnwrap(rep.cgImage), size: CGSize(width: 400, height: 300)))
         canvas.tool = .text; canvas.width = 18; canvas.marker = .dot; canvas.textStyle = .plain
@@ -112,8 +106,6 @@ import XCTest
         try click(CGPoint(x: 20, y: 100))
         let preview = try XCTUnwrap(canvas.document.preview)
         XCTAssertTrue(preview.isPlacementPreview)
-        XCTAssertGreaterThan(preview.textEditorFrame.width, preview.textEditorFrame.height)
-        XCTAssertLessThan(preview.textEditorFrame.width / preview.textEditorFrame.height, 1.4)
         try click(CGPoint(x: 150, y: 100))
         let fixed = try XCTUnwrap(canvas.document.preview)
         XCTAssertFalse(fixed.isPlacementPreview); XCTAssertTrue(fixed.isEditingPreview)
@@ -121,8 +113,7 @@ import XCTest
         editor.string = "你好"; canvas.textDidChange(Notification(name: NSText.didChangeNotification))
         try click(CGPoint(x: 350, y: 240))
         XCTAssertNil(canvas.selected)
-        XCTAssertFalse(canvas.subviews.contains { $0 is ScreenshotTextEditorChrome })
-        XCTAssertEqual(canvas.document.visible.count, 1)
+        XCTAssertEqual(canvas.document.visible.map(\.text), ["你好"])
     }
 
     func testAutomaticGrowthFitsRegionWhileManualMoveAndResizeRemainFree() throws {

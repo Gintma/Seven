@@ -71,7 +71,12 @@ final class FileCredentialTests: XCTestCase {
         }
         XCTAssertThrowsError(try file.read(account: "service-instance.v1.a")) {
             XCTAssertTrue($0.localizedDescription.contains(file.fileURL.path))
-            XCTAssertTrue($0.localizedDescription.contains("删除该文件后重新填写"))
+            guard let error = $0 as? FileCredentialError,
+                  case .invalidFormat(let url) = error else {
+                return XCTFail("预期凭据文件损坏错误")
+            }
+            XCTAssertEqual(url, file.fileURL)
+            XCTAssertFalse($0.localizedDescription.contains("PRIVATE-SENTINEL"))
         }
         XCTAssertEqual(try Data(contentsOf: file.fileURL), corrupt)
     }
