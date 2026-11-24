@@ -127,6 +127,15 @@ struct PasteboardSnapshot {
 }
 
 final class SelectionReader: @unchecked Sendable {
+    private enum AccessibilitySelection {
+        case none
+        case unreadableText
+        case text(SelectedText)
+    }
+
+    private static let textInputRoles = [kAXTextFieldRole, kAXTextAreaRole, kAXComboBoxRole]
+    private static let textSelectionRoles = textInputRoles + [kAXStaticTextRole, "AXWebArea"]
+
     private let readAttribute: (AXUIElement, String) -> CFTypeRef?
     private let selectedTextMarkerRangeAttribute = "AXSelectedTextMarkerRange"
     private let stringForTextMarkerRangeAttribute = "AXStringForTextMarkerRange"
@@ -146,144 +155,88 @@ final class SelectionReader: @unchecked Sendable {
         return try await readSelection(
             focused: focusedElement(applicationPID: targetPID),
             applicationPID: targetPID,
-            copyFallback: { expectsText in
-                try await self.readUsingCopyFallback(applicationPID: targetPID, expectsText: expectsText)
-            }
+            copyFallback: { try await self.readUsingCopyFallback(applicationPID: targetPID) }
         )
     }
 
     func readSelection(
         focused: AXUIElement?, applicationPID: pid_t?,
-        copyFallback: (_ expectsText: Bool) async throws -> String
+        copyFallback: () async throws -> String
     ) async throws -> SelectedText {
-        if let focused {
-            if hasEmptyTextSelection(in: focused, applicationPID: applicationPID) {
-                throw SelectionReadError.noSelection
-            }
-            if let direct = accessibilitySelection(startingAt: focused, applicationPID: applicationPID) {
-                return direct
-            }
-        }
-        let expectsText = focused.map(hasReportedSelection(in:)) ?? false
-        return SelectedText(text: try await copyFallback(expectsText), appKitBounds: nil)
-    }
-
-    private func hasReportedSelection(in element: AXUIElement) -> Bool {
-        func includesText(_ value: CFTypeRef) -> Bool {
-            guard let range = textRange(from: value) else { return false }
-            return range.location >= 0 && range.location != NSNotFound && range.length > 0
-        }
-
-        if let range = attribute(kAXSelectedTextRangeAttribute, from: element), includesText(range) {
-            return true
-        }
-        let ranges = attribute(kAXSelectedTextRangesAttribute, from: element) as? [AnyObject]
-        return ranges?.contains(where: includesText) == true
-    }
-
-    private func hasEmptyTextSelection(in element: AXUIElement, applicationPID: pid_t?) -> Bool {
+        guard let focused else { throw SelectionReadError.noSelection }
         if let applicationPID {
             var owner: pid_t = 0
-            guard AXUIElementGetPid(element, &owner) == .success, owner == applicationPID else { return false }
+            guard AXUIElementGetPid(focused, &owner) == .success, owner == applicationPID else {
+                throw SelectionReadError.noSelection
+            }
         }
-        guard let role = attribute(kAXRoleAttribute, from: element) as? String,
-              role == kAXTextFieldRole || role == kAXTextAreaRole || role == kAXComboBoxRole,
-              let rangeValue = attribute(kAXSelectedTextRangeAttribute, from: element),
-              isCaretRange(rangeValue),
-              attribute(selectedTextMarkerRangeAttribute, from: element) == nil else { return false }
 
-        if let selections = attribute(kAXSelectedTextRangesAttribute, from: element) {
-            guard let ranges = selections as? [AnyObject], ranges.allSatisfy(isCaretRange) else { return false }
+        switch accessibilitySelection(startingAt: focused) {
+        case .none:
+            throw SelectionReadError.noSelection
+        case .unreadableText:
+            return SelectedText(text: try await copyFallback(), appKitBounds: nil)
+        case .text(let selection):
+            return selection
         }
-        guard let selectedText = attribute(kAXSelectedTextAttribute, from: element) else { return true }
-        return string(from: selectedText)?.isEmpty == true
     }
 
-    private func isCaretRange(_ value: CFTypeRef) -> Bool {
-        guard let range = textRange(from: value) else { return false }
-        return range.location >= 0 && range.location != NSNotFound && range.length == 0
+    private func hasReportedTextRange(in element: AXUIElement, primary: CFRange?) -> Bool {
+        if let primary, primary.length > 0 { return true }
+        let ranges = attribute(kAXSelectedTextRangesAttribute, from: element) as? [AnyObject]
+        return ranges?.contains { (textRange(from: $0)?.length ?? 0) > 0 } == true
     }
 
     private func textRange(from value: CFTypeRef) -> CFRange? {
         guard CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
         let axValue = unsafeBitCast(value, to: AXValue.self)
         var range = CFRange()
-        guard AXValueGetType(axValue) == .cfRange, AXValueGetValue(axValue, .cfRange, &range) else { return nil }
+        guard AXValueGetType(axValue) == .cfRange, AXValueGetValue(axValue, .cfRange, &range),
+              range.location >= 0, range.location != NSNotFound, range.length >= 0 else { return nil }
         return range
     }
 
-    private func accessibilitySelection(startingAt focused: AXUIElement, applicationPID: pid_t?) -> SelectedText? {
-        for element in selectionCandidates(startingAt: focused, applicationPID: applicationPID) {
+    private func accessibilitySelection(startingAt focused: AXUIElement) -> AccessibilitySelection {
+        var element = focused
+        var hasTextRange = false
+        // 某些网页会把选区报告在焦点的文档祖先上。窗口与应用节点属于查找边界。
+        for depth in 0...8 {
+            let role = attribute(kAXRoleAttribute, from: element) as? String ?? ""
+            if role == kAXWindowRole || role == kAXApplicationRole { break }
+
             let rangeValue = attribute(kAXSelectedTextRangeAttribute, from: element)
+            let range = rangeValue.flatMap(textRange(from:))
             let markerRangeValue = attribute(selectedTextMarkerRangeAttribute, from: element)
-            if let text = selectedText(
-                from: element,
-                rangeValue: rangeValue,
-                markerRangeValue: markerRangeValue
-            ) {
-                return SelectedText(
+            let reportsText = hasReportedTextRange(in: element, primary: range)
+            if depth == 0, Self.textInputRoles.contains(role), range?.length == 0,
+               !reportsText, markerRangeValue == nil {
+                return .none
+            }
+
+            if Self.textSelectionRoles.contains(role) || reportsText || markerRangeValue != nil,
+               let text = selectedText(from: element, rangeValue: rangeValue, markerRangeValue: markerRangeValue) {
+                return .text(SelectedText(
                     text: text,
                     appKitBounds: selectionBounds(
                         from: element,
                         rangeValue: rangeValue,
                         markerRangeValue: markerRangeValue
                     )
-                )
+                ))
             }
+            hasTextRange = hasTextRange || reportsText
+            guard let parent = attribute(kAXParentAttribute, from: element),
+                  CFGetTypeID(parent) == AXUIElementGetTypeID() else { break }
+            element = unsafeBitCast(parent, to: AXUIElement.self)
         }
-        return nil
-    }
-
-    private func selectionCandidates(
-        startingAt focused: AXUIElement,
-        applicationPID: pid_t?
-    ) -> [AXUIElement] {
-        var candidates: [AXUIElement] = []
-        var seen = Set<CFHashCode>()
-
-        func append(_ element: AXUIElement) {
-            guard seen.insert(CFHash(element)).inserted else { return }
-            candidates.append(element)
-        }
-
-        append(focused)
-        var current = focused
-        for _ in 0..<8 {
-            guard let parentValue = attribute(kAXParentAttribute, from: current),
-                  CFGetTypeID(parentValue) == AXUIElementGetTypeID() else { break }
-            let parent = unsafeBitCast(parentValue, to: AXUIElement.self)
-            append(parent)
-            current = parent
-        }
-
-        guard let applicationPID else { return candidates }
-        let application = AXUIElementCreateApplication(applicationPID)
-        var roots: [AXUIElement] = []
-        if let windowValue = attribute(kAXFocusedWindowAttribute, from: application),
-           CFGetTypeID(windowValue) == AXUIElementGetTypeID() {
-            roots.append(unsafeBitCast(windowValue, to: AXUIElement.self))
-        }
-        roots.append(application)
-
-        var queue = roots
-        var index = 0
-        while index < queue.count, candidates.count < 1_200 {
-            let element = queue[index]
-            index += 1
-            append(element)
-            guard let childrenValue = attribute(kAXChildrenAttribute, from: element),
-                  let children = childrenValue as? [AXUIElement] else { continue }
-            for child in children where !seen.contains(CFHash(child)) {
-                queue.append(child)
-            }
-        }
-        return candidates
+        return hasTextRange ? .unreadableText : .none
     }
 
     private func focusedElement(applicationPID: pid_t?) -> AXUIElement? {
         if let applicationPID {
             let application = AXUIElementCreateApplication(applicationPID)
-            if let focused = attribute(kAXFocusedUIElementAttribute, from: application) {
+            if let focused = attribute(kAXFocusedUIElementAttribute, from: application),
+               CFGetTypeID(focused) == AXUIElementGetTypeID() {
                 return unsafeBitCast(focused, to: AXUIElement.self)
             }
         }
@@ -292,7 +245,7 @@ final class SelectionReader: @unchecked Sendable {
         var focusedValue: CFTypeRef?
         guard AXUIElementCopyAttributeValue(
             system, kAXFocusedUIElementAttribute as CFString, &focusedValue
-        ) == .success, let focusedValue else { return nil }
+        ) == .success, let focusedValue, CFGetTypeID(focusedValue) == AXUIElementGetTypeID() else { return nil }
         return unsafeBitCast(focusedValue, to: AXUIElement.self)
     }
 
@@ -414,10 +367,9 @@ final class SelectionReader: @unchecked Sendable {
         return nil
     }
 
-    private func readUsingCopyFallback(applicationPID: pid_t?, expectsText: Bool) async throws -> String {
+    private func readUsingCopyFallback(applicationPID: pid_t?) async throws -> String {
         try await readUsingCopyFallback(
             pasteboard: .general,
-            expectsText: expectsText,
             targetIsFrontmost: {
                 applicationPID == nil || NSWorkspace.shared.frontmostApplication?.processIdentifier == applicationPID
             },
@@ -428,7 +380,6 @@ final class SelectionReader: @unchecked Sendable {
 
     func readUsingCopyFallback(
         pasteboard: NSPasteboard,
-        expectsText: Bool,
         targetIsFrontmost: () -> Bool,
         invokeMenuCopy: () -> Bool,
         sendCopyShortcut: () async -> Bool
@@ -446,7 +397,6 @@ final class SelectionReader: @unchecked Sendable {
 
         let started = ContinuousClock.now
         let deadline = started.advanced(by: .milliseconds(2_400))
-        let quietDeadline = started.advanced(by: .milliseconds(900))
         let retryAt = started.advanced(by: .milliseconds(420))
         var sawPasteboardChange = false
         var retriedCopy = false
@@ -459,7 +409,6 @@ final class SelectionReader: @unchecked Sendable {
                 restoreChangeCount = pasteboard.changeCount
                 if let value = SelectionTextDecoder.text(from: pasteboard) { return value }
             }
-            if !expectsText, !sawPasteboardChange, ContinuousClock.now >= quietDeadline { break }
             if !retriedCopy, ContinuousClock.now >= retryAt {
                 retriedCopy = true
                 if !invokeMenuCopy() {
