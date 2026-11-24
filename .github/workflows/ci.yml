@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build (Zero Warnings)
+        run: swift build -Xswiftc -warnings-as-errors
+
+      - name: Run Offline Tests
+        run: env -u SEVEN_LIVE_TRANSLATION_TESTS -u SEVEN_LIVE_SPEECH_TESTS swift test

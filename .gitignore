@@ -1,0 +1,18 @@
+# SwiftPM
+.build/
+.swiftpm/
+*.xcodeproj/
+Package.resolved
+
+# macOS
+.DS_Store
+# 构建产物（由 build-app.sh 生成）
+Seven.app/
+Seven-*.app/
+Resources/AppIcon-1024.png
+Resources/AppIcon.iconset/
+Resources/AppIcon.icns
+
+# 本地开发配置
+.agents/
+.vscode/

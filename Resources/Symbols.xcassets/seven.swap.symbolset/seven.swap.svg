@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Seven交换语言符号：上向右、下向左的半叉箭头（⇌）。线宽与系统 Regular 字重一致。 -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="3300" height="2200">
+ <g id="Notes">
+  <text id="template-version" x="-1" y="-1">Template v.3.0</text>
+ </g>
+ <g id="Guides">
+  <line id="Baseline-S" x1="263" x2="3036" y1="696" y2="696"/>
+  <line id="Capline-S" x1="263" x2="3036" y1="625.541" y2="625.541"/>
+  <line id="Baseline-M" x1="263" x2="3036" y1="1126" y2="1126"/>
+  <line id="Capline-M" x1="263" x2="3036" y1="1055.54" y2="1055.54"/>
+  <line id="Baseline-L" x1="263" x2="3036" y1="1556" y2="1556"/>
+  <line id="Capline-L" x1="263" x2="3036" y1="1485.54" y2="1485.54"/>
+  <line id="left-margin-Regular-M" x1="1400" x2="1400" y1="1030" y2="1150"/>
+  <line id="right-margin-Regular-M" x1="1519" x2="1519" y1="1030" y2="1150"/>
+ </g>
+ <g id="Symbols">
+  <g id="Regular-M" transform="matrix(1 0 0 1 1400 1126)">
+   <path d="M17.50 -47.93L101.50 -47.93A3.3 3.3 0 0 0 101.50 -54.53L17.50 -54.53A3.3 3.3 0 0 0 17.50 -47.93ZM103.83 -53.56L88.83 -68.56A3.3 3.3 0 0 0 84.17 -63.90L99.17 -48.90A3.3 3.3 0 0 0 103.83 -53.56ZM101.50 -22.53L17.50 -22.53A3.3 3.3 0 0 0 17.50 -15.93L101.50 -15.93A3.3 3.3 0 0 0 101.50 -22.53ZM15.17 -16.90L30.17 -1.90A3.3 3.3 0 0 0 34.83 -6.56L19.83 -21.56A3.3 3.3 0 0 0 15.17 -16.90Z"/>
+  </g>
+ </g>
+</svg>

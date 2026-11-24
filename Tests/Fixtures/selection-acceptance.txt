@@ -1,0 +1,3 @@
+Seven原生划词测试：Native selection, 中文标点，emoji 😀，以及 café 均应保持正确。
+
+第二段用于验证跨行选择和选区边界。
