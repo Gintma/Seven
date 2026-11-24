@@ -261,7 +261,7 @@ struct HistoryView: View {
             try store.export(filteredRecords(from: store.records), to: url, format: format)
         } catch {
             let alert = NSAlert()
-            alert.alertStyle = .warning
+            alert.alertStyle = .critical
             alert.messageText = L10n.text("exportFailed")
             alert.informativeText = L10n.text("checkSavePermissionsAndFreeSpace")
             alert.addButton(withTitle: L10n.text("ok"))
