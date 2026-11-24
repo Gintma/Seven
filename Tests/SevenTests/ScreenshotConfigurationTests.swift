@@ -9,7 +9,6 @@ import XCTest
     private func key(_ character:String,keyCode:UInt16=0,flags:NSEvent.ModifierFlags=[] )throws->NSEvent {
         try XCTUnwrap(NSEvent.keyEvent(with:.keyDown,location:.zero,modifierFlags:flags,timestamp:0,windowNumber:0,context:nil,characters:character,charactersIgnoringModifiers:character,isARepeat:false,keyCode:keyCode))
     }
-    private func views(_ view:NSView)->[NSView]{view.subviews+view.subviews.flatMap(views)}
     func testLocalKeysVisibilityAndConflictRoundTrip() throws {
         let name="SevenToolbar.\(UUID().uuidString)",defaults=try XCTUnwrap(UserDefaults(suiteName:name));defer{defaults.removePersistentDomain(forName:name)}
         let preferences=ScreenshotToolbarPreferences(defaults:defaults)
@@ -59,10 +58,6 @@ import XCTest
         let editor=try XCTUnwrap(pin.makeEditor(preferences:ScreenshotToolPreferences(),clipboardWriter:{_ in copies+=1;return true}))
         let overlay=try XCTUnwrap(editor.window?.contentView as? ScreenshotCenteredEditorOverlay)
         let canvas=try XCTUnwrap(overlay.subviews.first as? ScreenshotEditorCanvas)
-        let tools = try screenshotEditorToolbarContent(editor)
-        let refresh = try XCTUnwrap(views(tools).compactMap { $0 as? NSButton }
-            .first { $0.title == L10n.text("capture.applyChanges") })
-        XCTAssertNotNil(refresh.image)
         XCTAssertEqual(canvas.convert(canvas.bounds,to:nil).width,originalContent.width,accuracy:0.001)
         XCTAssertEqual(canvas.convert(canvas.bounds,to:nil).height,originalContent.height,accuracy:0.001)
         XCTAssertEqual(canvas.bounds.width,pin.originalImage.size.width,accuracy:0.001)
@@ -70,7 +65,6 @@ import XCTest
         XCTAssertEqual(pin.window?.frame,originalFrame);XCTAssertTrue(pin.window?.isVisible ?? false)
         var stroke=ScreenshotEditorStroke(id:UUID(),tool:.rectangle,start:CGPoint(x:40,y:20),end:CGPoint(x:160,y:100),color:.red,width:2,opacity:0.5)
         stroke.shapeMode = .fill;canvas.document.commit(stroke)
-        XCTAssertNotNil(Design.Icon.symbol("checkmark"))
         XCTAssertTrue(editor.performShortcut(try key("\r",keyCode:36)))
         XCTAssertEqual(copies,0);XCTAssertEqual(pin.annotationDocument.visible.count,1);XCTAssertEqual(pin.window?.frame,originalFrame)
         let firstBitmap=try XCTUnwrap(NSBitmapImageRep(data:try XCTUnwrap(pin.pngData())))

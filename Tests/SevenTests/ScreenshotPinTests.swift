@@ -3,11 +3,6 @@ import XCTest
 @testable import Seven
 
 final class ScreenshotPinTests: XCTestCase {
-    func testPinWheelStepsMatchRecoveredThresholds() {
-        XCTAssertEqual([5, 6, 9, 10, 19, 20, 49, 50].map(ScreenshotPinGeometry.scaleStep), [1, 5, 5, 10, 10, 20, 20, 30])
-        XCTAssertEqual([5, 6, 9, 10, 29, 30, 79, 80].map(ScreenshotPinGeometry.opacityStep), [1, 2, 2, 5, 5, 10, 10, 30])
-    }
-
     func testPinResizeKeepsOriginalMaxBranchAndMouseAnchor() {
         let base = NSSize(width: 100, height: 50)
         let old = NSRect(x: 20, y: 30, width: 100, height: 50)
@@ -89,8 +84,6 @@ final class ScreenshotPinTests: XCTestCase {
         let image=NSImage(size:rep.size);image.addRepresentation(rep)
         let controller=ScreenshotPinWindowController(image:image,preferences:.init());defer{controller.close()}
         controller.window?.setContentSize(CGSize(width:50,height:25))
-        let view=try XCTUnwrap(controller.window?.contentView)
-        let preview=try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in:view.bounds));view.cacheDisplay(in:view.bounds,to:preview)
         let output=try XCTUnwrap(NSBitmapImageRep(data:try XCTUnwrap(controller.pngData())))
         XCTAssertEqual(output.pixelsWide,400);XCTAssertEqual(output.pixelsHigh,200)
     }

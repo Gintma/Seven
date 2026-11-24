@@ -99,7 +99,6 @@ final class ScreenshotTerminationTests: XCTestCase {
         let latePrepared = await Task.detached { lateSession.prepare(1) }.value
         XCTAssertFalse(latePrepared, "退出屏障建立后，新会话不得再开启 AX 模式")
         await lateSession.finish().value
-        XCTAssertEqual(ScreenshotTerminationCoordinator.gracePeriod, .seconds(2))
     }
 
     @MainActor

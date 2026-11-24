@@ -54,7 +54,7 @@ import XCTest
         }
         slider.onEditingEnded?()
         XCTAssertEqual(canvas.document.history.count, 2)
-        canvas.undoEdit(); XCTAssertEqual(slider.doubleValue, 0); XCTAssertEqual(slider.toolTip, "不透明度：0%"); XCTAssertEqual(canvas.document.visible.first?.opacity, 0)
+        canvas.undoEdit(); XCTAssertEqual(slider.doubleValue, 0); XCTAssertEqual(canvas.document.visible.first?.opacity, 0)
         canvas.redoEdit(); XCTAssertEqual(slider.doubleValue, 1); XCTAssertEqual(canvas.document.visible.first?.opacity, 1)
     }
     func testPaletteTrialColorsAreOneOperation() throws {

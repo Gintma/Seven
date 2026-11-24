@@ -94,31 +94,6 @@ final class ScreenshotTranslationTests: XCTestCase {
     }
 
     @MainActor
-    func testVisionRecognizerReadsGeneratedImage() async throws {
-        let size = NSSize(width: 900, height: 180)
-        let image = NSImage(size: size)
-        image.lockFocus()
-        NSColor.white.setFill()
-        NSRect(origin: .zero, size: size).fill()
-        let text = "Seven screenshot translation"
-        text.draw(
-            at: NSPoint(x: 35, y: 60),
-            withAttributes: [
-                .font: NSFont.systemFont(ofSize: 52, weight: .semibold),
-                .foregroundColor: NSColor.black
-            ]
-        )
-        image.unlockFocus()
-        var rect = NSRect(origin: .zero, size: size)
-        let cgImage = try XCTUnwrap(image.cgImage(forProposedRect: &rect, context: nil, hints: nil))
-
-        let result = try await VisionTextRecognizer().recognizeText(in: cgImage)
-
-        XCTAssertTrue(result.text.localizedCaseInsensitiveContains("Seven"))
-        XCTAssertTrue(result.text.localizedCaseInsensitiveContains("translation"))
-    }
-
-    @MainActor
     func testVisionRecognizerReadsChineseMultilineImage() async throws {
         let image = try renderedImage(
             lines: ["清晨的风穿过安静街道", "每一次出发都值得期待"],

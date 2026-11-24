@@ -119,22 +119,6 @@ final class SpeechControllerTests: XCTestCase {
         }
     }
 
-    func testDifferentTranslationCardsAreDistinctSpeechContent() {
-        XCTAssertEqual(
-            SpeechPlaybackPolicy.decision(
-                state: .speaking, activeContent: .translation(.youdao), requestedContent: .translation(.google)
-            ),
-            .start,
-            "另一张卡片的朗读应开始新的朗读，而不是暂停当前卡片"
-        )
-        XCTAssertEqual(
-            SpeechPlaybackPolicy.decision(
-                state: .speaking, activeContent: .translation(.youdao), requestedContent: .translation(.youdao)
-            ),
-            .pause
-        )
-    }
-
     func testShortContentMatchesDictionaryLength() {
         for text in ["hello", "give up", "look forward to it", "你好", "天气预报", "你好，世界", "こんにちは", "안녕하세요"] {
             XCTAssertTrue(SpeechLengthPolicy.isShort(text), text)

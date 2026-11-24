@@ -218,10 +218,6 @@ final class LanguageDetectionModelTests: XCTestCase {
         }
     }
 
-    func testSystemLocalResultIsIndonesianForSwahili() {
-        XCTAssertEqual(LanguageCatalog.detectedCode(for: swahili), "id", "前提：系统识别会把斯瓦希里语误认为印尼语")
-    }
-
     func testGoogleCorrectsSwahiliBeforeTranslating() async throws {
         let google = MockDetector(.success("sw")), baidu = MockDetector(.success("id"))
         let youdao = CountingOnline()

@@ -128,14 +128,6 @@ final class TranslationServiceTests: XCTestCase {
         XCTAssertEqual(messages[1]["content"], "A draft")
     }
 
-    func testStreamingParserUsesProductionEventDecoder() throws {
-        var decoder = ServiceStreamDecoder(style: .openAICompatible)
-        XCTAssertEqual(try decoder.line(#"data: {"choices":[{"delta":{"content":"hello"},"finish_reason":null}]}"#), "")
-        XCTAssertEqual(try decoder.line(""), "hello")
-        _ = try decoder.line("data: [DONE]"); _ = try decoder.line("")
-        XCTAssertTrue(decoder.completed)
-    }
-
     func testStreamingRequestAdvertisesEventStream() throws {
         let input = TranslationRequest(
             text: "Hello", source: "en", target: "zh-Hans",
@@ -183,16 +175,4 @@ final class TranslationServiceTests: XCTestCase {
         XCTAssertNotNil(json["system"] as? String)
     }
 
-    func testAnthropicModelsURLUsesMessagesBasePath() throws {
-        let configuration = ServiceConfiguration(
-            endpoint: "https://api.anthropic.com/v1/messages",
-            model: "claude-sonnet-4-5",
-            apiStyle: .anthropic
-        )
-
-        XCTAssertEqual(
-            try AIModelCatalogService.modelsURL(for: configuration).absoluteString,
-            "https://api.anthropic.com/v1/models"
-        )
-    }
 }

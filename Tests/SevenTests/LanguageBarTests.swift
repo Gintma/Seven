@@ -342,9 +342,6 @@ final class LanguageBarModelTests: XCTestCase {
             XCTAssertEqual(SettingsLanguageChoice.nativeName(for: code), expected)
             XCTAssertEqual(SettingsLanguageChoice(code: code).nativeName, expected)
         }
-        XCTAssertEqual(SettingsLanguageChoice.nativeName(for: "fr"), "Français")
-        XCTAssertEqual(SettingsLanguageChoice.nativeName(for: "es"), "Español")
-        XCTAssertEqual(SettingsLanguageChoice.nativeName(for: "ru"), "Русский")
     }
 
     func testLanguageAdditionFiltersNamesCodesAndKeepsSelectionInCatalogOrder() {

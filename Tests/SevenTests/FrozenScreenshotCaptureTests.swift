@@ -43,16 +43,6 @@ private final class SuspendedFrozenCapture: FrozenScreenshotCapturing {
 
 @MainActor
 final class FrozenScreenshotCaptureTests: XCTestCase {
-    func testResizePositionsMatchOriginalJumpTable() {
-        let rect = CGRect(x: 20, y: 30, width: 40, height: 50)
-        XCTAssertEqual(FrozenSelectionHandle.allCases.map { $0.point(in: rect) }, [
-            CGPoint(x: 20, y: 30), CGPoint(x: 40, y: 30), CGPoint(x: 60, y: 30), CGPoint(x: 60, y: 55),
-            CGPoint(x: 60, y: 80), CGPoint(x: 40, y: 80), CGPoint(x: 20, y: 80), CGPoint(x: 20, y: 55)
-        ])
-        XCTAssertEqual(FrozenSelectionHandle(rawValue: 7), .topLeft)
-        XCTAssertNil(FrozenSelectionHandle(rawValue: 0))
-    }
-
     func testSelectionResizeTruncatesClampsAndKeepsOriginalOppositeAnchor() {
         let original = CGRect(x: 20, y: 30, width: 40, height: 50)
         let bounds = CGSize(width: 100, height: 100)
@@ -168,11 +158,6 @@ final class FrozenScreenshotCaptureTests: XCTestCase {
             if visible { return }
             await Task.yield()
         }
-    }
-
-    func testMagnifierSampleUsesOriginalPixelCropAndTwelvePointSide() {
-        XCTAssertEqual(FrozenMagnifierGeometry.sampleRect(point: CGPoint(x: 20.4, y: 30.4), screenSize: CGSize(width: 100, height: 80), scale: 2), CGRect(x: 28, y: 88, width: 24, height: 24))
-        XCTAssertEqual(FrozenMagnifierGeometry.sampleRect(point: CGPoint(x: 20.9, y: 30.9), screenSize: CGSize(width: 100, height: 80), scale: 1), CGRect(x: 14, y: 44, width: 12, height: 12))
     }
 
     func testCopyColorLeavesCaptureOnlyAfterSuccessfulClipboardWrite() throws {

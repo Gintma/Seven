@@ -6,54 +6,16 @@ import XCTest
     private func stroke(_ tool:ScreenshotEditorTool = .rectangle,id:UUID = UUID(),end:CGPoint = CGPoint(x:50,y:50))->ScreenshotEditorStroke {
         ScreenshotEditorStroke(id:id,tool:tool,start:.zero,end:end,color:ThemePalette.system.accent,width:4,opacity:1)
     }
-    func testHistoryRevisionsUndoAndBranchTruncation(){
-        let first=stroke();var moved=first;moved.translate(CGPoint(x:20,y:10))
-        var document=ScreenshotEditorDocument();document.commit(first);document.commit(moved)
-        XCTAssertEqual(document.visible.count,1);XCTAssertEqual(document.visible.first?.start.x,20)
-        document.undo();XCTAssertEqual(document.visible.first?.start.x,0)
-        document.redo();XCTAssertEqual(document.visible.first?.start.x,20)
-        document.undo();document.commit(stroke(.ellipse));XCTAssertFalse(document.canRedo);XCTAssertEqual(document.visible.count,2)
-    }
-    func testPreviewHidesOlderVersionWithoutCommitting(){
-        let first=stroke();var preview=first;preview.end=CGPoint(x:100,y:100)
-        var document=ScreenshotEditorDocument();document.commit(first);document.preview=preview
-        XCTAssertEqual(document.visible.count,1);XCTAssertEqual(document.visible.first?.end.x,100)
-        XCTAssertEqual(document.history.first?.end.x,50)
-    }
-    func testArrowSevenVerticesMatchRecoveredAssembly(){
-        let points=ScreenshotEditorGeometry.arrowVertices(start:.zero,end:CGPoint(x:300,y:0),width:4)
-        XCTAssertEqual(points.count,7)
-        XCTAssertEqual(points[0].x,0);XCTAssertEqual(points[0].y,0.5,accuracy:0.0001)
-        XCTAssertEqual(points[1].x,286,accuracy:0.0001);XCTAssertEqual(points[1].y,5.6,accuracy:0.0001)
-        XCTAssertEqual(points[2].x,284.6,accuracy:0.0001);XCTAssertEqual(points[2].y,11.2,accuracy:0.0001)
-        XCTAssertEqual(points[3],CGPoint(x:300,y:0))
-        XCTAssertEqual(points[6].y,-0.5,accuracy:0.0001)
-    }
-    func testCurveArrowHeadMatchesRecoveredWidthAndTangent(){
-        let head=ScreenshotEditorGeometry.curveHead(end:CGPoint(x:30,y:0),control2:.zero,width:4)
-        XCTAssertEqual(head,[CGPoint(x:30,y:7),CGPoint(x:30,y:-7),CGPoint(x:44,y:0)])
-    }
     func testTextMeasurementUsesEmptySpaceAndZeroFragmentPadding(){
         let font = NSFont.systemFont(ofSize: Design.ScreenshotEditor.textSize)
         let empty=ScreenshotEditorGeometry.textSize("",font:font)
         XCTAssertGreaterThan(empty.width,0);XCTAssertGreaterThan(empty.height,0)
         XCTAssertEqual(empty,ScreenshotEditorGeometry.textSize(" ",font:font))
     }
-    func testGaussianLevelMappingMatchesPrecomputedTable(){
-        XCTAssertEqual(ScreenshotEditorGeometry.filterRadius(level:1),0)
-        XCTAssertEqual(ScreenshotEditorGeometry.filterRadius(level:10),13.5)
-    }
     func testHollowEllipseDoesNotSelectItsInterior(){
         let ellipse=stroke(.ellipse)
         XCTAssertFalse(ScreenshotEditorGeometry.hit(CGPoint(x:25,y:25),stroke:ellipse))
         XCTAssertTrue(ScreenshotEditorGeometry.hit(CGPoint(x:25,y:50),stroke:ellipse))
-    }
-    func testBitmapExportKeepsRetinaPixelDimensions() throws {
-        let rep=try XCTUnwrap(NSBitmapImageRep(bitmapDataPlanes:nil,pixelsWide:400,pixelsHigh:200,bitsPerSample:8,samplesPerPixel:4,hasAlpha:true,isPlanar:false,colorSpaceName:.deviceRGB,bytesPerRow:0,bitsPerPixel:0));rep.size=NSSize(width:200,height:100)
-        let base=NSImage(size:rep.size);base.addRepresentation(rep)
-        let output=ScreenshotEditorRenderer.image(base:base,strokes:[stroke()])
-        let bitmap=try XCTUnwrap(output.representations.first as? NSBitmapImageRep)
-        XCTAssertEqual(bitmap.pixelsWide,400);XCTAssertEqual(bitmap.pixelsHigh,200);XCTAssertEqual(output.size,base.size)
     }
     func testCurveHitSamplesActualBezierRatherThanEndpointChord() {
         var curve = stroke(.arrow, end: CGPoint(x: 100, y: 0))

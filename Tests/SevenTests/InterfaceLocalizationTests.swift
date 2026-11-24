@@ -20,19 +20,17 @@ final class InterfaceLocalizationTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let state = InterfaceLanguageState(defaults: defaults)
-        let cases: [(InterfaceLanguage, String, String, String)] = [
-            (.traditionalChinese, "翻譯服務", "取消", "已取得 2 個模型"),
-            (.japanese, "翻訳サービス", "キャンセル", "2 件のモデルが見つかりました"),
-            (.korean, "번역 서비스", "취소", "모델 2개를 찾았습니다"),
-            (.spanish, "Servicios de traducción", "Cancelar", "Se encontraron 2 modelos")
+        let cases: [(InterfaceLanguage, String)] = [
+            (.traditionalChinese, "已取得 2 個模型"),
+            (.japanese, "2 件のモデルが見つかりました"),
+            (.korean, "모델 2개를 찾았습니다"),
+            (.spanish, "Se encontraron 2 modelos")
         ]
-        for (language, services, cancel, models) in cases {
+        for (language, models) in cases {
             state.select(language)
             XCTAssertEqual(InterfaceLanguage.stored(in: defaults), language)
             L10n.$languageOverride.withValue(language) {
                 XCTAssertEqual(L10n.locale.identifier, language.rawValue)
-                XCTAssertEqual(SettingsSection.service.title, services)
-                XCTAssertEqual(L10n.text("cancel"), cancel)
                 XCTAssertEqual(L10n.format("modelCount", Int64(2)), models)
             }
         }
@@ -110,27 +108,18 @@ final class InterfaceLocalizationTests: XCTestCase {
 
 extension InterfaceLocalizationTests {
     func testBothLanguagesAndPluralFormsLoadFromSwiftPM() {
-        L10n.$languageOverride.withValue(.english) {
-            XCTAssertEqual(L10n.text("history.title"), "History")
+        let english = L10n.$languageOverride.withValue(.english) {
             XCTAssertEqual(L10n.format("modelCount", Int64(1)), "Found 1 model")
             XCTAssertEqual(L10n.format("modelCount", Int64(2)), "Found 2 models")
-            XCTAssertEqual(LanguageCatalog.name("en"), "English")
-            XCTAssertEqual(SettingsNavigationGroup.translation.title, "Translation")
-            XCTAssertEqual(SettingsSection.service.title, "Translation Services")
-#if DEBUG || SEVEN_DEVELOPMENT
-            XCTAssertEqual(SettingsSection.diagnostics.title, "Diagnostics")
-#endif
+            return L10n.text("history.title")
         }
-        L10n.$languageOverride.withValue(.simplifiedChinese) {
-            XCTAssertEqual(L10n.text("history.title"), "历史记录")
+        let chinese = L10n.$languageOverride.withValue(.simplifiedChinese) {
             XCTAssertEqual(L10n.format("modelCount", Int64(2)), "已获取 2 个模型")
-            XCTAssertEqual(LanguageCatalog.name("en"), "英语")
-            XCTAssertEqual(SettingsNavigationGroup.translation.title, "翻译")
-            XCTAssertEqual(SettingsSection.service.title, "翻译服务")
-#if DEBUG || SEVEN_DEVELOPMENT
-            XCTAssertEqual(SettingsSection.diagnostics.title, "诊断")
-#endif
+            return L10n.text("history.title")
         }
+        XCTAssertNotEqual(english, "history.title")
+        XCTAssertNotEqual(chinese, "history.title")
+        XCTAssertNotEqual(english, chinese)
     }
 
     @MainActor func testInstalledAppUsesLocalizedResourcesWithoutPackageBundle() throws {

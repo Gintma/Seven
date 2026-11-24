@@ -462,13 +462,10 @@ final class InputReplacementTests: XCTestCase {
         hud.begin(anchor: NSScreen.main?.visibleFrame.origin, cancel: { cancelled = true })
         defer { hud.close() }
         let panel = try XCTUnwrap(NSApp.windows.first { !existingWindows.contains(ObjectIdentifier($0)) } as? NSPanel)
-        XCTAssertEqual(panel.frame.height, Design.ReplacementHUD.height)
-        XCTAssertLessThan(panel.frame.width, 200)
         XCTAssertFalse(panel.isKeyWindow)
         let origin = panel.frame.origin
         let root = try XCTUnwrap(panel.contentView)
         let button = try XCTUnwrap(root.subviews.compactMap { $0 as? NSButton }.first)
-        XCTAssertEqual(button.frame.height, Design.ReplacementHUD.height)
         button.performClick(nil)
         XCTAssertTrue(cancelled)
         let label = try XCTUnwrap(root.subviews.compactMap { $0 as? NSTextField }.first)

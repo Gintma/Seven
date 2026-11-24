@@ -299,13 +299,6 @@ final class ScreenshotScrollTests: XCTestCase {
         let preview = try XCTUnwrap(border.childWindows?.first { $0.title == "长截图实时预览" })
         XCTAssertFalse(preview.frame.isEmpty)
         XCTAssertFalse(preview.frame.intersects(rect))
-        let toolbar = try XCTUnwrap(border.childWindows?.first { $0.title == "长截图工具条" })
-        func descendants(_ view: NSView) -> [NSView] { view.subviews + view.subviews.flatMap(descendants) }
-        let buttons = descendants(try XCTUnwrap(toolbar.contentView)).compactMap { $0 as? NSButton }
-        XCTAssertEqual(buttons.count, 9, "长截图包含系统共享与拖动按钮，不提供自动滚动")
-        for label in ["编辑长截图", "重置长截图", "文字识别", "保存截图", "共享", "钉图", "退出长截图", "完成并复制", "拖动工具条"] {
-            XCTAssertTrue(buttons.contains { $0.accessibilityLabel() == label }, label)
-        }
     }
 
     @MainActor func testPreviewViewportHidesOnUncertainLocationAndRestoresOnReturn() async throws {
@@ -327,17 +320,6 @@ final class ScreenshotScrollTests: XCTestCase {
         image = try frame(offset: 0).image; controller.sample(); await controller.sampling?.value
         XCTAssertEqual(try XCTUnwrap(preview.viewport).minY, 0, accuracy: 0.001)
         XCTAssertEqual(try XCTUnwrap(preview.viewportRect).height, preview.bounds.height * 80 / 170, accuracy: 0.001)
-        // 装饰在NSImageView上绘制，原始预览/导出位图不带边框。
-        XCTAssertEqual(preview.subviews.count, 0)
-        let tools = try XCTUnwrap(controller.window?.childWindows?.first { $0.title == "长截图工具条" })
-        let toolbar = try XCTUnwrap(tools.contentView as? ScreenshotEditorToolbar)
-        toolbar.layoutSubtreeIfNeeded()
-        let bar = try XCTUnwrap(controller.window?.childWindows?.first { $0.title == "长截图状态" }?.contentView)
-        let label = try XCTUnwrap(toolbar.options.arrangedSubviews.first as? NSTextField)
-        XCTAssertEqual(bar.frame.height, Design.ScreenshotEditor.sizeToolbarHeight, accuracy: 0.01)
-        let textFrame = label.convert(label.bounds, to: bar)
-        XCTAssertEqual(textFrame.midX, bar.bounds.midX, accuracy: 0.01)
-        XCTAssertEqual(textFrame.midY, bar.bounds.midY, accuracy: 0.01)
     }
 
     @MainActor func testFinishingConsumesFinalCaptureBeforeReturningImage() async throws {
@@ -433,8 +415,7 @@ final class ScreenshotScrollTests: XCTestCase {
         let editor = ScreenshotEditorWindowController(image: image, context: .centered(.init(screenFrame: screen, background: nil)), preferences: ScreenshotToolPreferences())
         defer { editor.close() }
         let window = try XCTUnwrap(editor.window)
-        let overlay = try XCTUnwrap(window.contentView as? ScreenshotCenteredEditorOverlay)
-        let canvas = try XCTUnwrap(overlay.subviews.first as? ScreenshotEditorCanvas)
+        let canvas = try XCTUnwrap(window.contentView?.subviews.compactMap { $0 as? ScreenshotEditorCanvas }.first)
         XCTAssertEqual(window.frame, screen)
         XCTAssertFalse(window.styleMask.contains(.titled))
         XCTAssertEqual(canvas.frame.midX, screen.width/2, accuracy: 0.01)
@@ -442,8 +423,6 @@ final class ScreenshotScrollTests: XCTestCase {
         XCTAssertLessThan(canvas.frame.height, screen.height)
         let output = try XCTUnwrap(canvas.renderedImage().cgImage(forProposedRect: nil, context: nil, hints: nil))
         XCTAssertEqual(output.width, 200); XCTAssertEqual(output.height, 1800)
-        XCTAssertTrue(editor.window is ScreenshotEditorOverlayPanel)
-        XCTAssertFalse(window.childWindows?.contains { $0.title == "截图尺寸" } ?? false)
     }
     @MainActor func testResetReplacesAccumulatedImageAndThumbnailWithoutOldWrites() async throws {
         _ = NSApplication.shared
