@@ -218,46 +218,42 @@ struct SettingsView: View {
     var body: some View { ThemedContent(content: navigation, manager: themeManager) }
 
     private var navigation: some View {
-        let language = L10n.language
-        let title = selection.title
-        return NavigationSplitView {
-            List(selection: Binding(get: { selection }, set: { next in
-                guard next != selection else { return }
-                serviceEditor.requestDeparture {
-                    clearPageFeedback()
-                    if selection == .general || next == .general { launchAtLogin.refresh() }
-                    selection = next
-                }
-            })) {
-                ForEach(SettingsNavigationGroup.allCases) { group in
-                    Section(group.title) {
-                        ForEach(group.sections) { section in
-                            Label(section.sidebarTitle, systemImage: section.icon)
-                                .themeSidebarRow(selected: section == selection).tag(section)
-                        }
-                    }
-                }
+        splitNavigation
+            .alert(L10n.text("saveChangesToThisService"), isPresented: $serviceEditor.confirmsDeparture) {
+                Button(L10n.text("save")) { saveServiceAndDepart() }
+                Button(L10n.text("donTSave"), role: .destructive) { serviceEditor.discardAndDepart() }
+                Button(L10n.text("cancel"), role: .cancel) { serviceEditor.cancelDeparture() }
+            } message: {
+                Text(L10n.text("thisServiceHasUnsavedChanges"))
             }
-            .listStyle(.sidebar)
-            .themeSidebar()
-            // 语言变化时重建原生列表的标题和行，选中的页面由设置窗口持有。
-            .id(language)
-            .navigationSplitViewColumnWidth(
-                min: Design.Settings.navigationWidth,
-                ideal: Design.Settings.navigationWidth,
-                max: Design.Settings.navigationWidth
-            )
-            .toolbar(removing: .sidebarToggle)
-        } detail: {
-            detail.themeDetailSurface().navigationTitle(title)
-                .settingsOverlayScrollbars()
-                .toolbar {
-                    if #available(macOS 26, *) {
-                        pageTitleItem(title).sharedBackgroundVisibility(.hidden)
-                    } else {
-                        pageTitleItem(title)
-                    }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                screenCaptureTrusted = CGPreflightScreenCaptureAccess()
+            }
+#if DEBUG || SEVEN_DEVELOPMENT
+            .task(id: selection) {
+                if selection == .diagnostics { await refreshDiagnostics() }
+            }
+            .confirmationDialog("清空本地诊断日志？", isPresented: $confirmingLogClear) {
+                Button("清空日志", role: .destructive) {
+                    Task { await diagnostics.clear(); await refreshDiagnostics() }
                 }
+                Button("取消", role: .cancel) {}
+            }
+#endif
+            .confirmationDialog(L10n.text("deleteTheOfflineECDICTDictionary"), isPresented: $confirmingDictionaryDelete) {
+                Button(L10n.text("deleteDictionary"), role: .destructive) {
+                    model.setServiceEnabled(.ecdict, enabled: false)
+                    dictionaryManager.delete()
+                }
+                Button(L10n.text("cancel"), role: .cancel) {}
+            }
+    }
+
+    private var splitNavigation: some View {
+        NavigationSplitView {
+            sidebarContent
+        } detail: {
+            detailContent
         }
         .frame(minWidth: Design.Settings.windowWidth, maxWidth: Design.Settings.windowWidth,
                minHeight: Design.Settings.minimumHeight)
@@ -280,34 +276,54 @@ struct SettingsView: View {
             .frame(width: 0, height: 0)
         }
         .environment(\.locale, L10n.locale)
-        .alert(L10n.text("saveChangesToThisService"), isPresented: $serviceEditor.confirmsDeparture) {
-            Button(L10n.text("save")) { saveServiceAndDepart() }
-            Button(L10n.text("donTSave"), role: .destructive) { serviceEditor.discardAndDepart() }
-            Button(L10n.text("cancel"), role: .cancel) { serviceEditor.cancelDeparture() }
-        } message: {
-            Text(L10n.text("thisServiceHasUnsavedChanges"))
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            screenCaptureTrusted = CGPreflightScreenCaptureAccess()
-        }
-#if DEBUG || SEVEN_DEVELOPMENT
-        .task(id: selection) {
-            if selection == .diagnostics { await refreshDiagnostics() }
-        }
-        .confirmationDialog("清空本地诊断日志？", isPresented: $confirmingLogClear) {
-            Button("清空日志", role: .destructive) {
-                Task { await diagnostics.clear(); await refreshDiagnostics() }
+    }
+
+    private var sidebarSelection: Binding<SettingsSection> {
+        Binding(get: { selection }, set: { next in
+            guard next != selection else { return }
+            serviceEditor.requestDeparture {
+                clearPageFeedback()
+                if selection == .general || next == .general { launchAtLogin.refresh() }
+                selection = next
             }
-            Button("取消", role: .cancel) {}
-        }
-#endif
-        .confirmationDialog(L10n.text("deleteTheOfflineECDICTDictionary"), isPresented: $confirmingDictionaryDelete) {
-            Button(L10n.text("deleteDictionary"), role: .destructive) {
-                model.setServiceEnabled(.ecdict, enabled: false)
-                dictionaryManager.delete()
+        })
+    }
+
+    private var sidebarContent: some View {
+        let language = L10n.language
+        return List(selection: sidebarSelection) {
+            ForEach(SettingsNavigationGroup.allCases) { group in
+                Section(group.title) {
+                    ForEach(group.sections) { section in
+                        Label(section.sidebarTitle, systemImage: section.icon)
+                            .themeSidebarRow(selected: section == selection).tag(section)
+                    }
+                }
             }
-            Button(L10n.text("cancel"), role: .cancel) {}
         }
+        .listStyle(.sidebar)
+        .themeSidebar()
+        // 语言变化时重建原生列表的标题和行，选中的页面由设置窗口持有。
+        .id(language)
+        .navigationSplitViewColumnWidth(
+            min: Design.Settings.navigationWidth,
+            ideal: Design.Settings.navigationWidth,
+            max: Design.Settings.navigationWidth
+        )
+        .toolbar(removing: .sidebarToggle)
+    }
+
+    private var detailContent: some View {
+        let title = selection.title
+        return detail.themeDetailSurface().navigationTitle(title)
+            .settingsOverlayScrollbars()
+            .toolbar {
+                if #available(macOS 26, *) {
+                    pageTitleItem(title).sharedBackgroundVisibility(.hidden)
+                } else {
+                    pageTitleItem(title)
+                }
+            }
     }
 
     private func clearPageFeedback() {
