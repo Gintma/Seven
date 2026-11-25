@@ -3,7 +3,6 @@ import AppKit
 @MainActor
 final class AppKitTranslationInputView: LayerBackedView, NSTextViewDelegate, ThemeApplying {
     private var palette = ThemePalette.system
-    private var isEditing = false
     private let model: TranslationModel
     private let scrollView = UserActivityScrollView()
     private let textView = PlaceholderTextView()
@@ -47,6 +46,7 @@ final class AppKitTranslationInputView: LayerBackedView, NSTextViewDelegate, The
         scrollView.installUserActivityIndicatorPolicy()
         scrollView.drawsBackground = false
         scrollView.borderType = .noBorder
+        scrollView.focusRingType = .none
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
         textView.delegate = self
@@ -54,6 +54,7 @@ final class AppKitTranslationInputView: LayerBackedView, NSTextViewDelegate, The
         textView.onEditingLayoutChange = { [weak self] in self?.onEditingLayoutChange?() }
         textView.maximumVisibleHeight = maximumHeight
         textView.drawsBackground = false
+        textView.focusRingType = .none
         textView.isRichText = false
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
@@ -140,7 +141,6 @@ final class AppKitTranslationInputView: LayerBackedView, NSTextViewDelegate, The
     func applyTheme(_ palette: ThemePalette) {
         self.palette = palette
         fillColor = palette.blockFill
-        strokeColor = isEditing ? palette.focusStroke : ThemePalette.clear
         counterField.textColor = textView.string.count > 20_000 ? palette.error : palette.inkSecondary
         textView.textColor = palette.ink
         textView.placeholderColor = palette.placeholder
@@ -209,16 +209,6 @@ final class AppKitTranslationInputView: LayerBackedView, NSTextViewDelegate, The
         }
         if changed { onPreferredHeightChange?(preferredHeight, animated) }
         return changed
-    }
-
-    func textDidBeginEditing(_ notification: Notification) {
-        isEditing = true
-        strokeColor = palette.focusStroke
-    }
-
-    func textDidEndEditing(_ notification: Notification) {
-        isEditing = false
-        strokeColor = ThemePalette.clear
     }
 
     func textDidChange(_ notification: Notification) {

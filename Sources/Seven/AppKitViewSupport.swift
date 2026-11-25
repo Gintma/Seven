@@ -135,13 +135,11 @@ extension NSTextField {
     func applyTheme(_ palette: ThemePalette, placeholder: String) {
         textColor = palette.isSystem ? ThemePalette.nativeControlInk : palette.ink
         backgroundColor = palette.surfaceInset
-        if palette.isSystem {
-            placeholderString = placeholder
-        } else {
-            placeholderAttributedString = NSAttributedString(
-                string: placeholder, attributes: [.foregroundColor: palette.placeholder]
-            )
-        }
+        let placeholderFont = font ?? NSFont.systemFont(ofSize: NSFont.systemFontSize(for: controlSize))
+        placeholderAttributedString = NSAttributedString(string: placeholder, attributes: [
+            .font: placeholderFont,
+            .foregroundColor: palette.placeholder
+        ])
         (currentEditor() as? NSTextView)?.applyThemeSelection(palette)
     }
 }
