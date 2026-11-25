@@ -1,7 +1,7 @@
 /// 色板的原始输入。预设角色可由纯计算补齐，手动覆盖在最后应用。
 struct ThemeSeed {
     enum Semantic {
-        case success, error, warning, favorite
+        case error, warning, favorite
     }
 
     let surface: ThemeColor

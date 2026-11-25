@@ -425,7 +425,6 @@
 "reopenSevenAfterEnablingThisPermission" = "Vuelve a abrir Seven cuando hayas concedido este permiso.";
 "reopenSystemSettings" = "Volver a abrir Configuración del Sistema";
 "replaceTextWithItsTranslationInsideAnother" = "Reemplaza el texto por su traducción dentro de otra app";
-"replaced" = "Reemplazado";
 "requestsEndIfTheyExceedTheSelected" = "Las solicitudes finalizan si superan el tiempo indicado.";
 "requiresAnInternetConnectionTextIsSent" = "Requiere conexión a Internet · El texto se envía a %1$@";
 "requiresMacOS15OrLater" = "Requiere macOS 15 o posterior";
@@ -680,7 +679,6 @@
 "windowPosition" = "Posición de la ventana";
 "youAreALanguageTeacherPreserveThe" = "Eres docente de idiomas. Conserva el tono original y explica las expresiones difíciles de entender.";
 "youCanTranslateUpTo20000" = "Puedes traducir hasta 20.000 caracteres a la vez.";
-"youCanUndoThisInTheOriginal" = "Puedes deshacerlo en la app original";
 "youdao.unavailable" = "El traductor de Youdao no está disponible temporalmente (error %1$@).";
 "youdaoSpeech" = "Lectura en voz alta de Youdao";
 "youdaoTranslate" = "Traductor de Youdao";

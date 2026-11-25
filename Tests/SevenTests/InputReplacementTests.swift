@@ -214,15 +214,20 @@ final class InputReplacementTests: XCTestCase {
         XCTAssertFalse(model.isServiceExpanded(.google)); XCTAssertFalse(model.isServiceExpanded(.youdao))
     }
 
-    func testCoordinatorWritesOnlyCompletedTranslation() async throws {
+    func testHUDClosesAsSoonAsVerifiedWriteCompletes() async throws {
         let (model, defaults, suite) = try fixtures(service: ReplacementService())
         defer { defaults.removePersistentDomain(forName: suite) }
         let target = try ReplacementTargetStub()
-        let coordinator = InputReplacementCoordinator(capture: { _ in target }, makeModel: { model })
+        let hud = InputReplacementHUD()
+        let coordinator = InputReplacementCoordinator(capture: { _ in target }, hud: hud, makeModel: { model })
+        defer { coordinator.cancel() }
+        target.beforeWrite = {
+            XCTAssertTrue(hud.panel.isVisible, "写回尚未核验时继续显示进度")
+        }
         coordinator.start(pid: 1)
         try await settle { !coordinator.isRunning }
         XCTAssertEqual(target.writes, ["你好"])
-        coordinator.cancel()
+        XCTAssertFalse(hud.panel.isVisible, "确认写回的同一轮即收起 HUD")
     }
 
     func testCoordinatorRetriesUntilTheBrowserPublishesFocus() async throws {
@@ -472,13 +477,10 @@ final class InputReplacementTests: XCTestCase {
         hud.prepareForWrite()
         XCTAssertTrue(panel.isVisible)
         XCTAssertFalse(button.isEnabled)
-        hud.showResult("已替换", success: true)
-        XCTAssertTrue(panel.isVisible)
-        XCTAssertEqual(panel.frame.origin, origin)
-        XCTAssertTrue(button.isHidden)
         let failureMessage: LocalizedMessage = "输入位置或内容已变化"
         let failureDetail: LocalizedMessage = "前台应用已变化，已停止替换。"
-        hud.showResult(failureMessage, success: false, detail: failureDetail)
+        hud.showFailure(failureMessage, detail: failureDetail)
+        XCTAssertTrue(panel.isVisible)
         let messageField = try XCTUnwrap(screenshotDescendants(of: root).compactMap { $0 as? NSTextField }
             .first { $0.accessibilityHelp() == failureDetail.text })
         XCTAssertEqual(messageField.stringValue, failureMessage.text)

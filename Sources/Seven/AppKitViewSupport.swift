@@ -127,7 +127,6 @@ extension NSTextField {
     func applyTheme(_ palette: ThemePalette, placeholder: String) {
         textColor = palette.isSystem ? ThemePalette.nativeControlInk : palette.ink
         backgroundColor = palette.surfaceInset
-        focusRingType = palette.isSystem ? .default : .none
         if palette.isSystem {
             placeholderString = placeholder
         } else {

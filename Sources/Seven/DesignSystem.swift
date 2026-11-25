@@ -202,6 +202,8 @@ enum Design {
         static let secondaryRowHeight: CGFloat = 32
         static let listActionSize: CGFloat = 48
         static let controlHeight: CGFloat = 24
+        /// 自定义主题下输入控件的键盘焦点描边。
+        static let focusRingWidth: CGFloat = 2
         /// 提示词编辑框为原三行默认高度的两倍，固定高度，内容在框内滚动。
         static let promptEditorHeight: CGFloat = 112
         static let segmentedThumbInset: CGFloat = 1

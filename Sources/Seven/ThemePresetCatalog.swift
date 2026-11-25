@@ -3,7 +3,7 @@ extension ThemePreset {
     static let imported: [ThemePreset] = [
         .init(id: "absolutely", title: "Absolutely",
               light: .init(surface: 0xF9F9F7, ink: 0x2D2D2B, accent: 0xCC7D5E, contrast: 45,
-                           semantic: [.success: 0x00C853, .error: 0xFF5F38],
+                           semantic: [.error: 0xFF5F38],
                            tokens: [
                                .surfaceRaised: 0xFAFAF9, .surfaceInset: 0xFAFAF8,
                                .blockFill: 0xFAFAF8, .alternateFill: .init(rgb: 0x2D2D2B, opacity: 0.019),
@@ -15,7 +15,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0xCC7D5E, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x2D2D2B, ink: 0xF9F9F7, accent: 0xCC7D5E, contrast: 60,
-                           semantic: [.success: 0x00C853, .error: 0xFF5F38],
+                           semantic: [.error: 0xFF5F38],
                            tokens: [
                                .surfaceRaised: 0x474745, .surfaceInset: 0x3F3F3D,
                                .blockFill: 0x373735, .alternateFill: .init(rgb: 0xF9F9F7, opacity: 0.038),
@@ -29,7 +29,7 @@ extension ThemePreset {
         .init(id: "ayu", title: "Ayu",
               light: nil,
               dark: .init(surface: 0x10141C, ink: 0xBFBDB6, accent: 0xE6B450, contrast: 60,
-                           semantic: [.success: 0x70BF56, .error: 0xF26D78],
+                           semantic: [.error: 0xF26D78],
                            tokens: [
                                .surfaceRaised: 0x262A30, .surfaceInset: 0x20232A,
                                .blockFill: 0x181C23, .alternateFill: .init(rgb: 0xBFBDB6, opacity: 0.038),
@@ -42,7 +42,7 @@ extension ThemePreset {
                            ])),
         .init(id: "catppuccin", title: "Catppuccin",
               light: .init(surface: 0xEFF1F5, ink: 0x4C4F69, accent: 0x8839EF, contrast: 45,
-                           semantic: [.success: 0x215316, .error: 0x6D081E,
+                           semantic: [.error: 0x6D081E,
                                       .warning: 0x843406, .favorite: 0x744A0F],
                            tokens: [
                                .surfaceRaised: 0xF2F4F7, .surfaceInset: 0xF1F3F6,
@@ -55,7 +55,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x8839EF, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x1E1E2E, ink: 0xCDD6F4, accent: 0xCBA6F7, contrast: 60,
-                           semantic: [.success: 0xA6E3A1, .error: 0xF9C5D4,
+                           semantic: [.error: 0xF9C5D4,
                                       .warning: 0xFBC6A5, .favorite: 0xF9E2AF],
                            tokens: [
                                .surfaceRaised: 0x343647, .surfaceInset: 0x2E2F40,
@@ -69,7 +69,7 @@ extension ThemePreset {
                            ])),
         .init(id: "codex", title: "Codex",
               light: .init(surface: 0xFFFFFF, ink: 0x1A1C1F, accent: 0x339CFF, contrast: 45,
-                           semantic: [.success: 0x00A240, .error: 0xBA2623],
+                           semantic: [.error: 0xBA2623],
                            tokens: [
                                .surfaceRaised: 0xFFFFFF, .surfaceInset: 0xFFFFFF,
                                .blockFill: 0xFFFFFF, .alternateFill: .init(rgb: 0x1A1C1F, opacity: 0.019),
@@ -81,7 +81,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x339CFF, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x181818, ink: 0xFFFFFF, accent: 0x339CFF, contrast: 60,
-                           semantic: [.success: 0x40C977, .error: 0xFA423E],
+                           semantic: [.error: 0xFA423E],
                            tokens: [
                                .surfaceRaised: 0x363636, .surfaceInset: 0x2D2D2D,
                                .blockFill: 0x232323, .alternateFill: .init(rgb: 0xFFFFFF, opacity: 0.038),
@@ -95,7 +95,7 @@ extension ThemePreset {
         .init(id: "dracula", title: "Dracula",
               light: nil,
               dark: .init(surface: 0x282A36, ink: 0xF8F8F2, accent: 0xFF79C6, contrast: 60,
-                           semantic: [.success: 0x50FA7B, .error: 0xFF5555],
+                           semantic: [.error: 0xFF5555],
                            tokens: [
                                .surfaceRaised: 0x43444E, .surfaceInset: 0x3B3D47,
                                .blockFill: 0x32343F, .alternateFill: .init(rgb: 0xF8F8F2, opacity: 0.038),
@@ -108,7 +108,7 @@ extension ThemePreset {
                            ])),
         .init(id: "everforest", title: "Everforest",
               light: .init(surface: 0xFDF6E3, ink: 0x5C6A72, accent: 0x93B259, contrast: 45,
-                           semantic: [.success: 0x495401, .error: 0x812C2B,
+                           semantic: [.error: 0x812C2B,
                                       .warning: 0x7F4114, .favorite: 0x745300],
                            tokens: [
                                .surfaceRaised: 0xFDF8E9, .surfaceInset: 0xFDF7E6,
@@ -121,7 +121,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x93B259, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x2D353B, ink: 0xD3C6AA, accent: 0xA7C080, contrast: 60,
-                           semantic: [.success: 0xD3E0C0, .error: 0xF3BFC0,
+                           semantic: [.error: 0xF3BFC0,
                                       .warning: 0xF3CCBA, .favorite: 0xEDDEBF],
                            tokens: [
                                .surfaceRaised: 0x424849, .surfaceInset: 0x3C4245,
@@ -135,7 +135,7 @@ extension ThemePreset {
                            ])),
         .init(id: "github", title: "GitHub",
               light: .init(surface: 0xFFFFFF, ink: 0x1F2328, accent: 0x0969DA, contrast: 45,
-                           semantic: [.success: 0x1A7F37, .error: 0xCF222E],
+                           semantic: [.error: 0xCF222E],
                            tokens: [
                                .surfaceRaised: 0xFFFFFF, .surfaceInset: 0xFFFFFF,
                                .blockFill: 0xFFFFFF, .alternateFill: .init(rgb: 0x1F2328, opacity: 0.019),
@@ -147,7 +147,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x0969DA, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x0D1117, ink: 0xE6EDF3, accent: 0x1F6FEB, contrast: 60,
-                           semantic: [.success: 0x3FB950, .error: 0xF85149],
+                           semantic: [.error: 0xF85149],
                            tokens: [
                                .surfaceRaised: 0x292D33, .surfaceInset: 0x21252B,
                                .blockFill: 0x171C22, .alternateFill: .init(rgb: 0xE6EDF3, opacity: 0.038),
@@ -160,7 +160,7 @@ extension ThemePreset {
                            ])),
         .init(id: "gruvbox", title: "Gruvbox",
               light: .init(surface: 0xFBF1C7, ink: 0x3C3836, accent: 0x458588, contrast: 45,
-                           semantic: [.success: 0x3C3836, .error: 0xCC241D],
+                           semantic: [.error: 0xCC241D],
                            tokens: [
                                .surfaceRaised: 0xFCF4D3, .surfaceInset: 0xFBF3CD,
                                .blockFill: 0xFCF4D1, .alternateFill: .init(rgb: 0x3C3836, opacity: 0.019),
@@ -172,7 +172,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x458588, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x282828, ink: 0xEBDBB2, accent: 0x458588, contrast: 60,
-                           semantic: [.success: 0xEBDBB2, .error: 0xCC241D],
+                           semantic: [.error: 0xCC241D],
                            tokens: [
                                .surfaceRaised: 0x413F3A, .surfaceInset: 0x3A3834,
                                .blockFill: 0x31312F, .alternateFill: .init(rgb: 0xEBDBB2, opacity: 0.038),
@@ -185,7 +185,7 @@ extension ThemePreset {
                            ])),
         .init(id: "linear", title: "Linear",
               light: .init(surface: 0xFCFCFD, ink: 0x1B1B1B, accent: 0x5E6AD2, contrast: 45,
-                           semantic: [.success: 0x52A450, .error: 0xC94446],
+                           semantic: [.error: 0xC94446],
                            tokens: [
                                .surfaceRaised: 0xFDFDFD, .surfaceInset: 0xFCFCFD,
                                .blockFill: 0xFDFDFD, .alternateFill: .init(rgb: 0x1B1B1B, opacity: 0.019),
@@ -197,7 +197,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x5E6AD2, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x0F0F11, ink: 0xE3E4E6, accent: 0x606ACC, contrast: 60,
-                           semantic: [.success: 0x69C967, .error: 0xFF7E78],
+                           semantic: [.error: 0xFF7E78],
                            tokens: [
                                .surfaceRaised: 0x2A2A2C, .surfaceInset: 0x222224,
                                .blockFill: 0x19191B, .alternateFill: .init(rgb: 0xE3E4E6, opacity: 0.038),
@@ -211,7 +211,7 @@ extension ThemePreset {
         .init(id: "lobster", title: "Lobster",
               light: nil,
               dark: .init(surface: 0x111827, ink: 0xE4E4E7, accent: 0xFF5C5C, contrast: 60,
-                           semantic: [.success: 0x22C55E, .error: 0xFF5C5C],
+                           semantic: [.error: 0xFF5C5C],
                            tokens: [
                                .surfaceRaised: 0x2C3240, .surfaceInset: 0x242A38,
                                .blockFill: 0x1B2230, .alternateFill: .init(rgb: 0xE4E4E7, opacity: 0.038),
@@ -225,7 +225,7 @@ extension ThemePreset {
         .init(id: "material", title: "Material",
               light: nil,
               dark: .init(surface: 0x212121, ink: 0xEEFFFF, accent: 0x80CBC4, contrast: 60,
-                           semantic: [.success: 0xC3E88D, .error: 0xF07178],
+                           semantic: [.error: 0xF07178],
                            tokens: [
                                .surfaceRaised: 0x3B3D3D, .surfaceInset: 0x333535,
                                .blockFill: 0x2B2C2C, .alternateFill: .init(rgb: 0xEEFFFF, opacity: 0.038),
@@ -239,7 +239,7 @@ extension ThemePreset {
         .init(id: "matrix", title: "Matrix",
               light: nil,
               dark: .init(surface: 0x040805, ink: 0xB8FFCA, accent: 0x1EFF5A, contrast: 60,
-                           semantic: [.success: 0x1EFF5A, .error: 0xFA423E],
+                           semantic: [.error: 0xFA423E],
                            tokens: [
                                .surfaceRaised: 0x1B281E, .surfaceInset: 0x141E17,
                                .blockFill: 0x0D140E, .alternateFill: .init(rgb: 0xB8FFCA, opacity: 0.038),
@@ -253,7 +253,7 @@ extension ThemePreset {
         .init(id: "monokai", title: "Monokai",
               light: nil,
               dark: .init(surface: 0x272822, ink: 0xF8F8F2, accent: 0x99947C, contrast: 60,
-                           semantic: [.success: 0x86B42B, .error: 0xC4265E],
+                           semantic: [.error: 0xC4265E],
                            tokens: [
                                .surfaceRaised: 0x42433D, .surfaceInset: 0x3A3B35,
                                .blockFill: 0x31322C, .alternateFill: .init(rgb: 0xF8F8F2, opacity: 0.038),
@@ -267,7 +267,7 @@ extension ThemePreset {
         .init(id: "night-owl", title: "Night Owl",
               light: nil,
               dark: .init(surface: 0x011627, ink: 0xD6DEEB, accent: 0x44596B, contrast: 60,
-                           semantic: [.success: 0xC5E478, .error: 0xEF5350],
+                           semantic: [.error: 0xEF5350],
                            tokens: [
                                .surfaceRaised: 0x1C3040, .surfaceInset: 0x142839,
                                .blockFill: 0x0B2030, .alternateFill: .init(rgb: 0xD6DEEB, opacity: 0.038),
@@ -281,7 +281,7 @@ extension ThemePreset {
         .init(id: "nord", title: "Nord",
               light: nil,
               dark: .init(surface: 0x2E3440, ink: 0xD8DEE9, accent: 0x88C0D0, contrast: 60,
-                           semantic: [.success: 0xD1DFC6, .error: 0xEFD8DA,
+                           semantic: [.error: 0xEFD8DA,
                                       .warning: 0xE8C3B8, .favorite: 0xF0D8A8],
                            tokens: [
                                .surfaceRaised: 0x444A56, .surfaceInset: 0x3D434F,
@@ -295,7 +295,7 @@ extension ThemePreset {
                            ])),
         .init(id: "notion", title: "Notion",
               light: .init(surface: 0xFFFFFF, ink: 0x37352F, accent: 0x3183D8, contrast: 45,
-                           semantic: [.success: 0x008000, .error: 0xA31515],
+                           semantic: [.error: 0xA31515],
                            tokens: [
                                .surfaceRaised: 0xFFFFFF, .surfaceInset: 0xFFFFFF,
                                .blockFill: 0xFFFFFF, .alternateFill: .init(rgb: 0x37352F, opacity: 0.019),
@@ -307,7 +307,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x3183D8, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x191919, ink: 0xD9D9D8, accent: 0x3183D8, contrast: 60,
-                           semantic: [.success: 0x4EC9B0, .error: 0xFA423E],
+                           semantic: [.error: 0xFA423E],
                            tokens: [
                                .surfaceRaised: 0x323231, .surfaceInset: 0x2A2A2A,
                                .blockFill: 0x222222, .alternateFill: .init(rgb: 0xD9D9D8, opacity: 0.038),
@@ -321,7 +321,7 @@ extension ThemePreset {
         .init(id: "og", title: "OG",
               light: nil,
               dark: .init(surface: 0x343541, ink: 0xD1D5DB, accent: 0x10A37F, contrast: 60,
-                           semantic: [.success: 0x65C99A, .error: 0xF28B82],
+                           semantic: [.error: 0xF28B82],
                            tokens: [
                                .surfaceRaised: 0x484955, .surfaceInset: 0x42434F,
                                .blockFill: 0x3C3D48, .alternateFill: .init(rgb: 0xD1D5DB, opacity: 0.038),
@@ -334,7 +334,7 @@ extension ThemePreset {
                            ])),
         .init(id: "one", title: "One",
               light: .init(surface: 0xFAFAFA, ink: 0x383A42, accent: 0x526FFF, contrast: 45,
-                           semantic: [.success: 0x3BBA54, .error: 0xE45649],
+                           semantic: [.error: 0xE45649],
                            tokens: [
                                .surfaceRaised: 0xFBFBFB, .surfaceInset: 0xFBFBFB,
                                .blockFill: 0xFBFBFB, .alternateFill: .init(rgb: 0x383A42, opacity: 0.019),
@@ -346,7 +346,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x526FFF, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x282C34, ink: 0xABB2BF, accent: 0x4D78CC, contrast: 60,
-                           semantic: [.success: 0x8CC265, .error: 0xE05561],
+                           semantic: [.error: 0xE05561],
                            tokens: [
                                .surfaceRaised: 0x393D46, .surfaceInset: 0x343841,
                                .blockFill: 0x2E323B, .alternateFill: .init(rgb: 0xABB2BF, opacity: 0.038),
@@ -360,7 +360,7 @@ extension ThemePreset {
         .init(id: "oscurange", title: "Oscurange",
               light: nil,
               dark: .init(surface: 0x0B0B0F, ink: 0xE6E6E6, accent: 0xF9B98C, contrast: 60,
-                           semantic: [.success: 0x40C977, .error: 0xFA423E],
+                           semantic: [.error: 0xFA423E],
                            tokens: [
                                .surfaceRaised: 0x27272B, .surfaceInset: 0x1F1F22,
                                .blockFill: 0x161619, .alternateFill: .init(rgb: 0xE6E6E6, opacity: 0.038),
@@ -373,7 +373,7 @@ extension ThemePreset {
                            ])),
         .init(id: "proof", title: "Proof",
               light: .init(surface: 0xF5F3ED, ink: 0x2F312D, accent: 0x3D755D, contrast: 45,
-                           semantic: [.success: 0x3D755D, .error: 0xBA2623],
+                           semantic: [.error: 0xBA2623],
                            tokens: [
                                .surfaceRaised: 0xF7F6F1, .surfaceInset: 0xF6F4EF,
                                .blockFill: 0xF7F5F0, .alternateFill: .init(rgb: 0x2F312D, opacity: 0.019),
@@ -387,7 +387,7 @@ extension ThemePreset {
               dark: nil),
         .init(id: "raycast", title: "Raycast",
               light: .init(surface: 0xFFFFFF, ink: 0x030303, accent: 0xFF6363, contrast: 45,
-                           semantic: [.success: 0x006B4F, .error: 0xB12424],
+                           semantic: [.error: 0xB12424],
                            tokens: [
                                .surfaceRaised: 0xFFFFFF, .surfaceInset: 0xFFFFFF,
                                .blockFill: 0xFFFFFF, .alternateFill: .init(rgb: 0x030303, opacity: 0.019),
@@ -399,7 +399,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0xFF6363, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x101010, ink: 0xFEFEFE, accent: 0xFF6363, contrast: 60,
-                           semantic: [.success: 0x59D499, .error: 0xFF6363],
+                           semantic: [.error: 0xFF6363],
                            tokens: [
                                .surfaceRaised: 0x2E2E2E, .surfaceInset: 0x252525,
                                .blockFill: 0x1B1B1B, .alternateFill: .init(rgb: 0xFEFEFE, opacity: 0.038),
@@ -412,7 +412,7 @@ extension ThemePreset {
                            ])),
         .init(id: "rose-pine", title: "Rose Pine",
               light: .init(surface: 0xFAF4ED, ink: 0x575279, accent: 0xD7827E, contrast: 45,
-                           semantic: [.success: 0x153744, .error: 0x5E333F,
+                           semantic: [.error: 0x5E333F,
                                       .warning: 0x704442, .favorite: 0x7A521B],
                            tokens: [
                                .surfaceRaised: 0xFBF6F1, .surfaceInset: 0xFBF5EF,
@@ -425,7 +425,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0xD7827E, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x232136, ink: 0xE0DEF4, accent: 0xEA9A97, contrast: 60,
-                           semantic: [.success: 0xCFE3EB, .error: 0xFADBE4,
+                           semantic: [.error: 0xFADBE4,
                                       .warning: 0xF5CDCB, .favorite: 0xF8D199],
                            tokens: [
                                .surfaceRaised: 0x3B394E, .surfaceInset: 0x343247,
@@ -440,7 +440,7 @@ extension ThemePreset {
         .init(id: "sentry", title: "Sentry",
               light: nil,
               dark: .init(surface: 0x2D2935, ink: 0xE6DFF9, accent: 0x7055F6, contrast: 60,
-                           semantic: [.success: 0x8EE6D7, .error: 0xFA423E],
+                           semantic: [.error: 0xFA423E],
                            tokens: [
                                .surfaceRaised: 0x45404E, .surfaceInset: 0x3E3947,
                                .blockFill: 0x36323E, .alternateFill: .init(rgb: 0xE6DFF9, opacity: 0.038),
@@ -453,7 +453,7 @@ extension ThemePreset {
                            ])),
         .init(id: "solarized", title: "Solarized",
               light: .init(surface: 0xFDF6E3, ink: 0x657B83, accent: 0xB58900, contrast: 45,
-                           semantic: [.success: 0x859900, .error: 0xDC322F],
+                           semantic: [.error: 0xDC322F],
                            tokens: [
                                .surfaceRaised: 0xFDF8E9, .surfaceInset: 0xFDF7E6,
                                .blockFill: 0xFDF8E8, .alternateFill: .init(rgb: 0x657B83, opacity: 0.019),
@@ -465,7 +465,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0xB58900, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x002B36, ink: 0x839496, accent: 0xD30102, contrast: 60,
-                           semantic: [.success: 0x859900, .error: 0xDC322F],
+                           semantic: [.error: 0xDC322F],
                            tokens: [
                                .surfaceRaised: 0x113842, .surfaceInset: 0x0C343F,
                                .blockFill: 0x06303B, .alternateFill: .init(rgb: 0x839496, opacity: 0.038),
@@ -479,7 +479,7 @@ extension ThemePreset {
         .init(id: "temple", title: "Temple",
               light: nil,
               dark: .init(surface: 0x02120C, ink: 0xC7E6DA, accent: 0xE4F222, contrast: 60,
-                           semantic: [.success: 0x40C977, .error: 0xFA423E],
+                           semantic: [.error: 0xFA423E],
                            tokens: [
                                .surfaceRaised: 0x1B2D26, .surfaceInset: 0x14251F,
                                .blockFill: 0x0B1C16, .alternateFill: .init(rgb: 0xC7E6DA, opacity: 0.038),
@@ -493,7 +493,7 @@ extension ThemePreset {
         .init(id: "tokyo-night", title: "Tokyo Night",
               light: nil,
               dark: .init(surface: 0x1A1B26, ink: 0xA9B1D6, accent: 0x3D59A1, contrast: 60,
-                           semantic: [.success: 0xD0E9ED, .error: 0xFBBBC7,
+                           semantic: [.error: 0xFBBBC7,
                                       .warning: 0xFFCFB2, .favorite: 0xF0D7B4],
                            tokens: [
                                .surfaceRaised: 0x2C2E3D, .surfaceInset: 0x272936,
@@ -507,7 +507,7 @@ extension ThemePreset {
                            ])),
         .init(id: "vercel", title: "Vercel",
               light: .init(surface: 0xFFFFFF, ink: 0x171717, accent: 0x006AFF, contrast: 40,
-                           semantic: [.success: 0x28A948, .error: 0xEB001D],
+                           semantic: [.error: 0xEB001D],
                            tokens: [
                                .surfaceRaised: 0xFFFFFF, .surfaceInset: 0xFFFFFF,
                                .blockFill: 0xFFFFFF, .alternateFill: .init(rgb: 0x171717, opacity: 0.017),
@@ -519,7 +519,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x006AFF, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x000000, ink: 0xEDEDED, accent: 0x006EFE, contrast: 50,
-                           semantic: [.success: 0x00AD3A, .error: 0xF13342],
+                           semantic: [.error: 0xF13342],
                            tokens: [
                                .surfaceRaised: 0x1A1A1A, .surfaceInset: 0x131313,
                                .blockFill: 0x0A0A0A, .alternateFill: .init(rgb: 0xEDEDED, opacity: 0.032),
@@ -532,7 +532,7 @@ extension ThemePreset {
                            ])),
         .init(id: "vscode-plus", title: "VS Code Plus",
               light: .init(surface: 0xFFFFFF, ink: 0x000000, accent: 0x007ACC, contrast: 45,
-                           semantic: [.success: 0x008000, .error: 0xEE0000],
+                           semantic: [.error: 0xEE0000],
                            tokens: [
                                .surfaceRaised: 0xFFFFFF, .surfaceInset: 0xFFFFFF,
                                .blockFill: 0xFFFFFF, .alternateFill: .init(rgb: 0x000000, opacity: 0.019),
@@ -544,7 +544,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x007ACC, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x1E1E1E, ink: 0xD4D4D4, accent: 0x007ACC, contrast: 60,
-                           semantic: [.success: 0x369432, .error: 0xF44747],
+                           semantic: [.error: 0xF44747],
                            tokens: [
                                .surfaceRaised: 0x353535, .surfaceInset: 0x2E2E2E,
                                .blockFill: 0x272727, .alternateFill: .init(rgb: 0xD4D4D4, opacity: 0.038),
@@ -557,7 +557,7 @@ extension ThemePreset {
                            ])),
         .init(id: "xcode", title: "Xcode",
               light: .init(surface: 0xFFFFFF, ink: 0x000000, accent: 0x0E0EFF, contrast: 45,
-                           semantic: [.success: 0x00A240, .error: 0xC41A16],
+                           semantic: [.error: 0xC41A16],
                            tokens: [
                                .surfaceRaised: 0xFFFFFF, .surfaceInset: 0xFFFFFF,
                                .blockFill: 0xFFFFFF, .alternateFill: .init(rgb: 0x000000, opacity: 0.019),
@@ -569,7 +569,7 @@ extension ThemePreset {
                                .selectionFill: .init(rgb: 0x0E0EFF, opacity: 0.25)
                            ]),
               dark: .init(surface: 0x1F1F24, ink: 0xFFFFFF, accent: 0x5482FF, contrast: 60,
-                           semantic: [.success: 0x67B7A4, .error: 0xFC6A5D],
+                           semantic: [.error: 0xFC6A5D],
                            tokens: [
                                .surfaceRaised: 0x3C3C40, .surfaceInset: 0x333338,
                                .blockFill: 0x2A2A2F, .alternateFill: .init(rgb: 0xFFFFFF, opacity: 0.038),

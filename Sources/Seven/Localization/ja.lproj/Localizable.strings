@@ -425,7 +425,6 @@
 "reopenSevenAfterEnablingThisPermission" = "このアクセス権を許可したら、Seven を開き直してください。";
 "reopenSystemSettings" = "システム設定を開き直す";
 "replaceTextWithItsTranslationInsideAnother" = "別のアプリの入力欄で原文を訳文に置換";
-"replaced" = "置換しました";
 "requestsEndIfTheyExceedTheSelected" = "指定した時間を超えるとリクエストを終了します。";
 "requiresAnInternetConnectionTextIsSent" = "インターネット接続が必要 · テキストは %1$@ に送信されます";
 "requiresMacOS15OrLater" = "macOS 15 以降が必要です";
@@ -680,7 +679,6 @@
 "windowPosition" = "ウィンドウの位置";
 "youAreALanguageTeacherPreserveThe" = "あなたは語学教師です。原文の調子を保ち、理解しにくい表現を説明してください。";
 "youCanTranslateUpTo20000" = "一度に 20,000 文字まで翻訳できます。";
-"youCanUndoThisInTheOriginal" = "元のアプリで取り消せます";
 "youdao.unavailable" = "Youdao 翻訳は一時的に利用できません（エラー %1$@）。";
 "youdaoSpeech" = "Youdao 読み上げ";
 "youdaoTranslate" = "Youdao 翻訳";

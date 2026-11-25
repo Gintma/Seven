@@ -85,19 +85,14 @@ private struct SettingsAddModelSheet: View {
     let add: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
-    @FocusState private var focused: Bool
     private var normalized: String { SettingsModelChoices.normalized(name) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Space.l) {
             Text(L10n.text("addModel")).font(Design.Text.sectionTitle.font)
             SettingsControlRow(L10n.text("modelName")) {
-                TextField(text: $name, prompt: Text(L10n.text("forExampleGpt4oMini")).foregroundStyle(ThemeStyle.placeholder)) {
-                    Text(L10n.text("modelName"))
-                }
-                    .labelsHidden()
-                    .textFieldStyle(.roundedBorder).focused($focused)
-                    .accessibilityLabel(L10n.text("modelName")).onSubmit(submit)
+                SettingsEditableTextField(text: $name, title: L10n.text("modelName"),
+                                          placeholder: L10n.text("forExampleGpt4oMini"), autofocus: true, onSubmit: submit)
             }
             SettingsNote(text: L10n.text("enterAModelSupportedByThisService"), multiline: true)
             HStack(spacing: Design.Space.s) {
@@ -106,7 +101,6 @@ private struct SettingsAddModelSheet: View {
                 Button(L10n.text("add"), action: submit).keyboardShortcut(.defaultAction).disabled(normalized.isEmpty)
             }
         }.padding(Design.Space.xl).frame(width: Design.Settings.providerGridWidth)
-            .onAppear { focused = true }
     }
     private func submit() {
         guard !normalized.isEmpty else { return }

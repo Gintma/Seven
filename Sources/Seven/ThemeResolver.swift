@@ -37,7 +37,6 @@ enum ThemeResolver {
         let favorite = readable(seed.semantic[.favorite] ?? (variant == .dark ? 0xF2CA67 : 0x906200),
                                 on: backgrounds, minimum: 3)
         let hudBackground = raised.mixed(with: accent, fraction: 0.04)
-        let hudSuccess = readable(seed.semantic[.success] ?? accent, on: [hudBackground], minimum: 4.5)
         let colors: [ThemeToken: ThemeColor] = [
             .surface: surface, .surfaceRaised: raised, .surfaceInset: inset, .blockFill: block,
             .alternateFill: seed.tokens[.alternateFill] ?? ink.withOpacity(0.035),
@@ -54,8 +53,7 @@ enum ThemeResolver {
             .hudBackground: hudBackground, .hudText: readable(ink, on: [hudBackground], minimum: 4.5),
             .hudSecondary: readable(secondary, on: [hudBackground], minimum: 4.5),
             .hudBorder: hudBackground.mixed(with: ink, fraction: 0.16),
-            .hudHighlight: readable(link, on: [hudBackground], minimum: 4.5),
-            .hudSuccess: hudSuccess
+            .hudHighlight: readable(link, on: [hudBackground], minimum: 4.5)
         ]
         let resolved = colors.merging(seed.overrides) { _, override in override }
         return ThemePalette(id: id, variant: variant, colors: resolved.mapValues(\.nsColor))

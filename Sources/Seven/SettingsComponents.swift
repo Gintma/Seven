@@ -163,17 +163,13 @@ struct SettingsInputRow: View {
     var reset: (() -> Void)? = nil
     var defaultValue: String? = nil
     var onEndEditing: () -> Void = {}
-    @FocusState private var focused: Bool
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Space.s) {
             SettingsControlRow(title) {
                 HStack(spacing: Design.Space.s) {
-                    TextField(text: $text, prompt: Text(placeholder).foregroundStyle(ThemeStyle.placeholder)) { Text(title) }.labelsHidden()
-                        .multilineTextAlignment(.leading).textFieldStyle(.roundedBorder)
-                        .controlSize(.regular).font(Design.Settings.controlTextFont)
-                        .frame(height: Design.Settings.controlHeight)
+                    SettingsEditableTextField(text: $text, title: title, placeholder: placeholder,
+                                              onSubmit: onSubmit, onEndEditing: onEndEditing)
                         .settingsSmartTarget("AXTextField")
-                        .focused($focused).onSubmit(onSubmit).accessibilityLabel(title)
                     if let reset, text != defaultValue {
                         Button(action: reset) { Image(systemName: "arrow.counterclockwise") }
                             .buttonStyle(.borderless).controlSize(.regular).font(Design.Settings.controlTextFont)
@@ -184,7 +180,7 @@ struct SettingsInputRow: View {
                 }
             }
             if let explanation { SettingsNote(text: explanation) }
-        }.onChange(of: focused) { _, value in if !value { onEndEditing() } }
+        }
     }
 }
 
@@ -199,11 +195,10 @@ struct SettingsKeyRow: View {
     var body: some View {
         SettingsControlRow(title) {
             HStack(spacing: Design.Space.s) {
-                SettingsKeyField(text: $text, revealed: isRevealed,
-                                 placeholder: L10n.text("enterAPIKey"),
-                                 focused: $focused, onSubmit: onSubmit).id(isRevealed)
-                    .controlSize(.regular)
-                    .frame(height: SettingsKeyField.height)
+                SettingsEditableTextField(text: $text, title: title, placeholder: L10n.text("enterAPIKey"),
+                                          style: .key(revealed: isRevealed), onSubmit: onSubmit,
+                                          onEditingChange: { focused = $0 })
+                    .id(isRevealed)
                 Button(action: reveal) {
                     Image(systemName: isRevealed ? "eye.slash" : "eye")
                 }
@@ -673,36 +668,31 @@ struct SettingsLanguageAddition: View {
 /// 使用系统搜索框的放大镜、清除按钮与焦点外观。
 struct SettingsLanguageSearch: NSViewRepresentable {
     @Environment(\.theme) private var theme
+    @Environment(\.isEnabled) private var isEnabled
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     @Binding var text: String
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSSearchField {
-        let field = SearchField()
+        let field = NSSearchField()
         field.placeholderString = L10n.text("search")
         field.setAccessibilityLabel(L10n.text("searchLanguages"))
         field.sendsSearchStringImmediately = true
         field.sendsWholeSearchString = false
         field.delegate = context.coordinator
+        context.coordinator.focusRing = SettingsFieldFocusRing(editor: field, in: field, autofocus: true)
         return field
     }
     func updateNSView(_ field: NSSearchField, context: Context) {
+        field.isEnabled = isEnabled
         field.applyTheme(theme, placeholder: L10n.text("search"))
+        context.coordinator.focusRing?.applyTheme(theme)
         field.setAccessibilityLabel(L10n.text("searchLanguages"))
         context.coordinator.parent = self
         if field.stringValue != text { field.stringValue = text }
     }
-    final class SearchField: NSSearchField {
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            guard window != nil else { return }
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                window?.makeFirstResponder(self)
-            }
-        }
-    }
     final class Coordinator: NSObject, NSSearchFieldDelegate {
         var parent: SettingsLanguageSearch
+        var focusRing: SettingsFieldFocusRing?
         init(_ parent: SettingsLanguageSearch) { self.parent = parent }
         func controlTextDidChange(_ notification: Notification) {
             guard let field = notification.object as? NSSearchField else { return }
@@ -1561,52 +1551,6 @@ struct SettingsConnectionResult: View {
 
 struct SettingsDivider: View {
     var body: some View { ThemedDivider() }
-}
-
-/// 两行原生密钥框：自动按字符折行，回车提交，不往 Key 中插入排版换行。
-struct SettingsKeyField: NSViewRepresentable {
-    @Environment(\.theme) private var theme
-    static var height: CGFloat { NSLayoutManager().defaultLineHeight(for: Design.Settings.controlFont) * 2 + Design.Space.m }
-    @Binding var text: String
-    let revealed: Bool
-    let placeholder: String
-    @Binding var focused: Bool
-    let onSubmit: () -> Void
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-    func makeNSView(context: Context) -> NSTextField {
-        let field: NSTextField = revealed ? NSTextField() : NSSecureTextField()
-        field.delegate = context.coordinator
-        field.controlSize = .regular
-        field.font = Design.Settings.controlFont
-        field.bezelStyle = .roundedBezel
-        field.maximumNumberOfLines = 2
-        field.lineBreakMode = .byCharWrapping
-        field.cell?.wraps = true; field.cell?.isScrollable = false; field.cell?.usesSingleLineMode = false
-        field.setAccessibilityLabel("API Key")
-        return field
-    }
-    func updateNSView(_ field: NSTextField, context: Context) {
-        context.coordinator.parent = self
-        field.applyTheme(theme, placeholder: placeholder)
-        if field.stringValue != text { field.stringValue = text }
-    }
-    func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSTextField, context: Context) -> CGSize? {
-        CGSize(width: proposal.width ?? nsView.fittingSize.width,
-               height: SettingsKeyField.height)
-    }
-    final class Coordinator: NSObject, NSTextFieldDelegate {
-        var parent: SettingsKeyField
-        init(_ parent: SettingsKeyField) { self.parent = parent }
-        func controlTextDidBeginEditing(_ notification: Notification) { parent.focused = true }
-        func controlTextDidEndEditing(_ notification: Notification) { parent.focused = false }
-        func controlTextDidChange(_ notification: Notification) {
-            if let field = notification.object as? NSTextField { parent.text = field.stringValue }
-        }
-        func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
-            if selector == #selector(NSResponder.insertNewline(_:)) { parent.onSubmit(); return true }
-            return false
-        }
-    }
 }
 
 /// 原生 borderless 控件不保证有悬停反馈；背景桥接只绘制、不接管菜单、按键或辅助功能。

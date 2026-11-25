@@ -425,7 +425,6 @@
 "reopenSevenAfterEnablingThisPermission" = "開啟後請重新啟動 Seven。";
 "reopenSystemSettings" = "重新開啟系統設定";
 "replaceTextWithItsTranslationInsideAnother" = "在其他 App的輸入欄裡把文字原地替換為譯文";
-"replaced" = "已替換";
 "requestsEndIfTheyExceedTheSelected" = "超過所選時間仍未完成，將結束請求。";
 "requiresAnInternetConnectionTextIsSent" = "需要網路連線 · 朗讀文字會傳送到 %1$@";
 "requiresMacOS15OrLater" = "需要 macOS 15 或更高版本";
@@ -680,7 +679,6 @@
 "windowPosition" = "彈出位置";
 "youAreALanguageTeacherPreserveThe" = "你是一位語言老師。翻譯時保留原文語氣，並解釋難懂的表達。";
 "youCanTranslateUpTo20000" = "單次最多翻譯 20,000 個字元。";
-"youCanUndoThisInTheOriginal" = "可在原本的 App中復原";
 "youdao.unavailable" = "有道翻譯暫時不可用（錯誤碼 %1$@）。";
 "youdaoSpeech" = "有道朗讀";
 "youdaoTranslate" = "有道翻譯";

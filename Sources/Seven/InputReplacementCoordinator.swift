@@ -207,7 +207,8 @@ final class InputReplacementCoordinator {
             do {
                 try await target.replace(with: translated)
                 guard jobID == id, !Task.isCancelled else { return }
-                finish(.key("replaced"), success: true)
+                clearSession()
+                hud.close()
             } catch {
                 guard jobID == id, !Task.isCancelled else { return }
                 fail(error)
@@ -231,16 +232,15 @@ final class InputReplacementCoordinator {
         }
         if let anchor { hud.setAnchor(anchor) }
         let presentation = InputReplacementFailurePresentation(error: error)
-        finish(presentation.reasonMessage, success: false, detail: presentation.detailMessage)
+        showFailure(presentation.reasonMessage, detail: presentation.detailMessage)
     }
     private func fail(detail: LocalizedMessage) {
-        finish(.key("translationFailed"), success: false, detail: detail)
+        showFailure(.key("translationFailed"), detail: detail)
     }
-    private func finish(_ message: LocalizedMessage, success: Bool, detail: LocalizedMessage? = nil) {
+    private func showFailure(_ message: LocalizedMessage, detail: LocalizedMessage) {
         writing = false
         clearSession()
-        hud.detachBridge()
-        hud.showResult(message, success: success, detail: detail)
+        hud.showFailure(message, detail: detail)
         let id = jobID
         timeout = Task { [weak self] in
             try? await Task.sleep(for: .seconds(Design.ReplacementHUD.resultHold))

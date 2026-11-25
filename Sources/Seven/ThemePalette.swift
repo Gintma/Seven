@@ -43,7 +43,6 @@ enum ThemeToken: String, CaseIterable {
     case hudSecondary
     case hudBorder
     case hudHighlight
-    case hudSuccess
 }
 
 /// 同一套颜色同时供 AppKit 和 SwiftUI 使用。
@@ -145,7 +144,6 @@ struct ThemePalette: Equatable {
     var hudSecondary: NSColor { self[.hudSecondary] }
     var hudBorder: NSColor { self[.hudBorder] }
     var hudHighlight: NSColor { self[.hudHighlight] }
-    var hudSuccess: NSColor { self[.hudSuccess] }
     var commonLanguageRowFill: NSColor { Self.clear }
     var commonLanguageAlternateRowFill: NSColor { self[.alternateFill] }
     var warningFill: NSColor { scaled(self[.warning], by: 0.07, name: "SevenWarningFill") }
@@ -209,7 +207,6 @@ struct ThemePalette: Equatable {
         .hudSecondary: { .secondaryLabelColor },
         .hudBorder: { .separatorColor },
         .hudHighlight: { .controlAccentColor },
-        .hudSuccess: { .systemGreen },
         .permissionGranted: { .systemGreen }
     ]
 

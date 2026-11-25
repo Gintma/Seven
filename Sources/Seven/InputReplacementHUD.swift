@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import Symbols
 
 /// 不激活原应用、不显示原文译文；同一会话位置固定，仅状态胶囊自身宽度变化。
 @MainActor
@@ -16,7 +15,6 @@ final class InputReplacementHUD: ThemeApplying {
     private var action: (() -> Void)?
     private var bridge: NSView?
     private var origin: NSPoint?
-    private var showsSuccess = false
     private var loading = false
     private var message = LocalizedMessage.key("translating")
     private var explanation = LocalizedMessage.key("cancelTranslation")
@@ -71,15 +69,15 @@ final class InputReplacementHUD: ThemeApplying {
         dismissButton.toolTip = nil
     }
 
-    func showResult(_ message: LocalizedMessage, success: Bool, detail: LocalizedMessage? = nil) {
+    func showFailure(_ message: LocalizedMessage, detail: LocalizedMessage) {
         action = nil
         if origin == nil { origin = mouseLocation() }
         loading = false
-        showsSuccess = success
-        self.message = success ? .key("replaced") : message
-        explanation = success ? .key("youCanUndoThisInTheOriginal") : (detail ?? message)
+        self.message = message
+        explanation = detail
         serviceHint = nil
-        render(dismissible: false, animateSuccess: success)
+        detachBridge()
+        render(dismissible: false)
     }
 
     func refreshInterfaceLanguage() {
@@ -90,9 +88,8 @@ final class InputReplacementHUD: ThemeApplying {
         if !wasEnabled { dismissButton.toolTip = nil }
     }
 
-    private func render(dismissible: Bool, animateSuccess: Bool = false) {
-        apply(message.text, loading: loading, success: !loading && showsSuccess,
-              dismissible: dismissible, animateSuccess: animateSuccess)
+    private func render(dismissible: Bool) {
+        apply(message.text, dismissible: dismissible)
         let text = explanation.text
         label.toolTip = serviceHint?.text ?? text
         icon.toolTip = text
@@ -100,7 +97,7 @@ final class InputReplacementHUD: ThemeApplying {
         label.setAccessibilityHelp(text)
     }
 
-    private func apply(_ message: String, loading: Bool, success: Bool, dismissible: Bool, animateSuccess: Bool) {
+    private func apply(_ message: String, dismissible: Bool) {
         label.stringValue = message
         label.setLoading(loading)
         let height = Design.ReplacementHUD.height
@@ -120,12 +117,9 @@ final class InputReplacementHUD: ThemeApplying {
         spinner.frame = iconRect
         spinner.isHidden = !loading
         if loading { spinner.startAnimation(nil) } else { spinner.stopAnimation(nil) }
-        icon.removeAllSymbolEffects(animated: false)
         icon.frame = iconRect
         icon.isHidden = loading
-        icon.image = Design.Icon.symbol(success ? "checkmark" : "exclamationmark.circle", description: success ? L10n.text("replaced") : L10n.text("notReplaced"))
-        showsSuccess = success
-        updateColors()
+        icon.image = Design.Icon.symbol("exclamationmark.circle", description: L10n.text("notReplaced"))
         label.frame = NSRect(x: inset + glyph + gap, y: (height - label.intrinsicContentSize.height) / 2,
                              width: max(0, width - inset - glyph - gap - trailing), height: label.intrinsicContentSize.height)
         dismissButton.frame = NSRect(x: width - height, y: 0, width: height, height: height)
@@ -134,17 +128,6 @@ final class InputReplacementHUD: ThemeApplying {
         dismissButton.toolTip = loading ? L10n.text("cancelTranslation2") : "关闭提示"
         dismissButton.setAccessibilityLabel(loading ? L10n.text("cancelTranslation2") : "关闭提示")
         if !panel.isVisible { panel.orderFrontRegardless() }
-        if animateSuccess && !Design.Motion.reduced {
-            if #available(macOS 26.0, *) {
-                // drawOn 是出现过渡：先设未绘制状态，再移除该状态让系统沿符号路径画出。
-                icon.addSymbolEffect(.drawOn, animated: false)
-                CATransaction.flush()
-                icon.removeSymbolEffect(ofType: .drawOn, animated: true)
-            } else {
-                icon.addSymbolEffect(.appear, animated: false)
-                icon.removeSymbolEffect(ofType: .appear, animated: true)
-            }
-        }
     }
 
     @available(macOS 15.0, *)
@@ -157,15 +140,13 @@ final class InputReplacementHUD: ThemeApplying {
 
     func close() {
         spinner.stopAnimation(nil)
-        icon.removeAllSymbolEffects(animated: false)
         label.setLoading(false)
         panel.orderOut(nil)
         action = nil
         detachBridge()
-        // 保留会话锚点，完成提示不会重新跳到当前鼠标位置。
     }
 
-    func detachBridge() {
+    private func detachBridge() {
         bridge?.removeFromSuperview()
         bridge = nil
     }
@@ -180,7 +161,7 @@ final class InputReplacementHUD: ThemeApplying {
 
     private func updateColors() {
         dismissButton.contentTintColor = palette.hudSecondary
-        icon.contentTintColor = showsSuccess ? palette.hudSuccess : palette.hudSecondary
+        icon.contentTintColor = palette.hudSecondary
         label.needsDisplay = true
         spinner.needsDisplay = true
     }

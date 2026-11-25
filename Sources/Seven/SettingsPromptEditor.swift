@@ -11,8 +11,10 @@ struct SettingsPromptEditor: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    func makeNSView(context: Context) -> SettingsPromptScrollView {
+    func makeNSView(context: Context) -> NSView {
+        let container = NSView()
         let scroll = SettingsPromptScrollView()
+        scroll.autoresizingMask = [.width, .height]
         scroll.borderType = .noBorder
         scroll.wantsLayer = true
         scroll.layer?.cornerRadius = Design.Radius.control
@@ -37,14 +39,18 @@ struct SettingsPromptEditor: NSViewRepresentable {
         editor.font = Design.Settings.controlFont
         editor.delegate = context.coordinator
         scroll.documentView = editor
-        return scroll
+        container.addSubview(scroll)
+        context.coordinator.scroll = scroll
+        context.coordinator.focusRing = SettingsFieldFocusRing(editor: editor, in: container)
+        return container
     }
 
-    func updateNSView(_ scroll: SettingsPromptScrollView, context: Context) {
+    func updateNSView(_ container: NSView, context: Context) {
         context.coordinator.parent = self
-        guard let editor = scroll.documentView as? SettingsPromptTextView else { return }
+        guard let scroll = context.coordinator.scroll, let editor = scroll.documentView as? SettingsPromptTextView else { return }
         scroll.applyTheme(theme)
         editor.isEditable = isEnabled
+        context.coordinator.focusRing?.applyTheme(theme)
         editor.setAccessibilityLabel(accessibilityLabel)
         editor.placeholder = placeholder
         if editor.string != text {
@@ -59,6 +65,8 @@ struct SettingsPromptEditor: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: SettingsPromptEditor
+        weak var scroll: SettingsPromptScrollView?
+        var focusRing: SettingsFieldFocusRing?
         init(_ parent: SettingsPromptEditor) { self.parent = parent }
         func textDidChange(_ notification: Notification) {
             guard let editor = notification.object as? SettingsPromptTextView else { return }
