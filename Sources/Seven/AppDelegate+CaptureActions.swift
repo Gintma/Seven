@@ -91,19 +91,17 @@ extension AppDelegate {
             } catch let error as SelectionReadError {
                 guard selectionGate.accepts(generation), !Task.isCancelled else { return }
                 await logger.record(.warning, "selection_read_failed", metadata: ["reason": String(describing: type(of: error))])
-                model.presentSelectionError(error)
-                if error == .accessibilityPermission {
-                    PermissionGuide.shared.authorize(.accessibility)
-                } else {
-                    presentPanel(near: anchor)
+                Self.routeTranslationCaptureFailure(.selection(error), model: model) {
+                    self.presentPanel(near: anchor)
                 }
                 selectionGate.finish(generation)
                 selectionTask = nil
             } catch {
                 guard selectionGate.accepts(generation), !Task.isCancelled else { return }
                 await logger.record(.warning, "selection_read_failed", metadata: ["reason": "unknown"])
-                model.presentSelectionError(.noSelection)
-                presentPanel(near: anchor)
+                Self.routeTranslationCaptureFailure(.selection(.noSelection), model: model) {
+                    self.presentPanel(near: anchor)
+                }
                 selectionGate.finish(generation)
                 selectionTask = nil
             }
@@ -151,13 +149,15 @@ extension AppDelegate {
                     } catch let error as ScreenshotTranslationError {
                         guard self.screenshotGate.accepts(generation), !Task.isCancelled else { return }
                         await self.logger.record(.warning, "screenshot_ocr_failed", metadata: ["reason": String(describing: type(of: error))])
-                        self.model.presentScreenshotError(error)
-                        self.presentPanel(near: anchor)
+                        Self.routeTranslationCaptureFailure(.screenshot(error), model: self.model) {
+                            self.presentPanel(near: anchor)
+                        }
                     } catch {
                         guard self.screenshotGate.accepts(generation), !Task.isCancelled else { return }
                         await self.logger.record(.warning, "screenshot_ocr_failed", metadata: ["reason": String(describing: type(of: error))])
-                        self.model.presentScreenshotError(.noText)
-                        self.presentPanel(near: anchor)
+                        Self.routeTranslationCaptureFailure(.screenshot(.noText), model: self.model) {
+                            self.presentPanel(near: anchor)
+                        }
                     }
                     guard self.screenshotGate.finish(generation) else { return }
                     self.screenshotTask = nil
@@ -170,11 +170,40 @@ extension AppDelegate {
                 Task { await self.logger.record(.warning, "screenshot_capture_failed", metadata: [
                     "reason": String(describing: type(of: error))
                 ]) }
-                model.presentScreenshotError(error)
-                presentPanel(near: anchor)
-                NSApp.requestUserAttention(.informationalRequest)
+                Self.routeTranslationCaptureFailure(.screenshot(error), model: model) {
+                    self.presentPanel(near: anchor)
+                    NSApp.requestUserAttention(.informationalRequest)
+                }
             }
         }
+    }
+
+    enum TranslationCaptureFailure {
+        case selection(SelectionReadError)
+        case screenshot(ScreenshotTranslationError)
+    }
+
+    static func routeTranslationCaptureFailure(
+        _ failure: TranslationCaptureFailure,
+        model: TranslationModel,
+        authorize: @MainActor (PermissionGuide.Permission) -> Void = { PermissionGuide.shared.authorize($0) },
+        present: () -> Void
+    ) {
+        switch failure {
+        case .selection(.accessibilityPermission):
+            authorize(.accessibility)
+            return
+        case .screenshot(.permissionDenied):
+            authorize(.screenRecording)
+            return
+        case .screenshot(.cancelled):
+            return
+        case .selection(let error):
+            model.presentSelectionError(error)
+        case .screenshot(let error):
+            model.presentScreenshotError(error)
+        }
+        present()
     }
 
     internal func cancelScreenshotWork() {

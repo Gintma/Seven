@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Carbon
 import XCTest
 @testable import Seven
@@ -310,6 +311,373 @@ final class HotKeyAndSelectionTests: XCTestCase {
 
         XCTAssertFalse(snapshot.restore(to: pasteboard, ifUnchangedSince: oldVersion))
         XCTAssertEqual(pasteboard.string(forType: .string), "user copied something new")
+    }
+
+    func testCollapsedTextSelectionSkipsClipboardFallback() async throws {
+        var caret = CFRange(location: 4, length: 0)
+        let range = try XCTUnwrap(AXValueCreate(.cfRange, &caret))
+        let reader = SelectionReader(attribute: { _, attribute in
+            switch attribute {
+            case kAXRoleAttribute: return kAXTextAreaRole as CFString
+            case kAXSelectedTextRangeAttribute: return range
+            default: return nil
+            }
+        })
+
+        var attempts = 0
+        do {
+            _ = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) { _, _ in
+                attempts += 1
+                throw SelectionReadError.copyTimedOut
+            }
+            XCTFail("A caret without a selection should report an empty selection")
+        } catch {
+            XCTAssertEqual(error as? SelectionReadError, .noSelection)
+        }
+        XCTAssertEqual(attempts, 0)
+    }
+
+    func testUnknownSelectionUsesOneShortCopyRouteAndReturnsItsText() async throws {
+        let reader = SelectionReader(attribute: { _, _ in nil })
+        let pasteboard = NSPasteboard(name: .init("SevenTests.\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.clearContents()
+        XCTAssertTrue(pasteboard.setString("Before copy", forType: .string))
+        var queries = 0
+        var copies = 0
+        let result = try await reader.readSelection(focused: nil, applicationPID: nil, copyMenuState: {
+            queries += 1
+            return .unknown
+        }) { mode, _ in
+            XCTAssertEqual(mode, .unknownSelection)
+            return try await reader.readUsingCopyFallback(
+                pasteboard: pasteboard, mode: mode, targetIsFrontmost: { true },
+                invokeMenuCopy: { false },
+                sendCopyShortcut: {
+                    copies += 1
+                    pasteboard.clearContents()
+                    return pasteboard.setString("Selected in a custom view", forType: .string)
+                }
+            )
+        }
+        XCTAssertEqual(result.text, "Selected in a custom view")
+        XCTAssertEqual(queries, 1)
+        XCTAssertEqual(copies, 1)
+        XCTAssertEqual(pasteboard.string(forType: .string), "Before copy")
+    }
+
+    func testDisabledCopyMenuEndsUnknownSelectionBeforeCopy() async throws {
+        let reader = SelectionReader(attribute: { _, _ in nil })
+        var queries = 0
+        do {
+            _ = try await reader.readSelection(focused: nil, applicationPID: nil, copyMenuState: {
+                queries += 1
+                return .disabled
+            }) { _, _ in
+                XCTFail("A disabled copy command must not start copying")
+                return ""
+            }
+            XCTFail("A disabled copy command should end selection reading")
+        } catch {
+            XCTAssertEqual(error as? SelectionReadError, .noSelection)
+        }
+        XCTAssertEqual(queries, 1)
+    }
+
+    func testCopyMenuQueryDistinguishesDisabledEnabledAndUnavailable() {
+        let application = AXUIElementCreateApplication(1)
+        let menuBar = AXUIElementCreateApplication(2)
+        let command = AXUIElementCreateApplication(3)
+        for isEnabled: Bool? in [false, true, nil] {
+            let reader = SelectionReader(attribute: { element, name in
+                if CFEqual(element, application) {
+                    return name == kAXMenuBarAttribute ? menuBar : nil
+                }
+                if CFEqual(element, menuBar) {
+                    return name == kAXChildrenAttribute ? [command] as CFArray : nil
+                }
+                switch name {
+                case kAXRoleAttribute: return kAXMenuItemRole as CFString
+                case kAXMenuItemCmdCharAttribute: return "C" as CFString
+                case kAXMenuItemCmdModifiersAttribute: return NSNumber(value: 0)
+                case kAXEnabledAttribute: return isEnabled.map(NSNumber.init(value:))
+                default: return nil
+                }
+            })
+            switch (isEnabled, reader.copyMenuState(application: application, timeout: 1)) {
+            case (false?, .disabled), (nil, .unknown):
+                break
+            case (true?, .enabled(let item)):
+                XCTAssertTrue(CFEqual(item, command))
+            default:
+                XCTFail("Copy availability must preserve a missing enabled attribute as unknown")
+            }
+        }
+
+        let reader = SelectionReader(attribute: { _, _ in
+            XCTFail("An exhausted query budget must not make any AX calls")
+            return nil
+        })
+        guard case .unknown = reader.copyMenuState(application: application, timeout: 0) else {
+            XCTFail("An exhausted query budget must leave copy availability unknown")
+            return
+        }
+    }
+
+    func testNonTextObjectSkipsCopyEvenWithReportedText() async throws {
+        let reader = SelectionReader(attribute: { _, name in
+            switch name {
+            case kAXRoleAttribute: return kAXRowRole as CFString
+            case kAXSelectedTextAttribute: return "An object name" as CFString
+            case kAXSelectedTextMarkerRangeAttribute: return NSNumber(value: 1)
+            default: return nil
+            }
+        })
+        do {
+            _ = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil, copyMenuState: {
+                XCTFail("A selected row is not a text selection")
+                return .unknown
+            }) { _, _ in
+                XCTFail("An object selection cannot start copying")
+                return ""
+            }
+            XCTFail("An object name cannot become a translation source")
+        } catch {
+            XCTAssertEqual(error as? SelectionReadError, .noSelection)
+        }
+    }
+
+    func testFocusedRenameFieldUsesItsSelectionInsideAnObjectRow() async throws {
+        let focused = AXUIElementCreateSystemWide()
+        let row = AXUIElementCreateApplication(1)
+        let reader = SelectionReader(attribute: { element, name in
+            if CFEqual(element, row) {
+                return name == kAXRoleAttribute ? kAXRowRole as CFString : nil
+            }
+            switch name {
+            case kAXRoleAttribute: return kAXTextFieldRole as CFString
+            case kAXSelectedTextAttribute: return "Selected rename text" as CFString
+            case kAXParentAttribute: return row
+            default: return nil
+            }
+        })
+        let result = try await reader.readSelection(focused: focused, applicationPID: nil) { _, _ in
+            XCTFail("The rename field supplies text directly")
+            return ""
+        }
+        XCTAssertEqual(result.text, "Selected rename text")
+    }
+
+    func testUnknownCopyTimesOutWithoutRetryingOrChangingExistingClipboard() async throws {
+        let pasteboard = NSPasteboard(name: .init("SevenTests.\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.clearContents()
+        XCTAssertTrue(pasteboard.setString("Existing clipboard", forType: .string))
+        var copies = 0
+        let started = ContinuousClock.now
+        do {
+            _ = try await SelectionReader().readUsingCopyFallback(
+                pasteboard: pasteboard, mode: .unknownSelection, targetIsFrontmost: { true },
+                invokeMenuCopy: { false }, sendCopyShortcut: { copies += 1; return true }
+            )
+            XCTFail("The clipboard did not receive text")
+        } catch {
+            XCTAssertEqual(error as? SelectionReadError, .copyTimedOut)
+        }
+        XCTAssertLessThan(started.duration(to: .now), .milliseconds(1_400))
+        XCTAssertEqual(copies, 1)
+        XCTAssertEqual(pasteboard.string(forType: .string), "Existing clipboard")
+    }
+
+    func testCopyRejectsMixedFileAndPlainTextAndRestoresClipboard() async throws {
+        let pasteboard = NSPasteboard(name: .init("SevenTests.\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.clearContents()
+        XCTAssertTrue(pasteboard.setString("Before copy", forType: .string))
+        do {
+            _ = try await SelectionReader().readUsingCopyFallback(
+                pasteboard: pasteboard, mode: .unknownSelection, targetIsFrontmost: { true },
+                invokeMenuCopy: {
+                    let file = NSPasteboardItem()
+                    XCTAssertTrue(file.setString("file:///Example.app", forType: .fileURL))
+                    XCTAssertTrue(file.setString("Example", forType: .string))
+                    pasteboard.clearContents()
+                    return pasteboard.writeObjects([file])
+                }, sendCopyShortcut: { false }
+            )
+            XCTFail("A file name must not become a translation source")
+        } catch {
+            XCTAssertEqual(error as? SelectionReadError, .noSelection)
+        }
+        XCTAssertEqual(pasteboard.string(forType: .string), "Before copy")
+    }
+
+    func testMarkerLengthDeterminesCopyRoute() async throws {
+        let start: [UInt8] = [1]
+        let end: [UInt8] = [2]
+        let marker = AXTextMarkerRangeCreateWithBytes(nil, start, start.count, end, end.count)
+        for length: Int? in [0, 3, nil] {
+            let reader = SelectionReader(parameterizedAttribute: { _, name, _ in
+                name == "AXLengthForTextMarkerRange" ? length.map(NSNumber.init(value:)) : nil
+            }, attribute: { _, name in
+                switch name {
+                case kAXRoleAttribute: return "AXWebArea" as CFString
+                case "AXSelectedTextMarkerRange": return marker
+                default: return nil
+                }
+            })
+            let focused = AXUIElementCreateSystemWide()
+            do {
+                let result = try await reader.readSelection(focused: focused, applicationPID: nil, copyMenuState: {
+                    length == 3 ? .disabled : .unknown
+                }) { mode, _ in
+                    XCTAssertNotEqual(length, 0)
+                    XCTAssertEqual(mode, length == 3 ? .confirmedSelection : .unknownSelection)
+                    return "Copied text"
+                }
+                XCTAssertNotEqual(length, 0)
+                XCTAssertEqual(result.text, "Copied text")
+            } catch {
+                XCTAssertEqual(length, 0)
+                XCTAssertEqual(error as? SelectionReadError, .noSelection)
+            }
+        }
+    }
+
+    func testMarkerDirectReadContinuesAfterNativeValueCannotBeSliced() async throws {
+        var caret = CFRange(location: 1, length: 0)
+        let nativeRange = try XCTUnwrap(AXValueCreate(.cfRange, &caret))
+        let start: [UInt8] = [1]
+        let end: [UInt8] = [2]
+        let marker = AXTextMarkerRangeCreateWithBytes(nil, start, start.count, end, end.count)
+        let reader = SelectionReader(parameterizedAttribute: { _, name, _ in
+            name == "AXStringForTextMarkerRange" ? "Selected through marker" as CFString : nil
+        }, attribute: { _, name in
+            switch name {
+            case kAXRoleAttribute: return "AXWebArea" as CFString
+            case kAXSelectedTextRangeAttribute: return nativeRange
+            case kAXValueAttribute: return "Document" as CFString
+            case "AXSelectedTextMarkerRange": return marker
+            default: return nil
+            }
+        })
+        let result = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) { _, _ in
+            XCTFail("The marker should supply text before copy")
+            return ""
+        }
+        XCTAssertEqual(result.text, "Selected through marker")
+    }
+
+    func testWindowTextIsNotTheFocusedDocumentSelection() async throws {
+        let focused = AXUIElementCreateSystemWide()
+        let window = AXUIElementCreateApplication(1)
+        let reader = SelectionReader(attribute: { element, attribute in
+            if CFEqual(element, focused) {
+                return attribute == kAXParentAttribute ? window : nil
+            }
+            switch attribute {
+            case kAXRoleAttribute: return kAXWindowRole as CFString
+            case kAXSelectedTextAttribute: return "Seven" as CFString
+            default: return nil
+            }
+        })
+        do {
+            _ = try await reader.readSelection(focused: focused, applicationPID: nil, copyMenuState: { .disabled }) { _, _ in
+                XCTFail("A window label has no copyable text selection")
+                return "Seven"
+            }
+            XCTFail("A window label must not become a translation source")
+        } catch {
+            XCTAssertEqual(error as? SelectionReadError, .noSelection)
+        }
+    }
+
+    func testSelectionInAnUnfocusedControlDoesNotBecomeTheSource() async throws {
+        let targetPID = ProcessInfo.processInfo.processIdentifier
+        let focused = AXUIElementCreateApplication(targetPID)
+        let window = AXUIElementCreateApplication(1)
+        let unrelatedTextField = AXUIElementCreateSystemWide()
+        let reader = SelectionReader(attribute: { element, attribute in
+            if CFEqual(element, focused) {
+                return attribute == kAXFocusedWindowAttribute ? window : nil
+            }
+            if CFEqual(element, window) {
+                return attribute == kAXChildrenAttribute ? [unrelatedTextField] as CFArray : nil
+            }
+            switch attribute {
+            case kAXRoleAttribute: return kAXTextFieldRole as CFString
+            case kAXSelectedTextAttribute: return "Unrelated text" as CFString
+            default: return nil
+            }
+        })
+        do {
+            _ = try await reader.readSelection(focused: focused, applicationPID: targetPID, copyMenuState: { .disabled }) { _, _ in
+                XCTFail("No text selection was confirmed on the focused element")
+                return ""
+            }
+            XCTFail("An unfocused control must not become the translation source")
+        } catch {
+            XCTAssertEqual(error as? SelectionReadError, .noSelection)
+        }
+    }
+
+    func testAdditionalSelectionStillUsesClipboardFallback() async throws {
+        var caret = CFRange(location: 4, length: 0)
+        var selection = CFRange(location: 1, length: 2)
+        let caretValue = try XCTUnwrap(AXValueCreate(.cfRange, &caret))
+        let selectionValue = try XCTUnwrap(AXValueCreate(.cfRange, &selection))
+        let reader = SelectionReader(attribute: { _, attribute in
+            switch attribute {
+            case kAXRoleAttribute: return kAXTextAreaRole as CFString
+            case kAXSelectedTextRangeAttribute: return caretValue
+            case kAXSelectedTextRangesAttribute: return [caretValue, selectionValue] as CFArray
+            default: return nil
+            }
+        })
+        let result = try await reader.readSelection(focused: AXUIElementCreateSystemWide(), applicationPID: nil) { _, _ in
+            "Another selection"
+        }
+        XCTAssertEqual(result, SelectedText(text: "Another selection", appKitBounds: nil))
+    }
+
+    func testFocusedWebDocumentCanProvideSelectedText() async throws {
+        let focused = AXUIElementCreateSystemWide()
+        let document = AXUIElementCreateApplication(1)
+        let reader = SelectionReader(attribute: { element, attribute in
+            if CFEqual(element, focused) {
+                return attribute == kAXParentAttribute ? document : nil
+            }
+            switch attribute {
+            case kAXRoleAttribute: return "AXWebArea" as CFString
+            case kAXSelectedTextAttribute: return "Seven" as CFString
+            default: return nil
+            }
+        })
+        let result = try await reader.readSelection(focused: focused, applicationPID: nil) { _, _ in
+            XCTFail("The web document supplies selected text directly")
+            return ""
+        }
+        XCTAssertEqual(result, SelectedText(text: "Seven", appKitBounds: nil))
+    }
+
+    func testReportedSelectionKeepsWaitingForSlowClipboardText() async throws {
+        let pasteboard = NSPasteboard(name: .init("SevenTests.\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.clearContents()
+        XCTAssertTrue(pasteboard.setString("Existing clipboard", forType: .string))
+        let copy = Task {
+            try await Task.sleep(for: .milliseconds(1_100))
+            pasteboard.clearContents()
+            XCTAssertTrue(pasteboard.setString("Copied after a delay", forType: .string))
+        }
+        defer { copy.cancel() }
+        let result = try await SelectionReader().readUsingCopyFallback(
+            pasteboard: pasteboard, targetIsFrontmost: { true },
+            invokeMenuCopy: { true }, sendCopyShortcut: { false }
+        )
+        try await copy.value
+        XCTAssertEqual(result, "Copied after a delay")
+        XCTAssertEqual(pasteboard.string(forType: .string), "Existing clipboard")
     }
 
     func testSelectionTextDecoderHandlesUTF16RangesAndInvalidReplacementText() {

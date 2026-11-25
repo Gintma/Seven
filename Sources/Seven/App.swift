@@ -163,7 +163,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     }
 
     private func connectModelActions() {
-        model.onHide = { [weak self] in self?.panel?.orderOut(nil) }
+        model.onHide = { [weak self] in self?.panel?.dismiss() }
         model.onOpenSettings = { [weak self] in self?.showSettings() }
         model.onOpenHistory = { [weak self] in self?.showHistory() }
         model.onStartScreenshot = { [weak self] in self?.startScreenshotTranslation() }

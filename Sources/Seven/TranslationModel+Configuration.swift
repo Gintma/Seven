@@ -123,7 +123,7 @@ extension TranslationModel {
                 if persistVerifiedStyle, let style = result.apiStyle { self.rememberVerifiedAPIStyle(style, configuration: config) }
                 self.isTestingConfiguration = false
                 self.configurationTestSucceeded = true
-                self.configurationTestIssue = .verbatim(String(format: "连接成功 · %.1f 秒", result.elapsed))
+                self.configurationTestIssue = .key("connectionSucceededWithElapsedTime", .duration(result.elapsed))
                 self.configurationTestTask = nil
                 await logger.record(.info, "service_test_succeeded", metadata: [
                     "elapsed_ms": String(Int(result.elapsed * 1_000)),

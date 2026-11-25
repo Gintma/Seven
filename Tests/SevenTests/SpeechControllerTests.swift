@@ -151,7 +151,7 @@ extension SpeechControllerTests {
         model.resolvedTarget = "fr"
         let results: [TranslationServiceResult] = [(.youdao, "Bonjour"), (.google, "Bonsoir")].map { provider, text in
             TranslationServiceResult(id: provider, title: provider.rawValue, subtitle: "", isTranslation: true,
-                phase: .success, text: text, dictionaryEntry: nil, errorMessage: nil, elapsed: nil)
+                phase: .success, text: text, dictionaryEntry: nil, errorMessage: nil)
         }
         model.serviceResults = results
         for result in results { model.setServiceExpanded(result.id, expanded: true) }

@@ -95,7 +95,7 @@
 "collapseDetails" = "%1$@ を折りたたむ";
 "collapseTranslation" = "訳文を折りたたむ";
 "color" = "色";
-"connected" = "接続済み";
+"connectionSucceededWithElapsedTime" = "接続成功 · 所要時間 %.1f 秒";
 "copiesAndSavedImagesIncludeTheShadow" = "コピーや保存した画像には、影と周囲の余白が含まれます。";
 "copy" = "コピー";
 "copyColorValue" = "色の値をコピー";
@@ -108,14 +108,14 @@
 "cornerRadius0Px" = "角の半径：0 px";
 "cornerRadiusPt" = "角の半径：%1$@ pt";
 "cornerRadiusPx" = "角の半径：%1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "選択範囲を撮影できませんでした。範囲を選び直してください。";
+"couldNotCaptureTheSelectedAreaSelect" = "選択範囲をキャプチャできませんでした。";
 "couldNotChangeLaunchAtLogin" = "ログイン時の起動設定を変更できませんでした：%1$@";
 "couldNotCopyTheRecognizedTextTry" = "認識したテキストをコピーできませんでした。もう一度お試しください。";
 "couldNotCreateTheOfflineDictionary" = "オフライン辞書を作成できませんでした";
 "couldNotDetermineTheSpeechLanguage" = "読み上げる言語を判定できませんでした";
 "couldNotDownloadTheDictionaryCheckYour" = "辞書をダウンロードできませんでした。接続を確認して再試行してください。";
 "couldNotFindTheEndpointOrModel" = "エンドポイントかモデルが見つかりませんでした。完全なアドレスとモデル名を確認してください。";
-"couldNotGetTheSelectedTextMake" = "選択したテキストを取得できませんでした。選択とコピーが可能なことを確認し、再試行してください。";
+"couldNotGetTheSelectedTextMake" = "選択したテキストを取得できませんでした。";
 "couldNotOpenImage" = "画像を開けませんでした";
 "couldNotOpenSystemSettingsTryAgain" = "システム設定を開けませんでした。もう一度お試しください。";
 "couldNotOpenTheOfflineDictionary" = "オフライン辞書を開けませんでした";
@@ -184,7 +184,6 @@
 "dragTheAppIntoThePermissionList" = "アプリをアクセス許可リストにドラッグ";
 "dragToolbar" = "ツールバーをドラッグ";
 "dragWithMouse" = "マウスでドラッグ";
-"durationSeconds" = "%.1f 秒";
 "dutch" = "オランダ語";
 "ecdictLicense" = "ECDICT · MIT ライセンス";
 "edit" = "編集";
@@ -319,7 +318,7 @@
 "noSearchResults" = "検索結果がありません";
 "noTextWasRecognizedInTheSelected" = "選択範囲でテキストを認識できませんでした。";
 "noTextWasRecognizedInTheSelection" = "選択範囲でテキストを認識できませんでした。クリップボードは変更されていません。";
-"noTranslationServicesAreAvailableEnableOne" = "利用できる翻訳サービスがありません。設定で有効にしてください。";
+"noTranslationServicesAreAvailableEnableOne" = "利用できる翻訳サービスがありません。";
 "normal" = "標準";
 "notConfigured" = "未設定";
 "notDownloadedAbout63MBToDownload" = "未ダウンロード · ダウンロード約 63 MB、インストール後約 126 MB";
@@ -496,8 +495,8 @@
 "settings.sidebar.toolbar" = "ツールバー";
 "sevenAppIcon" = "Seven のアプリアイコン";
 "sevenHistory" = "Seven 履歴.%1$@";
-"sevenNeedsAccessibilityPermissionToReadSelected" = "他のアプリで選択したテキストを読み取るには、Seven にアクセシビリティの許可が必要です。許可したら、元のアプリでテキストを選び直してください。";
-"sevenNeedsScreenRecordingPermissionToCapture" = "スクリーンショットの撮影には、Seven に画面収録の許可が必要です。";
+"sevenNeedsAccessibilityPermissionToReadSelected" = "選択したテキストを読み取るにはアクセシビリティの許可が必要です。";
+"sevenNeedsScreenRecordingPermissionToCapture" = "スクリーンショットを撮るには画面収録の許可が必要です。";
 "sevenReplacesSelectedTextOrTheEntire" = "Seven は選択範囲を置換します。選択がなければ入力欄全体を置換します。メッセージは送信しません。翻訳モードで有効かつ展開されている最初のサービスを使います。";
 "sevenSettings" = "Seven の設定";
 "shadow" = "影";
@@ -576,7 +575,7 @@
 "theModelDecidesByDefaultHigherSettings" = "既定ではモデルが決めます。レベルを上げると時間や料金が増えることがあります。";
 "theModelIsUnavailableChooseAnotherModel" = "このモデルは利用できません。別のモデルを選んでください。";
 "theOfflineDictionaryHasNoEntryFor" = "オフライン辞書にこの単語やフレーズはありません。";
-"theOtherAppDidNotProvideIts" = "他のアプリから選択範囲を時間内に取得できませんでした。テキストを選び直すか、「入力して翻訳」を使ってください。";
+"theOtherAppDidNotProvideIts" = "対象アプリが選択したテキストを時間内に提供しませんでした。";
 "theRequestTimedOutCheckYourConnection" = "リクエストがタイムアウトしました。接続を確認するか、しばらくしてから再試行してください。";
 "theResponseWasCutOffShortenThe" = "応答が途中で切れました。原文を短くして再試行してください。";
 "theScreenshotHasReachedItsSizeLimit" = "スクリーンショットがサイズの上限に達しました。編集するか保存してください。";
@@ -666,6 +665,7 @@
 "widthInPixels" = "幅（ピクセル）";
 "widthPx" = "幅：%1$@ px";
 "window" = "ウィンドウ";
+"clearTranslationWhenOpeningWindow" = "ウインドウを開くときに前回の内容を消去";
 "windowPosition" = "ウィンドウの位置";
 "youAreALanguageTeacherPreserveThe" = "あなたは語学教師です。原文の調子を保ち、理解しにくい表現を説明してください。";
 "youCanTranslateUpTo20000" = "一度に 20,000 文字まで翻訳できます。";

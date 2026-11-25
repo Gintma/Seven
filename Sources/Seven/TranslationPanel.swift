@@ -1,6 +1,30 @@
 import AppKit
 
 final class TranslationPanel: NSPanel {
+    private let model: TranslationModel
+
+    init(model: TranslationModel) {
+        self.model = model
+        super.init(contentRect: NSRect(x: 0, y: 0, width: TranslationPanelSize.defaultWidth, height: 440),
+                   styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        isReleasedWhenClosed = false
+    }
+
+    func prepareForInputPresentation() {
+        if !isVisible { model.clearPanelContentIfEnabled() }
+    }
+
+    func dismiss() {
+        guard isVisible else { return }
+        orderOut(nil)
+        model.clearPanelContentIfEnabled()
+    }
+
+    override func close() {
+        super.close()
+        model.clearPanelContentIfEnabled()
+    }
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 

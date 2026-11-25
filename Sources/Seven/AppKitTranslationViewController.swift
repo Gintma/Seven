@@ -31,6 +31,8 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
     private var isCommittingLayout = false
     private var structuralTransactionActive = false
     private var pendingReload = false
+    private var pendingIssueHeight: CGFloat?
+    private var issueHeightUpdateScheduled = false
     private var lastDocumentWidth: CGFloat = 0
     private let layoutTransition = PanelLayoutTransition()
     private var renderedLayoutWorkItem: DispatchWorkItem?
@@ -134,8 +136,8 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         }
         inputView.onClear = { [weak self] in self?.clearInput() }
         inputView.onEditingLayoutChange = { [weak self] in self?.scheduleReload() }
-        issueView.onPreferredHeightChange = { [weak self] _, animated in
-            self?.componentHeightChanged(animated: animated)
+        issueView.onPreferredHeightChange = { [weak self] height in
+            self?.issueHeightChanged(to: height)
         }
 
         modelCancellable = model.objectWillChange.sink { [weak self] _ in
@@ -219,7 +221,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
     }
 
-    private func reloadFromModel(animated: Bool, completion: (() -> Void)? = nil) {
+    func reloadFromModel(animated: Bool, completion: (() -> Void)? = nil) {
         guard isViewLoaded, !isApplyingModel else { return }
         isApplyingModel = true
         view.layoutSubtreeIfNeeded()
@@ -231,7 +233,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         previousLoading = model.isLoading
         let inputHeightChanged = inputView.applyModel(animated: animated)
         languageBar.applyModel()
-        let issueHeightChanged = issueView.applyModel(animated: animated)
+        issueView.applyModel(availableWidth: issueContentWidth)
 
         let results = model.displayedServiceResults
         let order = results.map(\.id)
@@ -246,7 +248,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
             }
         }
 
-        var structuralChange = orderChanged || inputHeightChanged || issueHeightChanged
+        var structuralChange = orderChanged || inputHeightChanged || pendingIssueHeight != nil
         for result in results {
             let update = card(for: result.id).apply(
                 result,
@@ -260,8 +262,37 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         isApplyingModel = false
 
         let shouldAnimate = animated && view.window?.isVisible == true
-        performUnifiedLayout(animated: shouldAnimate, previousHeights: previousHeights,
+        performUnifiedLayout(animated: shouldAnimate, previousHeights: previousHeights, targets: takeIssueHeightTarget(),
                              duration: structuralChange ? Design.Motion.standard : Design.Motion.follow, completion: completion)
+    }
+
+    private var issueContentWidth: CGFloat {
+        let stackWidth = rootStack.bounds.width
+        if stackWidth.isFinite, stackWidth > 1 { return stackWidth }
+        let documentWidth = documentView.bounds.width - 2 * Design.Space.l
+        if documentWidth.isFinite, documentWidth > 1 { return documentWidth }
+        return TranslationPanelSize.defaultWidth - 2 * Design.Space.l
+    }
+
+    private func issueHeightChanged(to height: CGFloat) {
+        pendingIssueHeight = height
+        guard !isApplyingModel, !issueHeightUpdateScheduled else { return }
+        issueHeightUpdateScheduled = true
+        // 布局帧尚未提交时只记录测量结果，下一轮再替换正在插值的目标。
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.issueHeightUpdateScheduled = false
+            let targets = self.takeIssueHeightTarget()
+            guard !targets.isEmpty else { return }
+            let animated = self.layoutTransition.isActive && self.view.window?.isVisible == true
+            self.performUnifiedLayout(animated: animated, targets: targets, duration: Design.Motion.follow)
+        }
+    }
+
+    private func takeIssueHeightTarget() -> [(NSLayoutConstraint, CGFloat)] {
+        guard let height = pendingIssueHeight else { return [] }
+        pendingIssueHeight = nil
+        return [(issueView.heightConstraint, height)]
     }
 
     private func card(for provider: TranslationProviderID) -> AppKitServiceCardView {
@@ -322,13 +353,13 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
     }
 
     private func managedHeightConstraints() -> [NSLayoutConstraint] {
-        inputView.layoutHeightConstraints + issueView.layoutHeightConstraints
-            + currentProviderOrder.flatMap { serviceCards[$0]?.layoutHeightConstraints ?? [] }
+        inputView.layoutHeightConstraints + currentProviderOrder.flatMap { serviceCards[$0]?.layoutHeightConstraints ?? [] }
     }
 
     private func performUnifiedLayout(
         animated: Bool,
         previousHeights: [(NSLayoutConstraint, CGFloat)] = [],
+        targets: [(NSLayoutConstraint, CGFloat)] = [],
         duration: TimeInterval = Design.Motion.standard,
         completion: (() -> Void)? = nil
     ) {
@@ -340,7 +371,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
             return (constraint, target)
         }
         let seconds = animated && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? duration : 0
-        layoutTransition.update(changes: changes, duration: seconds) { [weak self] in
+        layoutTransition.update(changes: changes + targets, duration: seconds) { [weak self] in
             self?.inputView.finishViewportLayout()
             completion?()
         }

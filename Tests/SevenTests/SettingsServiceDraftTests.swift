@@ -22,12 +22,12 @@ private actor DraftConfigurationTester: ServiceConfigurationTesting {
     private(set) var received: [(ServiceConfiguration, String)] = []
     func test(configuration: ServiceConfiguration, apiKey: String, firstLanguage: String) async throws -> ServiceConfigurationTestResult {
         received.append((configuration, apiKey))
-        return ServiceConfigurationTestResult(elapsed: 0, apiStyle: .openAICompatible)
+        return ServiceConfigurationTestResult(elapsed: 1.2, apiStyle: .openAICompatible)
     }
 }
 
 @MainActor final class SettingsServiceDraftTests: XCTestCase {
-    private func fixture() throws -> (TranslationModel, SettingsStore, DraftCredentials, SettingsServiceDraft, DraftConfigurationTester) {
+    private func fixture(logger: DiagnosticLogging = NoopDiagnosticLogger()) throws -> (TranslationModel, SettingsStore, DraftCredentials, SettingsServiceDraft, DraftConfigurationTester) {
         let defaults = try XCTUnwrap(isolatedDefaults(suiteName: "ServiceDraft-" + UUID().uuidString))
         let settings = SettingsStore(defaults: defaults)
         var item = ServiceInstance(provider: .openAI)
@@ -36,7 +36,7 @@ private actor DraftConfigurationTester: ServiceConfigurationTesting {
         let keys = DraftCredentials()
         keys.values[item.configuration.credentialAccount] = "saved-key"
         let tester = DraftConfigurationTester()
-        let model = TranslationModel(credentials: keys, settings: settings, configurationTester: tester)
+        let model = TranslationModel(credentials: keys, settings: settings, configurationTester: tester, logger: logger)
         let editor = SettingsServiceDraft()
         try editor.load(item, using: model)
         return (model, settings, keys, editor, tester)
@@ -141,6 +141,36 @@ private actor DraftConfigurationTester: ServiceConfigurationTesting {
         XCTAssertEqual(requests.last?.0.model, "draft-model")
         XCTAssertEqual(requests.last?.1, "draft-key")
         XCTAssertEqual(model.instance(original.id), original)
+    }
+
+    func testSuccessfulVerificationLocalizesElapsedTime() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let logger = FileDiagnosticLogger(directory: directory)
+        let (model, _, _, editor, _) = try fixture(logger: logger)
+        try editor.verify(using: model)
+        await model.configurationTestTask?.value
+        XCTAssertTrue(model.configurationTestSucceeded)
+
+        let diagnostics = await logger.contents()
+        XCTAssertTrue(diagnostics.contains("service_test_succeeded"))
+        XCTAssertTrue(diagnostics.contains("elapsed_ms=1200"))
+
+        let expected: [(InterfaceLanguage, String)] = [
+            (.simplifiedChinese, "连接成功 · 耗时 1.2 秒"),
+            (.traditionalChinese, "連線成功 · 耗時 1.2 秒"),
+            (.english, "Connected · 1.2 s"),
+            (.japanese, "接続成功 · 所要時間 1.2 秒"),
+            (.korean, "연결 성공 · 1.2초 소요"),
+            (.spanish, "Conexión correcta · 1,2 s")
+        ]
+        for (language, message) in expected {
+            try L10n.$languageOverride.withValue(language) {
+                let localized = try XCTUnwrap(model.configurationTestMessage)
+                let result = SettingsConnectionResult(message: localized, succeeded: model.configurationTestSucceeded)
+                XCTAssertEqual(result.displayedMessage, message, language.rawValue)
+            }
+        }
     }
 
     func testEditingDraftCancelsPreviousVerificationBeforeStartingTheNextOne() throws {

@@ -34,6 +34,17 @@ struct SelectedText: Equatable, Sendable {
 }
 
 enum SelectionTextDecoder {
+    private static let fileTypes: Set<NSPasteboard.PasteboardType> = [
+        .fileURL,
+        .init("NSFilenamesPboardType"), .init("NSFileContentsPboardType"), .init("NSFilesPromisePboardType"),
+        .init("com.apple.pasteboard.promised-file-url"), .init("com.apple.pasteboard.promised-file-content-type")
+    ]
+
+    static func containsFilePayload(_ pasteboard: NSPasteboard) -> Bool {
+        if let types = pasteboard.types, !fileTypes.isDisjoint(with: types) { return true }
+        return pasteboard.string(forType: .URL).flatMap(URL.init(string:))?.isFileURL == true
+    }
+
     static func normalized(_ value: String) -> String? {
         let normalized = value
             .replacingOccurrences(of: "\0", with: "")
@@ -127,9 +138,45 @@ struct PasteboardSnapshot {
 }
 
 final class SelectionReader: @unchecked Sendable {
+    enum CopyMode {
+        case confirmedSelection
+        case unknownSelection
+    }
+
+    enum CopyMenuState {
+        case enabled(AXUIElement)
+        case disabled
+        case unknown
+    }
+
+    private enum AccessibilitySelection {
+        case none
+        case unreadableText
+        case unknown
+        case text(SelectedText)
+    }
+
+    private static let textInputRoles = [kAXTextFieldRole, kAXTextAreaRole, kAXComboBoxRole]
+    private static let textSelectionRoles = textInputRoles + [kAXStaticTextRole, "AXWebArea"]
+    private static let objectSelectionRoles: Set<String> = [
+        "AXIcon", kAXImageRole, kAXRowRole, kAXOutlineRole, kAXBrowserRole, kAXListRole, kAXTableRole,
+        kAXButtonRole, kAXCheckBoxRole, kAXRadioButtonRole, kAXPopUpButtonRole, kAXMenuButtonRole, kAXMenuRole, kAXMenuItemRole
+    ]
+
+    private let readAttribute: (AXUIElement, String) -> CFTypeRef?
+    private let readParameterizedAttribute: (AXUIElement, String, CFTypeRef) -> CFTypeRef?
     private let selectedTextMarkerRangeAttribute = "AXSelectedTextMarkerRange"
     private let stringForTextMarkerRangeAttribute = "AXStringForTextMarkerRange"
+    private let lengthForTextMarkerRangeAttribute = "AXLengthForTextMarkerRange"
     private let boundsForTextMarkerRangeAttribute = "AXBoundsForTextMarkerRange"
+
+    init(
+        parameterizedAttribute: @escaping (AXUIElement, String, CFTypeRef) -> CFTypeRef? = SelectionReader.systemParameterizedAttribute,
+        attribute: @escaping (AXUIElement, String) -> CFTypeRef? = SelectionReader.systemAttribute
+    ) {
+        self.readAttribute = attribute
+        self.readParameterizedAttribute = parameterizedAttribute
+    }
 
     static var isAccessibilityTrusted: Bool { AXIsProcessTrusted() }
 
@@ -137,95 +184,124 @@ final class SelectionReader: @unchecked Sendable {
         guard AXIsProcessTrusted() else {
             throw SelectionReadError.accessibilityPermission
         }
-        let targetPID = applicationPID ?? NSWorkspace.shared.frontmostApplication?.processIdentifier
-        if let direct = accessibilitySelection(applicationPID: targetPID) { return direct }
-        let text = try await readUsingCopyFallback(applicationPID: targetPID)
-        return SelectedText(text: text, appKitBounds: nil)
+        guard let targetPID = applicationPID ?? NSWorkspace.shared.frontmostApplication?.processIdentifier else {
+            throw SelectionReadError.noSelection
+        }
+        return try await readSelection(
+            focused: focusedElement(applicationPID: targetPID),
+            applicationPID: targetPID,
+            copyMenuState: { self.copyMenuState(application: AXUIElementCreateApplication(targetPID)) },
+            copyFallback: { mode, menu in
+                try await self.readUsingCopyFallback(applicationPID: targetPID, mode: mode, menu: menu)
+            }
+        )
     }
 
-    private func accessibilitySelection(applicationPID: pid_t?) -> SelectedText? {
-        guard let focused = focusedElement(applicationPID: applicationPID) else { return nil }
-        for element in selectionCandidates(startingAt: focused, applicationPID: applicationPID) {
+    func readSelection(
+        focused: AXUIElement?, applicationPID: pid_t?,
+        copyMenuState: () -> CopyMenuState = { .unknown },
+        copyFallback: (CopyMode, CopyMenuState) async throws -> String
+    ) async throws -> SelectedText {
+        if let focused, let applicationPID {
+            var owner: pid_t = 0
+            guard AXUIElementGetPid(focused, &owner) == .success, owner == applicationPID else {
+                throw SelectionReadError.noSelection
+            }
+        }
+
+        let mode: CopyMode
+        switch focused.map(accessibilitySelection(startingAt:)) ?? .unknown {
+        case .none:
+            throw SelectionReadError.noSelection
+        case .unreadableText:
+            mode = .confirmedSelection
+        case .unknown:
+            mode = .unknownSelection
+        case .text(let selection):
+            return selection
+        }
+        try Task.checkCancellation()
+        let menu = copyMenuState()
+        if mode == .unknownSelection, case .disabled = menu { throw SelectionReadError.noSelection }
+        return SelectedText(text: try await copyFallback(mode, menu), appKitBounds: nil)
+    }
+
+    private func hasReportedTextRange(in element: AXUIElement, primary: CFRange?) -> Bool {
+        if let primary, primary.length > 0 { return true }
+        let ranges = attribute(kAXSelectedTextRangesAttribute, from: element) as? [AnyObject]
+        return ranges?.contains { (textRange(from: $0)?.length ?? 0) > 0 } == true
+    }
+
+    private func textRange(from value: CFTypeRef) -> CFRange? {
+        guard CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
+        let axValue = unsafeBitCast(value, to: AXValue.self)
+        var range = CFRange()
+        guard AXValueGetType(axValue) == .cfRange, AXValueGetValue(axValue, .cfRange, &range),
+              range.location >= 0, range.location != NSNotFound, range.length >= 0 else { return nil }
+        return range
+    }
+
+    private func markerLength(in element: AXUIElement, range: CFTypeRef) -> Int? {
+        guard CFGetTypeID(range) == AXTextMarkerRangeGetTypeID(),
+              let value = readParameterizedAttribute(element, lengthForTextMarkerRangeAttribute, range) as? NSNumber,
+              value.intValue >= 0 else { return nil }
+        return value.intValue
+    }
+
+    private func accessibilitySelection(startingAt focused: AXUIElement) -> AccessibilitySelection {
+        var element = focused
+        var hasTextRange = false
+        var hasCollapsedMarker = false
+        // 网页可能把选区报告在焦点的文档祖先上。窗口、应用和对象选择控件是查找边界。
+        for depth in 0...8 {
+            let role = attribute(kAXRoleAttribute, from: element) as? String ?? ""
+            if role == kAXWindowRole || role == kAXApplicationRole { break }
+            if Self.objectSelectionRoles.contains(role) {
+                if depth == 0 { return .none }
+                break
+            }
+
             let rangeValue = attribute(kAXSelectedTextRangeAttribute, from: element)
-            let markerRangeValue = attribute(selectedTextMarkerRangeAttribute, from: element)
-            if let text = selectedText(
-                from: element,
-                rangeValue: rangeValue,
-                markerRangeValue: markerRangeValue
-            ) {
-                return SelectedText(
+            let range = rangeValue.flatMap(textRange(from:))
+            let marker = attribute(selectedTextMarkerRangeAttribute, from: element)
+            let length = marker.flatMap { markerLength(in: element, range: $0) }
+            let reportsText = hasReportedTextRange(in: element, primary: range) || (length ?? 0) > 0
+            let isCaret = Self.textInputRoles.contains(role) && range?.length == 0 && marker == nil
+            if depth == 0, !reportsText, isCaret || length == 0 { return .none }
+
+            if (Self.textSelectionRoles.contains(role) || reportsText || marker != nil),
+               (length != 0 || reportsText),
+               let text = selectedText(from: element, rangeValue: rangeValue, markerRangeValue: marker) {
+                return .text(SelectedText(
                     text: text,
                     appKitBounds: selectionBounds(
                         from: element,
-                        rangeValue: rangeValue,
-                        markerRangeValue: markerRangeValue
+                        rangeValue: range?.length == 0 ? nil : rangeValue,
+                        markerRangeValue: length == 0 ? nil : marker
                     )
-                )
+                ))
             }
+            hasTextRange = hasTextRange || reportsText
+            hasCollapsedMarker = hasCollapsedMarker || length == 0
+            guard let parent = attribute(kAXParentAttribute, from: element),
+                  CFGetTypeID(parent) == AXUIElementGetTypeID() else { break }
+            element = unsafeBitCast(parent, to: AXUIElement.self)
         }
-        return nil
+        if hasTextRange { return .unreadableText }
+        return hasCollapsedMarker ? .none : .unknown
     }
 
-    private func selectionCandidates(
-        startingAt focused: AXUIElement,
-        applicationPID: pid_t?
-    ) -> [AXUIElement] {
-        var candidates: [AXUIElement] = []
-        var seen = Set<CFHashCode>()
-
-        func append(_ element: AXUIElement) {
-            guard seen.insert(CFHash(element)).inserted else { return }
-            candidates.append(element)
-        }
-
-        append(focused)
-        var current = focused
-        for _ in 0..<8 {
-            guard let parentValue = attribute(kAXParentAttribute, from: current),
-                  CFGetTypeID(parentValue) == AXUIElementGetTypeID() else { break }
-            let parent = unsafeBitCast(parentValue, to: AXUIElement.self)
-            append(parent)
-            current = parent
-        }
-
-        guard let applicationPID else { return candidates }
+    private func focusedElement(applicationPID: pid_t) -> AXUIElement? {
         let application = AXUIElementCreateApplication(applicationPID)
-        var roots: [AXUIElement] = []
-        if let windowValue = attribute(kAXFocusedWindowAttribute, from: application),
-           CFGetTypeID(windowValue) == AXUIElementGetTypeID() {
-            roots.append(unsafeBitCast(windowValue, to: AXUIElement.self))
-        }
-        roots.append(application)
-
-        var queue = roots
-        var index = 0
-        while index < queue.count, candidates.count < 1_200 {
-            let element = queue[index]
-            index += 1
-            append(element)
-            guard let childrenValue = attribute(kAXChildrenAttribute, from: element),
-                  let children = childrenValue as? [AXUIElement] else { continue }
-            for child in children where !seen.contains(CFHash(child)) {
-                queue.append(child)
-            }
-        }
-        return candidates
-    }
-
-    private func focusedElement(applicationPID: pid_t?) -> AXUIElement? {
-        if let applicationPID {
-            let application = AXUIElementCreateApplication(applicationPID)
-            if let focused = attribute(kAXFocusedUIElementAttribute, from: application) {
-                return unsafeBitCast(focused, to: AXUIElement.self)
-            }
+        if let focused = attribute(kAXFocusedUIElementAttribute, from: application),
+           CFGetTypeID(focused) == AXUIElementGetTypeID() {
+            return unsafeBitCast(focused, to: AXUIElement.self)
         }
 
         let system = AXUIElementCreateSystemWide()
-        var focusedValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(
-            system, kAXFocusedUIElementAttribute as CFString, &focusedValue
-        ) == .success, let focusedValue else { return nil }
-        return unsafeBitCast(focusedValue, to: AXUIElement.self)
+        guard let focused = attribute(kAXFocusedUIElementAttribute, from: system),
+              CFGetTypeID(focused) == AXUIElementGetTypeID() else { return nil }
+        return unsafeBitCast(focused, to: AXUIElement.self)
     }
 
     private func selectedText(
@@ -240,38 +316,22 @@ final class SelectionReader: @unchecked Sendable {
         }
 
         if let rangeValue {
-            var selectedValue: CFTypeRef?
-            if AXUIElementCopyParameterizedAttributeValue(
-                element,
-                kAXStringForRangeParameterizedAttribute as CFString,
-                rangeValue,
-                &selectedValue
-            ) == .success,
-               let selectedValue,
+            if let selectedValue = readParameterizedAttribute(element, kAXStringForRangeParameterizedAttribute, rangeValue),
                let text = string(from: selectedValue),
                let normalized = SelectionTextDecoder.normalized(text) {
                 return normalized
             }
 
-            var range = CFRange()
-            if CFGetTypeID(rangeValue) == AXValueGetTypeID(),
-               AXValueGetType(unsafeBitCast(rangeValue, to: AXValue.self)) == .cfRange,
-               AXValueGetValue(unsafeBitCast(rangeValue, to: AXValue.self), .cfRange, &range),
+            if let range = textRange(from: rangeValue),
                let value = attribute(kAXValueAttribute, from: element),
-               let text = string(from: value) {
-                return SelectionTextDecoder.substring(text, utf16Range: range)
+               let text = string(from: value),
+               let selected = SelectionTextDecoder.substring(text, utf16Range: range) {
+                return selected
             }
         }
 
         if let markerRangeValue {
-            var selectedValue: CFTypeRef?
-            if AXUIElementCopyParameterizedAttributeValue(
-                element,
-                stringForTextMarkerRangeAttribute as CFString,
-                markerRangeValue,
-                &selectedValue
-            ) == .success,
-               let selectedValue,
+            if let selectedValue = readParameterizedAttribute(element, stringForTextMarkerRangeAttribute, markerRangeValue),
                let text = string(from: selectedValue),
                let normalized = SelectionTextDecoder.normalized(text) {
                 return normalized
@@ -309,14 +369,7 @@ final class SelectionReader: @unchecked Sendable {
         attribute name: String,
         parameter: CFTypeRef
     ) -> CGRect? {
-        var boundsValue: CFTypeRef?
-        guard AXUIElementCopyParameterizedAttributeValue(
-            element,
-            name as CFString,
-            parameter,
-            &boundsValue
-        ) == .success,
-              let boundsValue,
+        guard let boundsValue = readParameterizedAttribute(element, name, parameter),
               CFGetTypeID(boundsValue) == AXValueGetTypeID() else { return nil }
         let axBounds = unsafeBitCast(boundsValue, to: AXValue.self)
         guard AXValueGetType(axBounds) == .cgRect else { return nil }
@@ -334,8 +387,18 @@ final class SelectionReader: @unchecked Sendable {
     }
 
     private func attribute(_ name: String, from element: AXUIElement) -> CFTypeRef? {
+        readAttribute(element, name)
+    }
+
+    private static func systemAttribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success else { return nil }
+        return value
+    }
+
+    private static func systemParameterizedAttribute(_ element: AXUIElement, _ name: String, _ parameter: CFTypeRef) -> CFTypeRef? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(element, name as CFString, parameter, &value) == .success else { return nil }
         return value
     }
 
@@ -345,39 +408,71 @@ final class SelectionReader: @unchecked Sendable {
         return nil
     }
 
-    private func readUsingCopyFallback(applicationPID: pid_t?) async throws -> String {
-        let pasteboard = NSPasteboard.general
+    private func readUsingCopyFallback(applicationPID: pid_t, mode: CopyMode, menu: CopyMenuState) async throws -> String {
+        try await readUsingCopyFallback(
+            pasteboard: .general,
+            mode: mode,
+            targetIsFrontmost: { NSWorkspace.shared.frontmostApplication?.processIdentifier == applicationPID },
+            invokeMenuCopy: {
+                guard case .enabled(let item) = menu else { return false }
+                AXUIElementSetMessagingTimeout(item, 0.05)
+                let result = AXUIElementPerformAction(item, kAXPressAction as CFString)
+                // 超时的动作可能已派发。先等剪贴板结果，避免立即重复复制。
+                return result == .success || result == .cannotComplete
+            },
+            sendCopyShortcut: { await self.postShortcut(keyCode: UInt16(kVK_ANSI_C), to: applicationPID) }
+        )
+    }
+
+    func readUsingCopyFallback(
+        pasteboard: NSPasteboard,
+        mode: CopyMode = .confirmedSelection,
+        targetIsFrontmost: () -> Bool,
+        invokeMenuCopy: () -> Bool,
+        sendCopyShortcut: () async -> Bool
+    ) async throws -> String {
+        try Task.checkCancellation()
+        guard targetIsFrontmost() else { throw SelectionReadError.noSelection }
+        let originalChangeCount = pasteboard.changeCount
         let snapshot = PasteboardSnapshot.capture(from: pasteboard)
-        pasteboard.clearContents()
-        let clearedChangeCount = pasteboard.changeCount
+        try Task.checkCancellation()
+        guard targetIsFrontmost(), pasteboard.changeCount == originalChangeCount else {
+            throw SelectionReadError.noSelection
+        }
+        let clearedChangeCount = pasteboard.clearContents()
         var restoreChangeCount = clearedChangeCount
         defer { _ = snapshot.restore(to: pasteboard, ifUnchangedSince: restoreChangeCount) }
-        let invokedCopyMenu = applicationPID.map { performMenuItem(applicationPID: $0, command: "c") } ?? false
-        let invokedCopy = invokedCopyMenu ? true : await postShortcut(keyCode: UInt16(kVK_ANSI_C), to: applicationPID)
-        guard invokedCopy else {
-            throw SelectionReadError.copyTimedOut
-        }
+        let invokedCopy = invokeMenuCopy() ? true : await sendCopyShortcut()
+        guard invokedCopy else { throw SelectionReadError.copyTimedOut }
 
-        let deadline = ContinuousClock.now.advanced(by: .milliseconds(2_400))
-        let retryAt = ContinuousClock.now.advanced(by: .milliseconds(420))
+        let started = ContinuousClock.now
+        let allowsRetry = mode == .confirmedSelection
+        let deadline = started.advanced(by: allowsRetry ? .milliseconds(2_400) : .milliseconds(500))
+        let retryAt = started.advanced(by: .milliseconds(420))
         var sawPasteboardChange = false
         var retriedCopy = false
         while ContinuousClock.now < deadline {
             try Task.checkCancellation()
             try await Task.sleep(for: .milliseconds(30))
-            if let applicationPID,
-               NSWorkspace.shared.frontmostApplication?.processIdentifier != applicationPID {
-                throw SelectionReadError.noSelection
-            }
-            if pasteboard.changeCount != clearedChangeCount {
+            guard targetIsFrontmost() else { throw SelectionReadError.noSelection }
+            let changeCount = pasteboard.changeCount
+            if changeCount != clearedChangeCount {
                 sawPasteboardChange = true
-                restoreChangeCount = pasteboard.changeCount
-                if let value = SelectionTextDecoder.text(from: pasteboard) { return value }
+                restoreChangeCount = changeCount
+                let containsFile = SelectionTextDecoder.containsFilePayload(pasteboard)
+                let text = containsFile ? nil : SelectionTextDecoder.text(from: pasteboard)
+                guard pasteboard.changeCount == changeCount else { continue }
+                if containsFile { throw SelectionReadError.noSelection }
+                if let text {
+                    try Task.checkCancellation()
+                    guard targetIsFrontmost() else { throw SelectionReadError.noSelection }
+                    return text
+                }
             }
-            if !retriedCopy, ContinuousClock.now >= retryAt {
+            if allowsRetry, !retriedCopy, ContinuousClock.now >= retryAt {
                 retriedCopy = true
-                if !(applicationPID.map { performMenuItem(applicationPID: $0, command: "c") } ?? false) {
-                    _ = await postShortcut(keyCode: UInt16(kVK_ANSI_C), to: applicationPID)
+                if !invokeMenuCopy() {
+                    _ = await sendCopyShortcut()
                 }
             }
         }
@@ -386,52 +481,47 @@ final class SelectionReader: @unchecked Sendable {
         throw SelectionReadError.copyTimedOut
     }
 
-    private func performMenuItem(applicationPID: pid_t, command: String) -> Bool {
-        let application = AXUIElementCreateApplication(applicationPID)
-        guard let menuBarValue = attribute(kAXMenuBarAttribute, from: application),
-              CFGetTypeID(menuBarValue) == AXUIElementGetTypeID() else { return false }
+    func copyMenuState(application: AXUIElement, timeout: TimeInterval = 0.075) -> CopyMenuState {
+        let clock = ProcessInfo.processInfo
+        let deadline = clock.systemUptime + timeout
+        func query(_ name: String, from element: AXUIElement) -> CFTypeRef? {
+            let remaining = deadline - clock.systemUptime
+            guard remaining > 0,
+                  AXUIElementSetMessagingTimeout(element, Float(min(remaining, 0.02))) == .success else { return nil }
+            return attribute(name, from: element)
+        }
+        guard let menuBarValue = query(kAXMenuBarAttribute, from: application),
+              CFGetTypeID(menuBarValue) == AXUIElementGetTypeID() else { return .unknown }
+
         let menuBar = unsafeBitCast(menuBarValue, to: AXUIElement.self)
-        if let item = menuItem(in: menuBar, command: command) {
-            return AXUIElementPerformAction(item, kAXPressAction as CFString) == .success
-        }
-
-        for menu in children(of: menuBar).prefix(16) {
-            guard AXUIElementPerformAction(menu, kAXPressAction as CFString) == .success else { continue }
-            if let item = menuItem(in: menu, command: command),
-               AXUIElementPerformAction(item, kAXPressAction as CFString) == .success {
-                return true
-            }
-            _ = AXUIElementPerformAction(menu, kAXCancelAction as CFString)
-        }
-        return false
-    }
-
-    private func menuItem(in root: AXUIElement, command expectedCommand: String) -> AXUIElement? {
-        var queue = [root]
-        var seen = Set<CFHashCode>()
+        var queue = [menuBar]
+        var seen = Set<AXUIElement>()
         var index = 0
-
-        while index < queue.count, seen.count < 500 {
+        var match: CopyMenuState?
+        while index < queue.count {
+            guard clock.systemUptime < deadline, seen.count < 500 else { return .unknown }
             let element = queue[index]
             index += 1
-            guard seen.insert(CFHash(element)).inserted else { continue }
-            let role = attribute(kAXRoleAttribute, from: element) as? String
-            if role == kAXMenuItemRole,
-               let command = attribute(kAXMenuItemCmdCharAttribute, from: element) as? String,
-               command.caseInsensitiveCompare(expectedCommand) == .orderedSame {
-                let modifiers = (attribute(kAXMenuItemCmdModifiersAttribute, from: element) as? NSNumber)?.uint32Value ?? 0
-                let enabled = (attribute(kAXEnabledAttribute, from: element) as? NSNumber)?.boolValue ?? true
-                if modifiers == 0, enabled { return element }
-            }
-            queue.append(contentsOf: children(of: element))
-        }
-        return nil
-    }
+            guard seen.insert(element).inserted else { continue }
 
-    private func children(of element: AXUIElement) -> [AXUIElement] {
-        guard let childrenValue = attribute(kAXChildrenAttribute, from: element),
-              let children = childrenValue as? [AXUIElement] else { return [] }
-        return children
+            if query(kAXRoleAttribute, from: element) as? String == kAXMenuItemRole,
+               let command = query(kAXMenuItemCmdCharAttribute, from: element) as? String,
+               command.caseInsensitiveCompare("c") == .orderedSame {
+                guard let modifiers = query(kAXMenuItemCmdModifiersAttribute, from: element) as? NSNumber else { return .unknown }
+                if modifiers.uint32Value == 0 {
+                    guard match == nil, let enabled = query(kAXEnabledAttribute, from: element),
+                          CFGetTypeID(enabled) == CFBooleanGetTypeID(),
+                          let value = enabled as? NSNumber else { return .unknown }
+                    match = value.boolValue ? .enabled(element) : .disabled
+                }
+            }
+
+            if let children = query(kAXChildrenAttribute, from: element) as? [AXUIElement] {
+                queue.append(contentsOf: children)
+            }
+        }
+        guard clock.systemUptime < deadline else { return .unknown }
+        return match ?? .unknown
     }
 
     /// 标记 Seven 自己模拟的按键，供快捷键录制窗口识别并忽略。
@@ -441,7 +531,7 @@ final class SelectionReader: @unchecked Sendable {
         event.cgEvent?.getIntegerValueField(.eventSourceUserData) == syntheticEventMarker
     }
 
-    private func postShortcut(keyCode: UInt16, to applicationPID: pid_t?) async -> Bool {
+    private func postShortcut(keyCode: UInt16, to applicationPID: pid_t) async -> Bool {
         guard let source = CGEventSource(stateID: .hidSystemState),
               let down = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: true),
               let up = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: false) else {
@@ -451,11 +541,9 @@ final class SelectionReader: @unchecked Sendable {
         up.flags = .maskCommand
         down.setIntegerValueField(.eventSourceUserData, value: Self.syntheticEventMarker)
         up.setIntegerValueField(.eventSourceUserData, value: Self.syntheticEventMarker)
-        if let applicationPID { down.postToPid(applicationPID) }
-        else { down.post(tap: .cghidEventTap) }
+        down.postToPid(applicationPID)
         try? await Task.sleep(for: .milliseconds(14))
-        if let applicationPID { up.postToPid(applicationPID) }
-        else { up.post(tap: .cghidEventTap) }
+        up.postToPid(applicationPID)
         return true
     }
 }

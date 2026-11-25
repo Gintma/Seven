@@ -149,12 +149,12 @@ extension AppDelegate {
     @objc func quitSeven() { NSApp.terminate(nil) }
     @objc func showSettings() {
         inputReplacement.cancel()
-        if !model.pinned { panel?.orderOut(nil) }
+        if !model.pinned { panel?.dismiss() }
         settingsWindowController.show()
     }
     @objc func showHistory() {
         inputReplacement.cancel()
-        if !model.pinned { panel?.orderOut(nil) }
+        if !model.pinned { panel?.dismiss() }
         historyWindowController.show()
     }
 

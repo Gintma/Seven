@@ -95,7 +95,7 @@
 "collapseDetails" = "收起%1$@";
 "collapseTranslation" = "收起译文";
 "color" = "颜色";
-"connected" = "连接正常";
+"connectionSucceededWithElapsedTime" = "连接成功 · 耗时 %.1f 秒";
 "copiesAndSavedImagesIncludeTheShadow" = "复制和保存包含阴影，并增加外围留白。";
 "copy" = "复制";
 "copyColorValue" = "复制颜色值";
@@ -108,14 +108,14 @@
 "cornerRadius0Px" = "圆角：0 px";
 "cornerRadiusPt" = "圆角：%1$@ pt";
 "cornerRadiusPx" = "圆角：%1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "无法截取所选区域，请重新选择。";
+"couldNotCaptureTheSelectedAreaSelect" = "无法截取所选区域。";
 "couldNotChangeLaunchAtLogin" = "无法修改开机启动：%1$@";
 "couldNotCopyTheRecognizedTextTry" = "无法复制识别结果，请重试。";
 "couldNotCreateTheOfflineDictionary" = "无法创建本地词库";
 "couldNotDetermineTheSpeechLanguage" = "暂无法确定朗读语言";
 "couldNotDownloadTheDictionaryCheckYour" = "无法下载词典资源，请检查网络后重试。";
 "couldNotFindTheEndpointOrModel" = "找不到接口或模型。请检查完整接口地址和模型名称。";
-"couldNotGetTheSelectedTextMake" = "没有获取到选中的文本。请确认目标内容可选择、可复制，然后重试。";
+"couldNotGetTheSelectedTextMake" = "未获取到选中文字。";
 "couldNotOpenImage" = "无法打开图片";
 "couldNotOpenSystemSettingsTryAgain" = "未能打开系统设置，请重试。";
 "couldNotOpenTheOfflineDictionary" = "无法打开本地词库";
@@ -184,7 +184,6 @@
 "dragTheAppIntoThePermissionList" = "拖动应用到授权列表";
 "dragToolbar" = "拖动工具条";
 "dragWithMouse" = "鼠标拖动";
-"durationSeconds" = "%.1f 秒";
 "dutch" = "荷兰语";
 "ecdictLicense" = "ECDICT · MIT 许可证";
 "edit" = "编辑";
@@ -317,9 +316,9 @@
 "noOverlapFoundReturnToACaptured" = "未找到重叠内容，请回到已采集的位置后缓慢滚动。";
 "noScreenshotIsAvailableExitAndSelect" = "没有可用的截图，请退出后重新选择区域。";
 "noSearchResults" = "没有搜索结果";
-"noTextWasRecognizedInTheSelected" = "所选区域没有识别到文字。";
+"noTextWasRecognizedInTheSelected" = "所选区域未识别到文字。";
 "noTextWasRecognizedInTheSelection" = "未识别到文字，剪贴板未更改。";
-"noTranslationServicesAreAvailableEnableOne" = "没有可用的翻译服务，请在设置中启用翻译服务。";
+"noTranslationServicesAreAvailableEnableOne" = "没有可用的翻译服务。";
 "normal" = "正常";
 "notConfigured" = "未配置";
 "notDownloadedAbout63MBToDownload" = "未下载 · 约 63MB，安装后约 126MB";
@@ -496,7 +495,7 @@
 "settings.sidebar.toolbar" = "工具条";
 "sevenAppIcon" = "Seven 应用图标";
 "sevenHistory" = "Seven 历史记录.%1$@";
-"sevenNeedsAccessibilityPermissionToReadSelected" = "Seven 需要辅助功能权限才能读取其他应用中的选中文字。授权后请回到原应用重新选择文本。";
+"sevenNeedsAccessibilityPermissionToReadSelected" = "需要辅助功能权限以读取选中文字。";
 "sevenNeedsScreenRecordingPermissionToCapture" = "需要屏幕录制权限";
 "sevenReplacesSelectedTextOrTheEntire" = "有选区只替换选区，无选区替换整个输入框。不会发送消息。按列表顺序使用第一个已启用、已展开且处于翻译模式的翻译服务。";
 "sevenSettings" = "Seven 设置";
@@ -576,7 +575,7 @@
 "theModelDecidesByDefaultHigherSettings" = "默认由模型决定；提高可能增加耗时和费用。";
 "theModelIsUnavailableChooseAnotherModel" = "模型不存在或不可用。请重新选择模型。";
 "theOfflineDictionaryHasNoEntryFor" = "英汉词典未收录这个词或短语。";
-"theOtherAppDidNotProvideIts" = "目标应用没有及时提供选中文字。可以重新选择后重试，或改用输入翻译。";
+"theOtherAppDidNotProvideIts" = "目标应用没有及时提供选中文字。";
 "theRequestTimedOutCheckYourConnection" = "请求超时，请检查网络或稍后重试。";
 "theResponseWasCutOffShortenThe" = "输出被截断，未显示不完整译文。请缩短原文后重试。";
 "theScreenshotHasReachedItsSizeLimit" = "已达到长截图尺寸上限，请编辑或保存。";
@@ -666,6 +665,7 @@
 "widthInPixels" = "截图宽度（像素）";
 "widthPx" = "宽度：%1$@ px";
 "window" = "窗口";
+"clearTranslationWhenOpeningWindow" = "打开窗口时清空上次内容";
 "windowPosition" = "弹出位置";
 "youAreALanguageTeacherPreserveThe" = "你是一位语言老师。翻译时保留原文语气，并解释难懂的表达。";
 "youCanTranslateUpTo20000" = "单次最多翻译 20,000 个字符。";

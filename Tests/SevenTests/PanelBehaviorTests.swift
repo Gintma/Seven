@@ -312,6 +312,215 @@ extension PanelBehaviorTests {
         return TranslationModel(credentials: PanelTestCredentials(), settings: settings)
     }
 
+    func testCaptureFailureDoesNotOfferRetryForPreviousInput() throws {
+        let model = try panelModel()
+        defer { model.cancel() }
+        model.input = "Previous source"
+        let issueView = AppKitGlobalIssueView(model: model)
+        func visibleRetry(in view: NSView) -> Bool {
+            guard !view.isHidden else { return false }
+            if let button = view as? NSButton, button.title == L10n.text("retry") {
+                return true
+            }
+            return view.subviews.contains(where: visibleRetry(in:))
+        }
+
+        model.presentSelectionError(.copyTimedOut)
+        issueView.applyModel()
+        XCTAssertFalse(issueView.isHidden)
+        XCTAssertFalse(visibleRetry(in: issueView))
+
+        model.presentScreenshotError(.noText)
+        issueView.applyModel()
+        XCTAssertFalse(issueView.isHidden)
+        XCTAssertFalse(visibleRetry(in: issueView))
+        XCTAssertEqual(model.input, "Previous source")
+    }
+
+    func testIssueHeightOnlyWrapsWhenTheMessageExceedsAvailableWidth() throws {
+        let model = try panelModel()
+        let issueView = AppKitGlobalIssueView(model: model)
+        issueView.frame.size.width = TranslationPanelSize.minimumWidth
+        model.issue = .verbatim("Unavailable.")
+        issueView.applyModel()
+        let singleLineHeight = issueView.preferredHeight
+
+        model.issue = .verbatim("The target application did not return any text.")
+        issueView.applyModel()
+        XCTAssertEqual(issueView.preferredHeight, singleLineHeight, "Space without actions is available for the message")
+
+        model.issue = .verbatim(String(repeating: "The target application did not return any text. ", count: 4))
+        issueView.applyModel()
+        XCTAssertGreaterThan(issueView.preferredHeight, singleLineHeight)
+    }
+
+    func testFirstIssueInVisiblePanelMeasuresAtAvailableContentWidth() throws {
+        let model = try panelModel()
+        let panel = TranslationPanel(model: model)
+        let host = NSView()
+        panel.contentView = host
+        panel.orderFront(nil)
+        defer { panel.orderOut(nil); model.cancel() }
+
+        let issue = AppKitGlobalIssueView(model: model)
+        host.addSubview(issue)
+        XCTAssertTrue(panel.isVisible)
+        XCTAssertEqual(issue.bounds.width, 0)
+        XCTAssertTrue(issue.isHidden)
+        model.issue = .verbatim(String(repeating: "The target application did not provide the selected text. ", count: 4))
+        let reference = AppKitGlobalIssueView(model: model)
+        reference.frame.size.width = host.bounds.width
+        reference.applyModel()
+        XCTAssertGreaterThan(reference.preferredHeight, 40)
+
+        issue.applyModel(availableWidth: host.bounds.width)
+
+        XCTAssertFalse(issue.isHidden)
+        XCTAssertEqual(issue.preferredHeight, reference.preferredHeight, accuracy: 0.5)
+    }
+
+    func testIssueHeightUsesNewWidthAfterPanelAnimation() async throws {
+        let model = try panelModel()
+        let panel = TranslationPanel(model: model)
+        let controller = AppKitTranslationViewController(model: model)
+        panel.contentViewController = controller
+        panel.setContentSize(NSSize(width: 560, height: 350))
+        panel.orderFront(nil)
+        defer { panel.orderOut(nil); model.cancel() }
+        controller.view.layoutSubtreeIfNeeded()
+        controller.reloadFromModel(animated: false)
+
+        let scroll = try XCTUnwrap(controller.view.subviews.compactMap { $0 as? NSScrollView }.first)
+        let stack = try XCTUnwrap(scroll.documentView?.subviews.compactMap { $0 as? NSStackView }.first)
+        let issue = try XCTUnwrap(stack.arrangedSubviews.compactMap { $0 as? AppKitGlobalIssueView }.first)
+        let originalWidth = stack.bounds.width
+        XCTAssertTrue(panel.isVisible)
+        XCTAssertTrue(issue.isHidden)
+        model.issue = .verbatim(String(repeating: "The target application did not provide the selected text. ", count: 6))
+        let widthChanged = expectation(description: "width changes during the layout transaction")
+        let animationFinished = expectation(description: "issue animation finishes")
+        controller.onPreferredPanelHeightChange = { _ in
+            controller.onPreferredPanelHeightChange = nil
+            var frame = panel.frame
+            frame.size.width = TranslationPanelSize.minimumWidth
+            panel.setFrame(frame, display: false)
+            widthChanged.fulfill()
+        }
+        controller.reloadFromModel(animated: true) { animationFinished.fulfill() }
+        await fulfillment(of: [widthChanged, animationFinished], timeout: 2)
+
+        XCTAssertLessThan(stack.bounds.width, originalWidth)
+        let reference = AppKitGlobalIssueView(model: model)
+        reference.frame.size.width = stack.bounds.width
+        reference.applyModel()
+        XCTAssertEqual(issue.preferredHeight, reference.preferredHeight, accuracy: 0.5)
+        XCTAssertEqual(issue.renderedHeight, reference.preferredHeight, accuracy: 0.5)
+    }
+
+    func testServiceIssueFitsBothActionsAtMinimumWidth() throws {
+        try L10n.$languageOverride.withValue(.spanish) {
+            let model = try panelModel()
+            defer { model.cancel() }
+            for service in model.serviceInstances { model.setServiceEnabled(service.id, enabled: false) }
+            model.updateInput("Source")
+            model.translate()
+
+            let host = NSView(frame: NSRect(x: 0, y: 0, width: 320, height: 200))
+            let issueView = AppKitGlobalIssueView(model: model)
+            host.addSubview(issueView)
+            NSLayoutConstraint.activate([
+                issueView.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+                issueView.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+                issueView.topAnchor.constraint(equalTo: host.topAnchor)
+            ])
+            host.layoutSubtreeIfNeeded()
+
+            let message = try XCTUnwrap(issueView.subviews.compactMap { $0 as? NSTextField }.first)
+            let actions = try XCTUnwrap(issueView.subviews.compactMap { $0 as? NSStackView }.first)
+            let buttons = actions.arrangedSubviews.compactMap { $0 as? NSButton }.filter { !$0.isHidden }
+            XCTAssertEqual(Set(buttons.map(\.title)), [L10n.text("retry"), L10n.text("serviceSettings")])
+            for button in buttons {
+                let frame = issueView.convert(button.bounds, from: button)
+                XCTAssertLessThanOrEqual(message.frame.maxX, frame.minX)
+                XCTAssertTrue(issueView.bounds.contains(frame))
+            }
+            XCTAssertTrue(issueView.bounds.contains(message.frame))
+
+            var openedSettings = false
+            model.onOpenSettings = { openedSettings = true }
+            try XCTUnwrap(buttons.first { $0.title == L10n.text("serviceSettings") }).performClick(nil)
+            XCTAssertTrue(openedSettings)
+        }
+    }
+
+    func testDismissAndCloseClearSessionButKeepLanguageChoices() throws {
+        let model = try panelModel()
+        let panel = TranslationPanel(model: model)
+        defer { panel.orderOut(nil); model.cancel() }
+        model.clearTranslationOnDismiss = true
+        model.source = "en"
+        model.target = "ja"
+
+        panel.orderFront(nil)
+        XCTAssertTrue(panel.isVisible)
+        model.prepareSelectedText("Previous input")
+        model.serviceResults = [panelResult(text: "Previous result", phase: .success)]
+        model.issue = SelectionReadError.noSelection.issue
+        panel.dismiss()
+        XCTAssertFalse(panel.isVisible)
+        XCTAssertEqual(model.input, "")
+        XCTAssertTrue(model.serviceResults.isEmpty)
+        XCTAssertNil(model.issue)
+
+        panel.orderFront(nil)
+        model.pinned = true
+        model.presentScreenshotError(.noText)
+        panel.performClose(nil)
+        XCTAssertFalse(panel.isVisible)
+        XCTAssertNil(model.issue, "Closing also clears an issue shown with an empty input")
+        XCTAssertEqual(model.source, "en")
+        XCTAssertEqual(model.target, "ja")
+    }
+
+    func testEnablingWhileHiddenClearsOnNextInputPresentation() throws {
+        let model = try panelModel()
+        let panel = TranslationPanel(model: model)
+        defer { panel.orderOut(nil); model.cancel() }
+        model.prepareSelectedText("Previous input")
+        model.serviceResults = [panelResult(text: "Previous result", phase: .success)]
+        panel.orderFront(nil)
+        panel.dismiss()
+
+        XCTAssertEqual(model.input, "Previous input")
+        XCTAssertEqual(model.serviceResults.first?.text, "Previous result")
+        model.clearTranslationOnDismiss = true
+        let reopenedModel = TranslationModel(credentials: PanelTestCredentials(), settings: model.settings)
+        XCTAssertTrue(reopenedModel.clearTranslationOnDismiss)
+
+        panel.prepareForInputPresentation()
+        XCTAssertEqual(model.input, "")
+        XCTAssertTrue(model.serviceResults.isEmpty)
+    }
+
+    func testRelocationAndContentPresentationsPreserveTextWithClearingEnabled() throws {
+        let model = try panelModel()
+        let panel = TranslationPanel(model: model)
+        defer { panel.orderOut(nil); model.cancel() }
+        model.clearTranslationOnDismiss = true
+
+        model.prepareSelectedText("Selected text")
+        panel.orderFront(nil)
+        panel.prepareForInputPresentation()
+        panel.orderOut(nil)
+        panel.orderFront(nil)
+        XCTAssertEqual(model.input, "Selected text")
+
+        panel.dismiss()
+        model.prepareScreenshotText("Text from a screenshot", needsReview: true)
+        panel.orderFront(nil)
+        XCTAssertEqual(model.input, "Text from a screenshot")
+    }
+
     func testModelRefreshPreservesInputMethodComposition() throws {
         let model = try panelModel()
         defer { model.cancel() }
@@ -448,7 +657,7 @@ extension PanelBehaviorTests {
 
     private func panelResult(text: String, phase: TranslationResultPhase) -> TranslationServiceResult {
         TranslationServiceResult(id: .google, title: "Google", subtitle: "", isTranslation: true,
-            phase: phase, text: text, dictionaryEntry: nil, errorMessage: nil, elapsed: nil)
+            phase: phase, text: text, dictionaryEntry: nil, errorMessage: nil)
     }
 }
 

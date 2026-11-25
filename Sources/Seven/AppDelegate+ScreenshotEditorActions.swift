@@ -62,8 +62,9 @@ extension AppDelegate {
         controller.onOpenFiles = { [weak self] urls in self?.openImageFiles(urls) }
         controller.onTranslate = { [weak self] text in
             guard let self else { return }
+            self.inputReplacement.cancel()
             self.model.prepareSelectedText(text)
-            self.showPanel()
+            self.presentPanel(near: NSEvent.mouseLocation)
             self.model.translate()
         }
         ScreenshotAuxiliaryWindows.show(controller)

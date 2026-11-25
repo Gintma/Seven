@@ -1546,15 +1546,16 @@ struct SettingsVerificationRow: View {
 }
 
 struct SettingsConnectionResult: View {
-    @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     let message: String
     let succeeded: Bool
     static func shortReason(_ message: String) -> String {
         guard let boundary = message.range(of: #"[。，；,\r\n]|\.\s"#, options: .regularExpression) else { return message }
         return String(message[..<boundary.lowerBound])
     }
+    var displayedMessage: String { succeeded ? message : Self.shortReason(message) }
+
     var body: some View {
-        SettingsStatus(text: succeeded ? L10n.text("connected") : Self.shortReason(message), isError: !succeeded)
+        SettingsStatus(text: displayedMessage, isError: !succeeded)
     }
 }
 

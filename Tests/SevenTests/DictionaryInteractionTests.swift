@@ -49,7 +49,7 @@ private struct InteractionAudio: SpeechAudioFetching {
             phrases: [.init(id: 0, title: "tomato soup", meanings: ["番茄汤"])],
             examples: [.init(id: 0, source: "I like tomatoes.", translation: "我喜欢番茄。")], rawText: "fixture")
         return .init(id: .youdao, title: "有道", subtitle: "", isTranslation: true, phase: .success,
-                     text: "番茄", dictionaryEntry: entry, errorMessage: nil, elapsed: nil)
+                     text: "番茄", dictionaryEntry: entry, errorMessage: nil)
     }
 
     private func descendants(_ view: NSView) -> [NSView] { view.subviews + view.subviews.flatMap(descendants) }
@@ -165,7 +165,7 @@ private struct InteractionAudio: SpeechAudioFetching {
         model.youdaoShowsDefinitions = false
         let source = result()
         let offline = TranslationServiceResult(id: .ecdict, title: "英汉词典", subtitle: "", isTranslation: false,
-            phase: .success, text: "番茄", dictionaryEntry: source.dictionaryEntry, errorMessage: nil, elapsed: nil)
+            phase: .success, text: "番茄", dictionaryEntry: source.dictionaryEntry, errorMessage: nil)
         let body = AppKitServiceBodyView(model: model)
         body.apply(offline)
         let rendered = try text(in: body).string.replacingOccurrences(of: "\t", with: " ")

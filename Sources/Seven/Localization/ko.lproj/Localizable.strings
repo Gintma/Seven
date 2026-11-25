@@ -95,7 +95,7 @@
 "collapseDetails" = "%1$@ 접기";
 "collapseTranslation" = "번역문 접기";
 "color" = "색상";
-"connected" = "연결됨";
+"connectionSucceededWithElapsedTime" = "연결 성공 · %.1f초 소요";
 "copiesAndSavedImagesIncludeTheShadow" = "복사하거나 저장한 이미지에는 그림자와 여백이 포함됩니다.";
 "copy" = "복사";
 "copyColorValue" = "색상 값 복사";
@@ -108,14 +108,14 @@
 "cornerRadius0Px" = "모서리 반경: 0 px";
 "cornerRadiusPt" = "모서리 반경: %1$@ pt";
 "cornerRadiusPx" = "모서리 반경: %1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "선택 영역을 캡처할 수 없습니다. 다시 선택하세요.";
+"couldNotCaptureTheSelectedAreaSelect" = "선택한 영역을 캡처하지 못했습니다.";
 "couldNotChangeLaunchAtLogin" = "로그인 시 실행 설정을 변경할 수 없습니다: %1$@";
 "couldNotCopyTheRecognizedTextTry" = "인식한 텍스트를 복사할 수 없습니다. 다시 시도하세요.";
 "couldNotCreateTheOfflineDictionary" = "오프라인 사전을 만들 수 없습니다";
 "couldNotDetermineTheSpeechLanguage" = "읽어 줄 언어를 확인할 수 없습니다";
 "couldNotDownloadTheDictionaryCheckYour" = "사전을 다운로드할 수 없습니다. 연결을 확인하고 다시 시도하세요.";
 "couldNotFindTheEndpointOrModel" = "엔드포인트 또는 모델을 찾을 수 없습니다. 전체 주소와 모델 이름을 확인하세요.";
-"couldNotGetTheSelectedTextMake" = "선택한 텍스트를 가져올 수 없습니다. 선택 및 복사가 가능한지 확인하고 다시 시도하세요.";
+"couldNotGetTheSelectedTextMake" = "선택한 텍스트를 가져오지 못했습니다.";
 "couldNotOpenImage" = "이미지를 열 수 없음";
 "couldNotOpenSystemSettingsTryAgain" = "시스템 설정을 열 수 없습니다. 다시 시도하세요.";
 "couldNotOpenTheOfflineDictionary" = "오프라인 사전을 열 수 없습니다";
@@ -184,7 +184,6 @@
 "dragTheAppIntoThePermissionList" = "앱을 권한 목록으로 드래그";
 "dragToolbar" = "도구 막대 드래그";
 "dragWithMouse" = "마우스로 드래그";
-"durationSeconds" = "%.1f초";
 "dutch" = "네덜란드어";
 "ecdictLicense" = "ECDICT · MIT 라이선스";
 "edit" = "편집";
@@ -317,9 +316,9 @@
 "noOverlapFoundReturnToACaptured" = "겹치는 영역을 찾지 못했습니다. 이미 캡처한 곳으로 돌아가 천천히 스크롤하세요.";
 "noScreenshotIsAvailableExitAndSelect" = "스크린샷이 없습니다. 종료한 뒤 영역을 다시 선택하세요.";
 "noSearchResults" = "검색 결과 없음";
-"noTextWasRecognizedInTheSelected" = "선택 영역에서 텍스트를 인식하지 못했습니다.";
+"noTextWasRecognizedInTheSelected" = "선택한 영역에서 텍스트를 인식하지 못했습니다.";
 "noTextWasRecognizedInTheSelection" = "선택 영역에서 텍스트를 인식하지 못했습니다. 클립보드는 변경되지 않았습니다.";
-"noTranslationServicesAreAvailableEnableOne" = "사용할 수 있는 번역 서비스가 없습니다. 설정에서 서비스를 활성화하세요.";
+"noTranslationServicesAreAvailableEnableOne" = "사용할 수 있는 번역 서비스가 없습니다.";
 "normal" = "보통";
 "notConfigured" = "설정되지 않음";
 "notDownloadedAbout63MBToDownload" = "다운로드 안 됨 · 다운로드 약 63 MB, 설치 후 약 126 MB";
@@ -496,8 +495,8 @@
 "settings.sidebar.toolbar" = "도구 막대";
 "sevenAppIcon" = "Seven 앱 아이콘";
 "sevenHistory" = "Seven 기록.%1$@";
-"sevenNeedsAccessibilityPermissionToReadSelected" = "다른 앱에서 선택한 텍스트를 읽으려면 Seven에 손쉬운 사용 권한이 필요합니다. 권한을 허용한 후 원래 앱에서 텍스트를 다시 선택하세요.";
-"sevenNeedsScreenRecordingPermissionToCapture" = "스크린샷을 찍으려면 Seven에 화면 기록 권한이 필요합니다.";
+"sevenNeedsAccessibilityPermissionToReadSelected" = "선택한 텍스트를 읽으려면 손쉬운 사용 권한이 필요합니다.";
+"sevenNeedsScreenRecordingPermissionToCapture" = "스크린샷을 찍으려면 화면 기록 권한이 필요합니다.";
 "sevenReplacesSelectedTextOrTheEntire" = "Seven은 선택한 텍스트를 바꾸며, 선택한 항목이 없으면 입력란 전체를 바꿉니다. 메시지는 전송하지 않습니다. 번역 모드에서 활성화되고 펼쳐진 첫 번째 서비스를 사용합니다.";
 "sevenSettings" = "Seven 설정";
 "shadow" = "그림자";
@@ -576,7 +575,7 @@
 "theModelDecidesByDefaultHigherSettings" = "기본적으로 모델이 결정합니다. 수준을 높이면 시간과 비용이 늘어날 수 있습니다.";
 "theModelIsUnavailableChooseAnotherModel" = "모델을 사용할 수 없습니다. 다른 모델을 선택하세요.";
 "theOfflineDictionaryHasNoEntryFor" = "오프라인 사전에 이 단어나 표현이 없습니다.";
-"theOtherAppDidNotProvideIts" = "다른 앱에서 선택한 텍스트를 제때 가져오지 못했습니다. 텍스트를 다시 선택하거나 ‘입력 번역’을 사용하세요.";
+"theOtherAppDidNotProvideIts" = "대상 앱이 선택한 텍스트를 제때 제공하지 않았습니다.";
 "theRequestTimedOutCheckYourConnection" = "요청 시간이 초과되었습니다. 연결을 확인하거나 잠시 후 다시 시도하세요.";
 "theResponseWasCutOffShortenThe" = "응답이 중간에 잘렸습니다. 원문을 줄이고 다시 시도하세요.";
 "theScreenshotHasReachedItsSizeLimit" = "스크린샷이 크기 제한에 도달했습니다. 편집하거나 저장하세요.";
@@ -666,6 +665,7 @@
 "widthInPixels" = "너비(픽셀)";
 "widthPx" = "너비: %1$@ px";
 "window" = "윈도우";
+"clearTranslationWhenOpeningWindow" = "창을 열 때 이전 내용 지우기";
 "windowPosition" = "윈도우 위치";
 "youAreALanguageTeacherPreserveThe" = "당신은 언어 교사입니다. 원문의 어조를 유지하고 이해하기 어려운 표현을 설명하세요.";
 "youCanTranslateUpTo20000" = "한 번에 최대 20,000자까지 번역할 수 있습니다.";

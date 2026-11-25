@@ -36,7 +36,7 @@ extension TranslationModel {
         // 地址/模型/提示词等变化使该项结果失效；其他实例不重发。
         if let index = resultIndex(item.id) {
             serviceResults[index].phase = .idle; serviceResults[index].text = ""; serviceResults[index].dictionaryEntry = nil
-            serviceResults[index].issue = nil; serviceResults[index].elapsedMessage = nil
+            serviceResults[index].issue = nil
         }
         clearConfigurationTestResult()
         persistInstances()
