@@ -2,6 +2,10 @@
 "about" = "About";
 "about.automaticUpdates" = "Automatic Updates";
 "about.checkForUpdates" = "Check for Updates";
+"about.checkingForUpdates" = "Checking for Updates…";
+"about.developmentUpdatesUnavailable" = "Update checks and automatic updates are unavailable in development builds.";
+"about.updatesUnconfigured" = "Updates are not configured for this build.";
+"about.installUpdate" = "Install Update";
 "about.updateButton" = "Update Button";
 "about.whatsNew" = "What's New";
 "aboutSeven" = "About Seven";

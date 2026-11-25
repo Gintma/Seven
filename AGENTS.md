@@ -2,7 +2,7 @@
 
 ## 项目概况
 
-Seven 是原生 macOS 效率套件，融合 AI 翻译、屏幕截图与本机 OCR，采用 Swift Package，支持 macOS 14 及以上版本，无第三方包依赖。功能说明与配置方式见 [README](README.md) 与 [中文说明](README.zh-CN.md)。
+Seven 是原生 macOS 效率套件，融合 AI 翻译、屏幕截图与本机 OCR，采用 Swift Package，支持 macOS 14 及以上版本。Sparkle 2 是应用更新依赖，SwiftPM 使用仓库锁定的版本。功能说明与配置方式见 [README](README.md) 与 [中文说明](README.zh-CN.md)。
 
 ## 开发任务与必读文档
 
@@ -21,7 +21,8 @@ Seven 是原生 macOS 效率套件，融合 AI 翻译、屏幕截图与本机 OC
 ```sh
 swift build              # 必须零警告
 swift test               # 必须全部通过
-./build-app.sh release   # 打包并使用本机开发签名
+./build-app.sh release   # 打包当前架构，优先使用 Developer ID Application 签名
+./Tools/release.sh       # Universal 发布包、公证与 Sparkle appcast
 ```
 
 ## 硬性规则
@@ -35,7 +36,7 @@ swift test               # 必须全部通过
    - 诊断页仅在 Debug 与带 `--variant` 的开发包显示（`DEBUG || SEVEN_DEVELOPMENT`），正式 Release 隐藏。
    - `ScreenshotScrollTrace` 仅在开发包中经手动开启后运行，只向 `/tmp/seven-scroll-diagnostics` 写入几何、时序与固定分类，独立于常规导出。
 5. 禁止新增硬编码密钥。第三方网页公开下发的非凭据参数常量可放在对应服务实现中，新增时记录来源和核对日期。
-6. 打包脚本需要本机开发签名钥匙串。沙箱环境只运行 `swift build` 和 `swift test`。有本机签名环境时，打包前先退出正在运行的 Seven。
+6. 打包脚本需要可用的 Developer ID Application 证书或本机开发签名钥匙串。沙箱环境只运行 `swift build` 和 `swift test`。有本机签名环境时，打包前先退出正在运行的 Seven。
 7. 新增用户可见文案使用简体中文，与现有界面用语保持一致。新增或修改本地化键时同步全部受支持界面语言（当前为简中、繁中、英、日、韩、西），保持格式占位符一致。复数与系统文案分别更新对应的 `Localizable.stringsdict` 与 `InfoPlist.strings`。
 8. 仓库文件、测试样本和提交内容使用可公开分享的路径和示例，禁止包含私人资料或真实凭据。
 9. 行为变更时，原地更新该行为的主定义，删除或改写失效的旧描述。历史经过留在提交记录。

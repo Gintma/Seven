@@ -9,14 +9,14 @@
 </p>
 
 <p align="center">
-  Built for everyday reading, writing, and visual workflows · Swift, AppKit, SwiftUI &amp; C · Zero third-party dependencies
+  Built for everyday reading, writing, and visual workflows · Swift, AppKit, SwiftUI &amp; C · Updates powered by Sparkle 2
 </p>
 
 <p align="center">
   <a href="https://github.com/Gintma/Seven/actions/workflows/ci.yml"><img src="https://github.com/Gintma/Seven/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white" alt="macOS 14+" />
   <img src="https://img.shields.io/badge/Swift-5.9%2B-F05138?logo=swift&logoColor=white" alt="Swift 5.9+" />
-  <img src="https://img.shields.io/badge/Dependencies-0-2ea44f" alt="Zero Dependencies" />
+  <img src="https://img.shields.io/badge/Updates-Sparkle_2-2ea44f" alt="Sparkle 2 updates" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License" /></a>
 </p>
 
@@ -32,7 +32,7 @@
 
 - **AI-Native, Bring Your Own Models** — Stream translations and custom prompts directly from OpenAI, Claude, Gemini, DeepSeek, MiniMax, Zhipu, Kimi, Qwen, Doubao, OpenRouter, or any custom compatible endpoint, alongside built-in Apple Translation and offline dictionary lookup.
 - **Unified Reading, Writing & Screen Workflow** — Translate across apps, rewrite in place with Translate & Replace, capture and annotate screenshots (including pure-C scroll stitching and floating pins), and extract text locally from one quiet menu bar app.
-- **100% Native, Zero Third-Party Dependencies** — Built directly on AppKit, SwiftUI, Apple Vision, Apple Translation, and a pure C scroll-stitching core (`ScrollRegistrationCore`) with no external packages.
+- **Native macOS** — Built on AppKit, SwiftUI, Apple Vision, Apple Translation, and a pure C scroll-stitching core (`ScrollRegistrationCore`). Sparkle 2 handles app updates.
 - **Local-First & Privacy-Respecting** — OCR runs entirely on-device via Apple Vision, API keys stay on your Mac (`0700`/`0600` local file), and there is zero analytics or telemetry.
 - **Crafted for macOS** — Native overlay scrollbars, 30 built-in light/dark themes plus system appearance, reduced-motion support, and 6 interface languages (English, Simplified Chinese, Traditional Chinese, Japanese, Korean, and Spanish).
 
@@ -77,15 +77,26 @@ Pre-built releases will be published on the [GitHub Releases](https://github.com
 git clone https://github.com/Gintma/Seven.git
 cd Seven
 
-# One-time setup: creates a local macOS development signing identity
+# One-time setup if you are building without a Developer ID Application certificate
 ./setup-local-signing.sh
 
-# Build and sign Seven.app in the repository root
+# Build and sign Seven.app for the current architecture
 ./build-app.sh release
 open Seven.app
 ```
 
-> `./setup-local-signing.sh` stores the local signing identity in `~/Library/Application Support/Seven/BuildSigning` so macOS preserves Accessibility and Screen Recording permissions across local rebuilds.
+Build with Xcode 26 or later. SwiftPM downloads the locked Sparkle dependency on first resolve. Packaging uses `SEVEN_SIGN_IDENTITY` if set to a certificate name or SHA-1 fingerprint, then a Developer ID Application identity from the keychain search list, then the local signing identity. Use `--local-signing` to skip Developer ID auto-detection and `--universal` to build for Apple Silicon and Intel.
+
+### Updates and Release Packaging
+
+In **Settings → About**, check for updates, open the current version’s release page, or enable automatic checks and downloads. Sparkle can install a downloaded update when Seven quits. The update shortcut appears in the menu bar menu and the Settings sidebar when a new version is available. Only a Developer ID-signed release build with a configured feed and public key enables Sparkle.
+
+1. Install a Developer ID Application certificate and its private key. Run `swift package resolve`, then `.build/artifacts/sparkle/Sparkle/bin/generate_keys --account seven`. Copy the public key into `SUPublicEDKey` in `Info.plist`. Keep the private key in the Keychain.
+2. Run `xcrun notarytool store-credentials <profile-name>`, then set `SEVEN_NOTARY_PROFILE` to that profile name.
+3. Set the release version and increase `CFBundleVersion` in `Info.plist`. Quit Seven and run `./Tools/release.sh` (add `--dmg` for a signed, notarized disk image).
+4. Upload the assets from `dist/v<version>/` to GitHub Release `v<version>`, then publish the updated `appcast.xml` on `main`.
+
+On the first launch under `com.crissun.seven`, Seven copies existing settings if the new preference domain is empty. macOS may ask you to grant Accessibility and Screen Recording access for the new app identity.
 
 ---
 

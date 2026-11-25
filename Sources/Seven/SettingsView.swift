@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 import CoreGraphics
 import Observation
 
@@ -142,6 +143,8 @@ struct SettingsView: View {
     @ObservedObject var history: HistoryStore
     @ObservedObject var dictionaryManager: ECDictionaryManager
     let diagnostics: DiagnosticLogging
+    @ObservedObject var updater: AppUpdater
+    let sectionRequests: CurrentValueSubject<SettingsSection?, Never>
 
     @ObservedObject var interfaceLanguage = InterfaceLanguageState.shared
     @State private var selection: SettingsSection = .translation
@@ -200,8 +203,6 @@ struct SettingsView: View {
     @State var recordingClipboardPinShortcut = false
     @AppStorage(ScreenshotPinPreferences.zoomKey) var pinZoomWheel = ScreenshotPinWheel.command
     @AppStorage(ScreenshotPinPreferences.opacityWheelKey) var pinOpacityWheel = ScreenshotPinWheel.option
-    @State var updateButtonEnabled = true
-    @State var automaticUpdatesEnabled = false
 #if DEBUG || SEVEN_DEVELOPMENT
     @State var diagnosticText = ""
     @State var confirmingLogClear = false
@@ -220,6 +221,10 @@ struct SettingsView: View {
 
     private var navigation: some View {
         splitNavigation
+            .onReceive(sectionRequests.compactMap { $0 }) { section in
+                sectionRequests.send(nil)
+                sidebarSelection.wrappedValue = section
+            }
             .alert(L10n.text("saveChangesToThisService"), isPresented: $serviceEditor.confirmsDeparture) {
                 Button(L10n.text("save")) { saveServiceAndDepart() }
                 Button(L10n.text("donTSave"), role: .destructive) { serviceEditor.discardAndDepart() }
@@ -314,6 +319,11 @@ struct SettingsView: View {
         }
         .listStyle(.sidebar)
         .themeSidebar()
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if updater.showsUpdateShortcut {
+                SettingsUpdateShortcut(updater: updater)
+            }
+        }
         // 语言变化时重建原生列表的标题和行，选中的页面由设置窗口持有。
         .id(language)
         .navigationSplitViewColumnWidth(
@@ -375,4 +385,20 @@ struct SettingsView: View {
         }
     }
 
+}
+
+private struct SettingsUpdateShortcut: View {
+    @Environment(\.theme) private var theme
+    @ObservedObject var updater: AppUpdater
+
+    var body: some View {
+        Button(action: updater.installAvailableUpdate) {
+            Label(L10n.text("about.installUpdate"), systemImage: "arrow.down.circle")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(theme.isSystem ? nil : theme.swiftUI.accentFill)
+        .disabled(!updater.canCheckForUpdates)
+        .padding(Design.Space.m)
+    }
 }

@@ -15,12 +15,12 @@ final class FileCredentialTests: XCTestCase {
     func testVariantBundleIdentifierIsolatesDefaultDirectory() throws {
         let home = try temporary()
         let base = home.appendingPathComponent("Library/Application Support/Seven", isDirectory: true)
-        let hud = FileCredentialStore.defaultDirectory(homeDirectory: home, bundleIdentifier: "local.seven.translator.hud")
-        let other = FileCredentialStore.defaultDirectory(homeDirectory: home, bundleIdentifier: "local.seven.translator.test-2")
+        let hud = FileCredentialStore.defaultDirectory(homeDirectory: home, bundleIdentifier: "com.crissun.seven.hud")
+        let other = FileCredentialStore.defaultDirectory(homeDirectory: home, bundleIdentifier: "com.crissun.seven.test-2")
         XCTAssertEqual(hud, home.appendingPathComponent("Library/Application Support/Seven-hud", isDirectory: true))
         XCTAssertEqual(other, home.appendingPathComponent("Library/Application Support/Seven-test-2", isDirectory: true))
-        for identifier in [nil, "local.seven.translator", "other.app", "local.seven.translator.",
-                           "local.seven.translator.HUD", "local.seven.translator.a/b", "local.seven.translator.a.b"] {
+        for identifier in [nil, "com.crissun.seven", "other.app", "com.crissun.seven.",
+                           "com.crissun.seven.HUD", "com.crissun.seven.a/b", "com.crissun.seven.a.b"] {
             XCTAssertEqual(FileCredentialStore.defaultDirectory(homeDirectory: home, bundleIdentifier: identifier), base)
         }
         // 只向临时 home 推导的目录注入存储，不接触真实凭据。

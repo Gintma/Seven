@@ -2,6 +2,10 @@
 "about" = "このアプリについて";
 "about.automaticUpdates" = "自動更新";
 "about.checkForUpdates" = "更新を確認";
+"about.checkingForUpdates" = "アップデートを確認中…";
+"about.developmentUpdatesUnavailable" = "開発ビルドではアップデートの確認や自動更新は利用できません。";
+"about.updatesUnconfigured" = "このビルドにはアップデートの配信元が設定されていません。";
+"about.installUpdate" = "アップデートをインストール";
 "about.updateButton" = "更新ボタン";
 "about.whatsNew" = "新機能";
 "aboutSeven" = "Seven について";

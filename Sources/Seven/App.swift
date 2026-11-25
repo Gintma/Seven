@@ -71,6 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     internal let textRecognizer: TextRecognizing = VisionTextRecognizer()
     private let launchAtLogin = LaunchAtLoginController()
     private let onboarding: OnboardingFlow?
+    internal private(set) lazy var updater = AppUpdater.makeForCurrentApp(defaults: .standard)
     internal private(set) var onboardingWindowController: OnboardingWindowController?
 
     init(onboarding: OnboardingFlow? = nil) {
@@ -141,7 +142,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             launchAtLogin: launchAtLogin,
             history: historyStore,
             dictionaryManager: dictionaryManager,
-            diagnostics: logger
+            diagnostics: logger,
+            updater: updater
         )
         historyWindowController = HistoryWindowController(store: historyStore, speech: model.speech)
     }
@@ -175,6 +177,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 enum SevenApp {
     @MainActor static func main() {
         let defaults = UserDefaults.standard
+        let bundleIdentifier = Bundle.main.bundleIdentifier
+        PreferencesDomainMigration.migrateIfNeeded(bundleIdentifier: bundleIdentifier, defaults: defaults)
         if CommandLine.arguments.contains("--check-credential-access") {
             do {
                 let store = CredentialStoreFactory.make()
@@ -188,7 +192,6 @@ enum SevenApp {
             return
         }
         // 快捷键装配会保存默认键位，必须先读取升级前的使用痕迹。
-        let bundleIdentifier = Bundle.main.bundleIdentifier
         let onboarding = OnboardingFlow(defaults: defaults, hasExistingUsage: OnboardingFlow.hasExistingUsage(
             preferences: defaults.persistentDomain(forName: bundleIdentifier ?? "Seven") ?? [:],
             dataDirectory: AppDataPaths.directory(variant: AppDataPaths.variant(bundleIdentifier: bundleIdentifier))

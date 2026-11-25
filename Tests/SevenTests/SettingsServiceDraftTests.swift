@@ -271,7 +271,11 @@ extension SettingsServiceDraftTests {
             launchAtLogin: LaunchAtLoginController(service: DraftLoginService(), logger: NoopDiagnosticLogger()),
             history: HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults),
             dictionaryManager: ECDictionaryManager(databaseURL: directory.appendingPathComponent("dictionary.db")),
-            diagnostics: NoopDiagnosticLogger())
+            diagnostics: NoopDiagnosticLogger(),
+            updater: AppUpdater(defaults: defaults, configuration: .init(bundleIdentifier: nil,
+                isDevelopmentBuild: true, version: nil, feed: nil, publicKey: nil)) {
+                    preconditionFailure("Development builds must not create an update backend")
+                })
     }
 
     func testSettingsWindowLoadsCurrentModelLazilyAndReusesItsContent() throws {

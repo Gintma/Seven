@@ -1,9 +1,11 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var makeWindow: (() -> NSWindow)?
+    private let sectionRequests = CurrentValueSubject<SettingsSection?, Never>(nil)
     private let launchAtLogin: LaunchAtLoginController
 
     init(
@@ -20,10 +22,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         launchAtLogin: LaunchAtLoginController,
         history: HistoryStore,
         dictionaryManager: ECDictionaryManager,
-        diagnostics: DiagnosticLogging
+        diagnostics: DiagnosticLogging,
+        updater: AppUpdater
     ) {
         self.launchAtLogin = launchAtLogin
-        makeWindow = {
+        makeWindow = { [sectionRequests] in
             let window = SettingsCloseConfirmingWindow(
                 contentRect: NSRect(x: 0, y: 0, width: Design.Settings.windowWidth, height: 680),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -59,7 +62,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 launchAtLogin: launchAtLogin,
                 history: history,
                 dictionaryManager: dictionaryManager,
-                diagnostics: diagnostics
+                diagnostics: diagnostics,
+                updater: updater,
+                sectionRequests: sectionRequests
             ))
             window.center()
             return window
@@ -90,7 +95,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         super.showWindow(sender)
     }
 
-    func show() {
+    func show(section: SettingsSection? = nil) {
+        if let section { sectionRequests.send(section) }
         NSApp.activate(ignoringOtherApps: true)
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)

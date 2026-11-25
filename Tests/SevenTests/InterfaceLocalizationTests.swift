@@ -148,7 +148,7 @@ extension InterfaceLocalizationTests {
         let english = contents.appendingPathComponent("Resources/en.lproj", isDirectory: true)
         try FileManager.default.createDirectory(at: english, withIntermediateDirectories: true)
         let info: [String: String] = [
-            "CFBundleIdentifier": "local.seven.test.localization",
+            "CFBundleIdentifier": "com.crissun.seven.test.localization",
             "CFBundlePackageType": "APPL",
             "CFBundleDevelopmentRegion": "zh-Hans"
         ]

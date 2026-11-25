@@ -1190,7 +1190,7 @@ struct SettingsSecondaryList: NSViewRepresentable {
     final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, ThemeApplying {
         private(set) var palette = ThemePalette.system
         func applyTheme(_ palette: ThemePalette) { self.palette = palette }
-        static let dragType = NSPasteboard.PasteboardType("local.seven.settings-service")
+        static let dragType = NSPasteboard.PasteboardType("com.crissun.seven.settings-service")
         var parent: SettingsSecondaryList
         var updating = false
         var hasLoaded = false

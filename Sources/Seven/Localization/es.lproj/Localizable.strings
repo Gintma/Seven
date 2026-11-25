@@ -2,6 +2,10 @@
 "about" = "Acerca de";
 "about.automaticUpdates" = "Actualizaciones automáticas";
 "about.checkForUpdates" = "Buscar actualizaciones";
+"about.checkingForUpdates" = "Buscando actualizaciones…";
+"about.developmentUpdatesUnavailable" = "Las compilaciones de desarrollo no permiten buscar actualizaciones ni actualizarse automáticamente.";
+"about.updatesUnconfigured" = "Esta compilación no tiene configurada una fuente de actualizaciones.";
+"about.installUpdate" = "Instalar actualización";
 "about.updateButton" = "Botón de actualización";
 "about.whatsNew" = "Novedades";
 "aboutSeven" = "Acerca de Seven";

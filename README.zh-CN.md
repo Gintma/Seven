@@ -9,14 +9,14 @@
 </p>
 
 <p align="center">
-  为日常阅读、写作与屏幕信息处理打造 · 基于 Swift、AppKit、SwiftUI 与 C 构建 · 零第三方依赖
+  为日常阅读、写作与屏幕信息处理打造 · 基于 Swift、AppKit、SwiftUI 与 C 构建 · 使用 Sparkle 2 更新
 </p>
 
 <p align="center">
   <a href="https://github.com/Gintma/Seven/actions/workflows/ci.yml"><img src="https://github.com/Gintma/Seven/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white" alt="macOS 14+" />
   <img src="https://img.shields.io/badge/Swift-5.9%2B-F05138?logo=swift&logoColor=white" alt="Swift 5.9+" />
-  <img src="https://img.shields.io/badge/Dependencies-0-2ea44f" alt="零第三方依赖" />
+  <img src="https://img.shields.io/badge/Updates-Sparkle_2-2ea44f" alt="Sparkle 2 更新" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License" /></a>
 </p>
 
@@ -32,7 +32,7 @@
 
 - **AI 原生，自带主流模型** — 统一流式接入 OpenAI、Claude、Gemini、DeepSeek、MiniMax、智谱、Kimi、千问、豆包、OpenRouter 及自定义兼容接口，支持自定义 Prompt 与「翻译并替换」，同时内置 Apple 翻译与离线英汉词典。
 - **一站式屏幕信息效率工作流** — 将跨应用 AI 翻译、冻结截图标注、长截图、悬浮钉图与本机离线 OCR 整合在一个轻量的菜单栏应用里，打通阅读、写作与信息捕捉。
-- **纯原生、零第三方依赖** — 直接基于 AppKit、SwiftUI、Apple Vision、Apple Translation 与纯 C 滚动配准内核（`ScrollRegistrationCore`）构建，不引入任何第三方包。
+- **原生 macOS 应用** — 基于 AppKit、SwiftUI、Apple Vision、Apple Translation 与纯 C 滚动配准内核（`ScrollRegistrationCore`）构建，应用更新由 Sparkle 2 提供。
 - **隐私本地优先** — OCR 全程通过 Apple Vision 在本机完成，自备 API Key 按实例存在本地受限权限文件（`0700`/`0600`），无任何统计上报或后台遥测。
 - **贴合 macOS 原生体验** — 原生悬浮滚动条、30 套内置浅/深主题与系统默认外观、减弱动态效果适配，并支持 6 种界面语言（简中、繁中、英、日、韩、西）。
 
@@ -77,15 +77,26 @@
 git clone https://github.com/Gintma/Seven.git
 cd Seven
 
-# 首次运行：在本机创建 Seven 专用开发签名身份
+# 没有 Developer ID Application 证书时，先创建本机开发签名身份
 ./setup-local-signing.sh
 
-# 构建并签名 Seven.app
+# 构建并签名当前架构的 Seven.app
 ./build-app.sh release
 open Seven.app
 ```
 
-> `./setup-local-signing.sh` 仅将本机开发签名身份保存在 `~/Library/Application Support/Seven/BuildSigning`，用于在本地反复构建后保持辅助功能与录屏权限不丢失。
+打包需要 Xcode 26 或更新版本，SwiftPM 首次解析时会下载已锁定的 Sparkle 依赖。脚本优先使用 `SEVEN_SIGN_IDENTITY` 指定的证书全名或 SHA-1 指纹，其次查找钥匙串搜索列表中的 Developer ID Application 身份，最后使用本机开发签名。`--local-signing` 跳过自动查找 Developer ID，`--universal` 同时构建 Apple 芯片与 Intel 版本。
+
+### 应用更新与发布打包
+
+在「设置 → 关于」可以检查更新、打开当前版本的发布页，或开启自动检查与下载。Sparkle 可以在 Seven 退出时安装已下载的更新。发现新版本后，更新入口会出现在菜单栏下拉菜单和设置侧栏。具备 Developer ID 签名并配置更新源和公钥的正式发布包才启用 Sparkle。
+
+1. 安装 Developer ID Application 证书及其私钥。运行 `swift package resolve`，再运行 `.build/artifacts/sparkle/Sparkle/bin/generate_keys --account seven`。将公开密钥填入 `Info.plist` 的 `SUPublicEDKey`，私钥保留在钥匙串。
+2. 运行 `xcrun notarytool store-credentials <配置名>`，将 `SEVEN_NOTARY_PROFILE` 设置为该配置名。
+3. 在 `Info.plist` 设置发布版本并递增 `CFBundleVersion`。退出 Seven 后运行 `./Tools/release.sh`，如需同时生成签名和公证的磁盘映像，追加 `--dmg`。
+4. 将 `dist/v<版本>/` 中的产物上传到 GitHub Release `v<版本>`，随后将更新后的 `appcast.xml` 发布到 `main`。
+
+正式包首次以 `com.crissun.seven` 启动时，若新偏好域为空，会复制旧安装的设置。macOS 可能要求为新的应用身份重新授权辅助功能和录屏。
 
 ---
 

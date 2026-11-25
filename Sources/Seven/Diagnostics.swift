@@ -24,7 +24,7 @@ final class FileDiagnosticLogger: DiagnosticLogging, @unchecked Sendable {
     static let shared = FileDiagnosticLogger()
 
     let fileURL: URL
-    private let queue = DispatchQueue(label: "local.seven.diagnostics")
+    private let queue = DispatchQueue(label: "com.crissun.seven.diagnostics")
     private let maximumBytes = 512 * 1_024
 
     init(directory: URL? = nil) {

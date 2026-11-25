@@ -7,7 +7,7 @@ protocol CredentialStoring: Sendable {
 }
 
 struct KeychainStore: CredentialStoring {
-    let service = "local.seven.translator.api-key"
+    let service = "com.crissun.seven.api-key"
     private func base(_ account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: service,

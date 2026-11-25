@@ -2,56 +2,131 @@
 set -euo pipefail
 
 project_dir="${0:A:h}"
+source "$project_dir/Tools/signing.sh"
+
 configuration="release"
 variant=""
+universal=false
+local_signing=false
 usage() {
-  print -u2 "用法：./build-app.sh [release|debug] [--variant <name>]"
+  print -u2 "用法：./build-app.sh [release|debug] [--variant <name>] [--universal] [--local-signing]"
   exit 2
 }
-if (( $# > 0 )) && [[ "$1" != "--variant" ]]; then
+if (( $# > 0 )) && [[ "$1" == release || "$1" == debug ]]; then
   configuration="$1"
   shift
 fi
-if [[ "$configuration" != "release" && "$configuration" != "debug" ]]; then
-  usage
-fi
-if (( $# > 0 )); then
-  [[ "$1" == "--variant" && $# == 2 ]] || usage
-  variant="$2"
-  if [[ ! "$variant" =~ '^[a-z0-9-]+$' ]]; then
-    print -u2 "变体名只能包含小写字母、数字和连字符，且不能为空。"
-    exit 2
-  fi
-fi
+while (( $# > 0 )); do
+  case "$1" in
+    --variant)
+      (( $# >= 2 )) || usage
+      [[ -z "$variant" && "$2" =~ '^[a-z0-9-]+$' ]] || usage
+      variant="$2"
+      shift
+      ;;
+    --universal) universal=true ;;
+    --local-signing) local_signing=true ;;
+    *) usage ;;
+  esac
+  shift
+done
+
+cd "$project_dir"
 app_name="Seven"
-bundle_identifier="local.seven.translator"
+bundle_identifier="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' Info.plist)"
 if [[ -n "$variant" ]]; then
   app_name+="-$variant"
   bundle_identifier+=".$variant"
 fi
-# 变体仍共享系统全局快捷键：同时注册时 HotKeyManager 显示已被占用，属预期。
-# SMAppService 开机启动同一时间只能注册一个变体。
-signing_dir="$HOME/Library/Application Support/Seven/BuildSigning"
-signing_keychain="$signing_dir/SevenBuild.keychain-db"
-signing_password_file="$signing_dir/keychain-password"
-
-cd "$project_dir"
-# 签名前置条件缺失时先退出，避免覆盖现有可试用的包。
-if [[ ! -f "$signing_keychain" || ! -f "$signing_password_file" ]]; then
-  print -u2 "Local signing is not configured. Run ./setup-local-signing.sh once."
-  exit 1
+# 签名凭证缺失时先退出，保留原有的试用包。
+signing_arguments=(--force)
+identity_record=""
+release_signing=false
+if [[ -n "${SEVEN_SIGN_IDENTITY:-}" ]]; then
+  identity_record="$(find_signing_identity "$SEVEN_SIGN_IDENTITY")"
+  if [[ -z "$identity_record" ]]; then
+    print -u2 "未找到 SEVEN_SIGN_IDENTITY 指定的可用签名身份。请检查证书及其私钥。"
+    exit 1
+  fi
+elif [[ "$local_signing" == false ]]; then
+  identity_record="$(find_signing_identity "" true)"
 fi
-# 变体是开发试用渠道；优化级别与诊断入口的可见性分开控制。
+
+if [[ -n "$identity_record" ]]; then
+  IFS=$'\t' read -r signing_identity identity_name <<< "$identity_record"
+  [[ "$identity_name" != "Developer ID Application:"* ]] || release_signing=true
+  case "$identity_name" in
+    "Developer ID Application:"*|"Apple Development:"*|"Apple Distribution:"*|"Mac Developer:"*|"3rd Party Mac Developer Application:"*)
+      signing_arguments+=(--options runtime --timestamp)
+      ;;
+    *) signing_arguments+=(--timestamp=none) ;;
+  esac
+else
+  signing_dir="$HOME/Library/Application Support/Seven/BuildSigning"
+  signing_keychain="$signing_dir/SevenBuild.keychain-db"
+  signing_password_file="$signing_dir/keychain-password"
+  if [[ ! -f "$signing_keychain" || ! -f "$signing_password_file" ]]; then
+    print -u2 "本机开发签名尚未配置。请先运行 ./setup-local-signing.sh。"
+    exit 1
+  fi
+  security unlock-keychain -p "$(<"$signing_password_file")" "$signing_keychain"
+  signing_identity="$(security find-identity -v -p codesigning "$signing_keychain" | awk '/"Seven Local Development"/ && !found++ { print $2 }')"
+  if [[ -z "$signing_identity" ]]; then
+    print -u2 "Seven Local Development 签名身份不可用。请重新运行 ./setup-local-signing.sh。"
+    exit 1
+  fi
+  signing_arguments+=(--keychain "$signing_keychain" --timestamp=none)
+fi
+signing_arguments+=(--sign "$signing_identity")
+
+mkdir -p "$project_dir/.build"
+tmp_dir="$(mktemp -d "$project_dir/.build/seven-app.XXXXXX")"
+trap 'rm -rf "$tmp_dir"' EXIT
+app="$tmp_dir/$app_name.app"
+output_app="$project_dir/$app_name.app"
 build_arguments=(-c "$configuration")
 if [[ -n "$variant" ]]; then
   build_arguments+=(-Xswiftc -DSEVEN_DEVELOPMENT)
 fi
-swift build "${build_arguments[@]}"
 
-app="$project_dir/$app_name.app"
-binary="$project_dir/.build/$configuration/Seven"
-tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/seven-build.XXXXXX")"
-trap 'rm -rf "$tmp_dir"' EXIT
+build_slice() {
+  local output_binary="$1"
+  shift
+  swift build "${build_arguments[@]}" "$@"
+  binary_dir="$(swift build "${build_arguments[@]}" "$@" --show-bin-path)"
+  cp "$binary_dir/Seven" "$output_binary"
+  # SwiftPM 为命令行工具附加本机构建工具链路径。分发包只用系统和包内的库。
+  local extra_rpaths
+  extra_rpaths="$(xcrun otool -l "$output_binary" | awk '
+    $2 == "LC_RPATH" {
+      getline; getline
+      sub(/^[[:space:]]*path /, ""); sub(/ \(offset [[:digit:]]+\)$/, "")
+      if ($0 ~ /^\// && $0 != "/usr/lib/swift") print
+    }
+  ')"
+  if [[ -n "$extra_rpaths" ]]; then
+    codesign --remove-signature "$output_binary"
+    local rpath
+    for rpath in "${(@f)extra_rpaths}"; do
+      xcrun install_name_tool -delete_rpath "$rpath" "$output_binary"
+    done
+  fi
+}
+
+if [[ "$universal" == true ]]; then
+  build_slice "$tmp_dir/Seven-arm64" --arch arm64
+  build_slice "$tmp_dir/Seven-x86_64" --arch x86_64
+  xcrun lipo -create "$tmp_dir/Seven-arm64" "$tmp_dir/Seven-x86_64" -output "$tmp_dir/Seven"
+  xcrun lipo "$tmp_dir/Seven" -verify_arch arm64 x86_64
+else
+  build_slice "$tmp_dir/Seven"
+fi
+sparkle_source="$binary_dir/Sparkle.framework"
+if [[ ! -f "$sparkle_source/Versions/Current/Sparkle" ]]; then
+  print -u2 "SwiftPM 构建目录中缺少 Sparkle.framework。"
+  exit 1
+fi
+
 # actool 同时生成 macOS 26 的分层图标以及 macOS 14/15 的扁平回退图标。
 compiled_assets="$tmp_dir/compiled"
 mkdir -p "$compiled_assets"
@@ -65,11 +140,16 @@ if [[ ! -s "$compiled_assets/Assets.car" || ! -s "$compiled_assets/AppIcon.icns"
   print -u2 "actool 未生成应用图标，请使用 Xcode 26 或更新版本。"
   exit 1
 fi
-# 每次重建可执行文件与资源目录，重命名之前的二进制和已删除资源都不会残留。
-rm -rf "$app/Contents/MacOS" "$app/Contents/Resources"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/BrandIcons"
-cp "$binary" "$app/Contents/MacOS/Seven"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/BrandIcons" "$app/Contents/Frameworks"
+cp "$tmp_dir/Seven" "$app/Contents/MacOS/Seven"
+framework="$app/Contents/Frameworks/Sparkle.framework"
+cp -RP "$sparkle_source" "$framework"
 cp "$project_dir/Info.plist" "$app/Contents/Info.plist"
+if [[ "$configuration" != release || -n "$variant" || "$release_signing" == false ]]; then
+  # 即使源码含正式公钥，开发包和本机签名包也不应被正式更新替换。
+  plutil -remove SUFeedURL "$app/Contents/Info.plist"
+  plutil -remove SUPublicEDKey "$app/Contents/Info.plist"
+fi
 if [[ -n "$variant" ]]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $bundle_identifier" "$app/Contents/Info.plist"
   /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $app_name" "$app/Contents/Info.plist"
@@ -88,17 +168,23 @@ if (( ${#brand_icons} == 0 )); then
 fi
 cp "${brand_icons[@]}" "$app/Contents/Resources/BrandIcons/"
 chmod 755 "$app/Contents/MacOS/Seven"
-signing_password="$(<"$signing_password_file")"
-security unlock-keychain -p "$signing_password" "$signing_keychain"
-signing_identity="$(security find-certificate -a -Z -c 'Seven Local Development' "$signing_keychain" | awk '/SHA-1 hash:/ { print $3; exit }')"
-if [[ -z "$signing_identity" ]]; then
-  print -u2 "The Seven local signing identity is unavailable. Run ./setup-local-signing.sh again."
+sparkle_version="$framework/Versions/Current"
+# Sparkle 的 Downloader 可携带网络权限，单独保留其签名权限。
+codesign "${signing_arguments[@]}" "$sparkle_version/XPCServices/Installer.xpc"
+codesign "${signing_arguments[@]}" --preserve-metadata=entitlements "$sparkle_version/XPCServices/Downloader.xpc"
+codesign "${signing_arguments[@]}" "$sparkle_version/Autoupdate"
+codesign "${signing_arguments[@]}" "$sparkle_version/Updater.app"
+codesign "${signing_arguments[@]}" "$framework"
+codesign "${signing_arguments[@]}" --identifier "$bundle_identifier" "$app"
+codesign --verify --deep --strict --verbose=2 "$app"
+
+if [[ -e "$output_app" || -L "$output_app" ]]; then
+  mv "$output_app" "$tmp_dir/previous.app"
+fi
+if ! mv "$app" "$output_app"; then
+  if [[ -e "$tmp_dir/previous.app" || -L "$tmp_dir/previous.app" ]]; then
+    mv "$tmp_dir/previous.app" "$output_app"
+  fi
   exit 1
 fi
-codesign --force --deep \
-  --sign "$signing_identity" \
-  --keychain "$signing_keychain" \
-  --identifier "$bundle_identifier" \
-  "$app"
-codesign --verify --deep --strict --verbose=2 "$app"
-print "$app"
+print "$output_app"

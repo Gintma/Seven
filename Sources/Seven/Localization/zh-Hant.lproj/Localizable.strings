@@ -2,6 +2,10 @@
 "about" = "關於";
 "about.automaticUpdates" = "自動更新";
 "about.checkForUpdates" = "檢查";
+"about.checkingForUpdates" = "正在檢查更新…";
+"about.developmentUpdatesUnavailable" = "開發版本不支援自動更新或手動檢查。";
+"about.updatesUnconfigured" = "此版本尚未設定更新來源。";
+"about.installUpdate" = "安裝更新";
 "about.updateButton" = "更新按鈕";
 "about.whatsNew" = "更新內容";
 "aboutSeven" = "關於 Seven";

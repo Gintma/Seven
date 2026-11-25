@@ -101,14 +101,28 @@ extension SettingsView {
         SettingsForm(header: { SettingsAboutSummary() }) {
             SettingsGroup {
                 SettingsButtonRow(L10n.format("version", SettingsAboutSummary.version)) {
-                    Button(L10n.text("about.checkForUpdates")) {}
+                    Button(L10n.text("about.checkForUpdates"), action: updater.checkForUpdates)
+                        .disabled(!updater.canCheckForUpdates)
+                }
+                if let status = updateStatus {
+                    SettingsNote(text: status, multiline: true)
                 }
                 SettingsButtonRow(L10n.text("about.whatsNew")) {
-                    Button(L10n.text("open")) {}
+                    Button(L10n.text("open")) { NSWorkspace.shared.open(updater.releaseNotesURL) }
                 }
-                SettingsToggleRow(L10n.text("about.updateButton"), isOn: $updateButtonEnabled)
-                SettingsToggleRow(L10n.text("about.automaticUpdates"), isOn: $automaticUpdatesEnabled)
+                SettingsToggleRow(L10n.text("about.updateButton"), isOn: $updater.updateButtonEnabled)
+                SettingsToggleRow(L10n.text("about.automaticUpdates"), isOn: $updater.automaticUpdatesEnabled)
             }
+        }
+    }
+
+    private var updateStatus: String? {
+        switch updater.availability {
+        case .development: return L10n.text("about.developmentUpdatesUnavailable")
+        case .unconfigured: return L10n.text("about.updatesUnconfigured")
+        case .supported:
+            if updater.isChecking { return L10n.text("about.checkingForUpdates") }
+            return nil
         }
     }
 }

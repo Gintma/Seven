@@ -32,7 +32,7 @@ extension AppDelegate {
             ocr: [add("OCR",#selector(captureOCR),ocrShortcuts.standard),
                 add(L10n.text("clipboardOCR"),#selector(clipboardOCR),ocrShortcuts.clipboard),
                 add(L10n.text("openOCRWindow"),#selector(openOCRWindow),ocrShortcuts.openWindow)],
-            settings: add(L10n.text("settings"),#selector(showSettings)), quitTarget: self)
+            settings: add(L10n.text("settings"),#selector(showSettings)), updater: updater, target: self)
         statusMenu.delegate = self
         item.menu = statusMenu
     }
@@ -127,7 +127,9 @@ extension AppDelegate {
     func setupMenu() {
         let main = NSMenu()
         let appItem = NSMenuItem(); let appMenu = NSMenu()
-        appMenu.addItem(withTitle: L10n.text("aboutSeven"), action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let about = NSMenuItem(title: L10n.text("aboutSeven"), action: #selector(showAbout), keyEquivalent: "")
+        about.target = self
+        appMenu.addItem(about)
         appMenu.addItem(.separator())
         let settings = NSMenuItem(title: L10n.text("settings"), action: #selector(showSettings), keyEquivalent: ",")
         settings.target = self; appMenu.addItem(settings)
@@ -147,10 +149,14 @@ extension AppDelegate {
         NSApp.mainMenu = main
     }
     @objc func quitSeven() { NSApp.terminate(nil) }
-    @objc func showSettings() {
+    @objc func showSettings() { presentSettings() }
+    @objc func showAbout() { presentSettings(section: .about) }
+    @objc func checkForSevenUpdates() { updater.installAvailableUpdate() }
+
+    private func presentSettings(section: SettingsSection? = nil) {
         inputReplacement.cancel()
         if !model.pinned { panel?.dismiss() }
-        settingsWindowController.show()
+        settingsWindowController.show(section: section)
     }
     @objc func showHistory() {
         inputReplacement.cancel()
@@ -167,6 +173,7 @@ extension AppDelegate {
         }
     }
     func menuWillOpen(_ menu: NSMenu) {
+        AppStatusMenu.refreshUpdateShortcut(in: menu, updater: updater)
         for row in menu.items {
             if let manager=row.representedObject as? HotKeyManager {
                 StatusMenuShortcut.apply(manager.isEnabled ? manager.shortcut:nil,to:row)
