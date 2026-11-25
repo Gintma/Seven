@@ -20,7 +20,6 @@ struct TranslationRecord: Codable, Identifiable, Equatable, Sendable {
     let sourceText: String
     let sourceLanguage: String
     let targetLanguage: String
-    let mode: TranslationMode
     let createdAt: Date
     var results: [Result]
 

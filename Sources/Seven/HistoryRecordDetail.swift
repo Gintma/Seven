@@ -64,13 +64,6 @@ struct HistoryRecordDetail: View {
             Text(source)
             Image(systemName: "chevron.right").accessibilityHidden(true)
             Text(target)
-            Spacer()
-            if record.mode != .translate {
-                Text(record.mode.title)
-                    .padding(.horizontal, Design.Space.s)
-                    .padding(.vertical, Design.Space.xs)
-                    .background(ThemeStyle.background, in: RoundedRectangle(cornerRadius: Design.Radius.control))
-            }
         }
         .font(.callout)
         .foregroundStyle(ThemeStyle.nativeSecondary)

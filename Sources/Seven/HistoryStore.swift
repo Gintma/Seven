@@ -88,7 +88,6 @@ final class HistoryStore: ObservableObject {
         sourceText: String,
         sourceLanguage: String,
         targetLanguage: String,
-        mode: TranslationMode,
         result: TranslationRecord.Result,
         createdAt: Date = Date()
     ) -> TranslationRecord.Reference? {
@@ -96,10 +95,10 @@ final class HistoryStore: ObservableObject {
         var records = self.records
         let record = TranslationRecord(
             id: UUID(), sourceText: sourceText, sourceLanguage: sourceLanguage,
-            targetLanguage: targetLanguage, mode: mode, createdAt: createdAt, results: [result]
+            targetLanguage: targetLanguage, createdAt: createdAt, results: [result]
         )
         if let first = records.first,
-           first.sourceText == sourceText, first.targetLanguage == targetLanguage, first.mode == mode {
+           first.sourceText == sourceText, first.targetLanguage == targetLanguage {
             records[0] = record
         } else {
             records.insert(record, at: 0)
@@ -178,10 +177,9 @@ final class HistoryStore: ObservableObject {
             let body = records.map { record in
                 let source = LanguageCatalog.displayName(stored: record.sourceLanguage)
                 let target = LanguageCatalog.displayName(stored: record.targetLanguage)
-                let mode = record.mode == .translate ? "" : " · \(record.mode.title)"
                 let sections = record.results.map { "### \($0.providerName)\n\n\($0.translatedText)" }
                 return ([
-                    "## \(date.detail(record.createdAt)) · \(source) → \(target)\(mode)",
+                    "## \(date.detail(record.createdAt)) · \(source) → \(target)",
                     "**\(L10n.text("sourceText"))**", record.sourceText
                 ] + sections).joined(separator: "\n\n")
             }.joined(separator: "\n\n---\n\n")

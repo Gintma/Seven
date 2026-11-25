@@ -523,7 +523,7 @@ final class TranslationModelTests: XCTestCase {
         XCTAssertEqual(history.records(in: .favorites), history.records)
     }
 
-    func testMixedServiceHistoryModeAndDeduplicationIgnoreCompletionOrder() async throws {
+    func testMixedServiceHistoryDeduplicationIgnoresCompletionOrderAndServiceChanges() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let defaults = try XCTUnwrap(isolatedDefaults())
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -546,32 +546,41 @@ final class TranslationModelTests: XCTestCase {
         model.setTarget("zh-Hans")
         model.updateInput("Example sentence")
 
+        let providerOrder = model.serviceInstances.filter(\.enabled).map(\.id)
         model.translate()
         await model.serviceTasks[.google]?.value
-        XCTAssertEqual(history.records.first?.results.map(\.providerID), [.google])
-        XCTAssertEqual(history.records.map(\.mode), [.translate])
+        let firstSnapshot = history.records.first
         await prompt.finish()
         try await waitUntilIdle(model)
+        let first = try XCTUnwrap(firstSnapshot)
+        XCTAssertEqual(first.results.map(\.providerID), [.google])
+        XCTAssertEqual(history.records.map(\.reference), [first.reference])
+        XCTAssertEqual(history.records.first?.results.map(\.providerID), providerOrder)
 
         model.translate()
         await model.serviceTasks[custom]?.value
-        XCTAssertEqual(history.records.first?.results.map(\.providerID), [custom])
-        XCTAssertEqual(history.records.map(\.mode), [.translate])
+        let secondSnapshot = history.records
         await google.finishGatedRequest()
         try await waitUntilIdle(model)
-        XCTAssertEqual(history.records.map(\.mode), [.translate])
-        XCTAssertEqual(Set(history.records.first?.results.map(\.providerID) ?? []), [custom, .google])
+        let mixed = try XCTUnwrap(secondSnapshot.first)
+        XCTAssertNotEqual(mixed.reference, first.reference)
+        XCTAssertEqual(mixed.results.map(\.providerID), [custom])
+        XCTAssertEqual(secondSnapshot.count, 1)
+        XCTAssertEqual(history.records.map(\.reference), [mixed.reference])
+        XCTAssertEqual(history.records.first?.results.map(\.providerID), providerOrder)
 
-        let mixed = try XCTUnwrap(history.records.first?.reference)
         model.setServiceEnabled(.google, enabled: false)
         model.retryResult(custom)
         await model.serviceTasks[custom]?.value
-        XCTAssertEqual(history.records.map(\.reference), [mixed])
-        XCTAssertEqual(history.records.map(\.mode), [.translate])
+        XCTAssertEqual(history.records.map(\.reference), [mixed.reference])
+        XCTAssertEqual(history.records.first?.results.map(\.providerID), [custom, .google])
 
         model.translate()
         await model.serviceTasks[custom]?.value
-        XCTAssertEqual(history.records.map(\.mode), [.custom, .translate])
+        let customOnly = try XCTUnwrap(history.records.first)
+        XCTAssertNotEqual(customOnly.reference, mixed.reference)
+        XCTAssertEqual(history.records.count, 1)
+        XCTAssertEqual(customOnly.results.map(\.providerID), [custom])
     }
 
     func testHistorySkipsFailureBlankTextAndDictionaryWithoutDefinitionsUntilRetrySucceeds() async throws {
@@ -630,7 +639,6 @@ final class TranslationModelTests: XCTestCase {
         model.updateInput("refine")
         model.translate()
         try await waitUntilIdle(model)
-        XCTAssertEqual(history.records.first?.mode, .translate)
         XCTAssertEqual(history.records.first?.results.map(\.providerID), [.ecdict])
         XCTAssertEqual(history.records.first?.results.map(\.translatedText), ["refine\nto improve"])
     }

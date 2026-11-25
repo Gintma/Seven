@@ -63,21 +63,15 @@ extension TranslationModel {
         generation = id
         serviceResults = results
         let runningResults = results.filter { $0.phase.isRunning }
-        let translators = runningResults.filter(\.isTranslation)
         if !runningResults.isEmpty {
-            // The dictionary supplements the round. Only the translators determine a custom mode.
-            let onlyCustom = !translators.isEmpty && translators.allSatisfy {
-                compatibleRequests[$0.id]?.configuration.mode == .custom
-            }
             historyRound = HistoryRound(
-                sourceText: text, sourceLanguage: requestLanguages.source,
-                targetLanguage: requestTarget, mode: onlyCustom ? .custom : .translate
+                sourceText: text, sourceLanguage: requestLanguages.source, targetLanguage: requestTarget
             )
         }
-        primaryResultID = translators.first?.id ?? runningResults.first?.id
-        isLoading = results.contains { $0.phase.isRunning }
+        primaryResultID = runningResults.first(where: \.isTranslation)?.id ?? runningResults.first?.id
+        isLoading = !runningResults.isEmpty
         issue = nil; recoveryAction = nil
-        status = isLoading ? "正在获取 \(results.filter { $0.phase.isRunning }.count) 项结果…" : "翻译未完成"
+        status = isLoading ? "正在获取 \(runningResults.count) 项结果…" : "翻译未完成"
         Task { await logger.record(.info, "translation_started", metadata: [
             "characters": String(text.count)
         ]) }
@@ -170,8 +164,7 @@ extension TranslationModel {
         }
         if historyRound == nil {
             historyRound = HistoryRound(
-                sourceText: text, sourceLanguage: requestLanguages.source,
-                targetLanguage: requestTarget, mode: compatibleRequest?.configuration.mode ?? .translate
+                sourceText: text, sourceLanguage: requestLanguages.source, targetLanguage: requestTarget
             )
         }
         startService(
@@ -426,7 +419,7 @@ extension TranslationModel {
         } else {
             historyRound?.record = history.beginRecord(
                 sourceText: round.sourceText, sourceLanguage: round.sourceLanguage,
-                targetLanguage: round.targetLanguage, mode: round.mode, result: saved
+                targetLanguage: round.targetLanguage, result: saved
             )
         }
     }

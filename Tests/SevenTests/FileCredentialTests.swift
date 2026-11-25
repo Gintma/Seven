@@ -108,7 +108,7 @@ final class FileCredentialTests: XCTestCase {
         let defaults = try XCTUnwrap(isolatedDefaults(suiteName: UUID().uuidString))
         let history = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
         history.beginRecord(
-            sourceText: "Hello", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate,
+            sourceText: "Hello", sourceLanguage: "en", targetLanguage: "zh-Hans",
             result: .init(providerID: .google, providerName: "Google", translatedText: "你好")
         )
         XCTAssertEqual(history.records.count, 1)
