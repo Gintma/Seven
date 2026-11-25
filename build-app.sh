@@ -50,10 +50,11 @@ swift build "${build_arguments[@]}"
 
 app="$project_dir/$app_name.app"
 binary="$project_dir/.build/$configuration/Seven"
-iconset="$project_dir/Resources/AppIcon.iconset"
-master_icon="$project_dir/Resources/AppIcon-1024.png"
+tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/seven-build.XXXXXX")"
+trap 'rm -rf "$tmp_dir"' EXIT
+iconset="$tmp_dir/AppIcon.iconset"
+master_icon="$project_dir/Resources/Seven.png"
 mkdir -p "$iconset"
-cp "$project_dir/Resources/Seven.png" "$master_icon"
 sips -z 16 16 "$master_icon" --out "$iconset/icon_16x16.png" >/dev/null
 sips -z 32 32 "$master_icon" --out "$iconset/icon_16x16@2x.png" >/dev/null
 sips -z 32 32 "$master_icon" --out "$iconset/icon_32x32.png" >/dev/null
@@ -64,7 +65,7 @@ sips -z 256 256 "$master_icon" --out "$iconset/icon_256x256.png" >/dev/null
 sips -z 512 512 "$master_icon" --out "$iconset/icon_256x256@2x.png" >/dev/null
 sips -z 512 512 "$master_icon" --out "$iconset/icon_512x512.png" >/dev/null
 cp "$master_icon" "$iconset/icon_512x512@2x.png"
-iconutil -c icns "$iconset" -o "$project_dir/Resources/AppIcon.icns"
+iconutil -c icns "$iconset" -o "$tmp_dir/AppIcon.icns"
 # 每次重建可执行文件与资源目录，重命名之前的二进制和已删除资源都不会残留。
 rm -rf "$app/Contents/MacOS" "$app/Contents/Resources"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/BrandIcons"
@@ -78,7 +79,7 @@ fi
 for localization in "$project_dir/Sources/Seven/Localization/"*.lproj; do
   cp -R "$localization" "$app/Contents/Resources/"
 done
-cp "$project_dir/Resources/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
+cp "$tmp_dir/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 cp "$project_dir/Sources/Seven/Art/Shiba.usdz" "$app/Contents/Resources/"
 # (N) 允许某类文件为空，避免 zsh 报 no matches found；总数为 0 时才视为错误。
 brand_icons=("$project_dir/Resources/BrandIcons/"*.(png|svg)(N))
@@ -88,12 +89,11 @@ if (( ${#brand_icons} == 0 )); then
 fi
 cp "${brand_icons[@]}" "$app/Contents/Resources/BrandIcons/"
 # 界面资源和自定义 SF 符号一起编译为 Assets.car，随后统一签名。
-symbols_plist="$(mktemp -t seven-symbols).plist"
+symbols_plist="$tmp_dir/symbols.plist"
 xcrun actool "$project_dir/Resources/Assets.xcassets" "$project_dir/Resources/Symbols.xcassets" \
   --compile "$app/Contents/Resources" \
   --platform macosx --minimum-deployment-target 14.0 \
   --output-partial-info-plist "$symbols_plist" --errors --warnings >/dev/null
-rm -f "$symbols_plist"
 chmod 755 "$app/Contents/MacOS/Seven"
 signing_password="$(<"$signing_password_file")"
 security unlock-keychain -p "$signing_password" "$signing_keychain"
