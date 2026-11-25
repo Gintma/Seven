@@ -111,38 +111,38 @@ final class HistoryStoreTests: XCTestCase {
         )
 
         XCTAssertEqual(store.records.count, 1)
-        let id = try XCTUnwrap(store.records.first?.id)
-        store.toggleFavorite(id)
-        XCTAssertEqual(store.records(in: .favorites).first?.id, id)
+        let reference = try XCTUnwrap(store.records.first?.reference)
+        store.toggleFavorite(reference)
+        XCTAssertEqual(store.records(in: .favorites).first?.reference, reference)
 
         let reloaded = HistoryStore(fileURL: fileURL, defaults: defaults)
         XCTAssertEqual(reloaded.records.count, 1)
-        XCTAssertEqual(reloaded.records(in: .favorites).first?.id, id)
+        XCTAssertEqual(reloaded.records(in: .favorites).first?.reference, reference)
     }
 
     func testDeletedAndClearedHistoryLeavesFavoritesAndFavoriteDeletionLeavesHistory() throws {
         try withHistoryDirectory { directory, defaults in
             let url = directory.appendingPathComponent("history.json")
             let store = HistoryStore(fileURL: url, defaults: defaults)
-            let first = try XCTUnwrap(store.addFixture(sourceText: "First", translatedText: "第一")).id
-            let second = try XCTUnwrap(store.addFixture(sourceText: "Second", translatedText: "第二")).id
+            let first = try XCTUnwrap(store.addFixture(sourceText: "First", translatedText: "第一"))
+            let second = try XCTUnwrap(store.addFixture(sourceText: "Second", translatedText: "第二"))
             store.toggleFavorite(first)
             store.toggleFavorite(second)
 
             store.delete(first, from: .history)
-            XCTAssertEqual(store.records.map(\.id), [second])
-            XCTAssertEqual(store.records(in: .favorites).map(\.id), [second, first])
+            XCTAssertEqual(store.records.map(\.reference), [second])
+            XCTAssertEqual(store.records(in: .favorites).map(\.reference), [second, first])
             store.delete(second, from: .favorites)
-            XCTAssertEqual(store.records.map(\.id), [second])
-            XCTAssertEqual(store.records(in: .favorites).map(\.id), [first])
+            XCTAssertEqual(store.records.map(\.reference), [second])
+            XCTAssertEqual(store.records(in: .favorites).map(\.reference), [first])
             store.toggleFavorite(second)
             store.toggleFavorite(second)
-            XCTAssertEqual(store.records.map(\.id), [second])
+            XCTAssertEqual(store.records.map(\.reference), [second])
 
             store.clear(.history)
             let current = HistoryStore(fileURL: url, defaults: defaults)
             XCTAssertTrue(current.records.isEmpty)
-            XCTAssertEqual(current.records(in: .favorites).map(\.id), [first])
+            XCTAssertEqual(current.records(in: .favorites).map(\.reference), [first])
             current.toggleFavorite(first)
             XCTAssertTrue(current.records(in: .favorites).isEmpty)
         }
@@ -153,10 +153,10 @@ final class HistoryStoreTests: XCTestCase {
             let url = directory.appendingPathComponent("history.json")
             let store = HistoryStore(fileURL: url, defaults: defaults)
             let favoriteOnly = try XCTUnwrap(store.addFixture(sourceText: "Favorite only", translatedText: "只有收藏"))
-            store.toggleFavorite(favoriteOnly.id)
-            store.delete(favoriteOnly.id, from: .history)
+            store.toggleFavorite(favoriteOnly)
+            store.delete(favoriteOnly, from: .history)
             let shared = try XCTUnwrap(store.addFixture(sourceText: "History record", translatedText: "历史记录"))
-            store.toggleFavorite(shared.id)
+            store.toggleFavorite(shared)
             XCTAssertEqual(store.records(in: .favorites).map(\.id), [shared.id, favoriteOnly.id])
             let historyFile = try Data(contentsOf: url)
 
@@ -195,7 +195,7 @@ final class HistoryStoreTests: XCTestCase {
             XCTAssertEqual(reloaded.retention, .unlimited)
             XCTAssertEqual(reloaded.records.count, 1005)
             let newest = try XCTUnwrap(reloaded.addFixture(sourceText: "Newest", translatedText: "最新")).id
-            for record in fixture.suffix(101) { reloaded.toggleFavorite(record.id) }
+            for record in fixture.suffix(101) { reloaded.toggleFavorite(record.reference) }
             XCTAssertEqual(reloaded.records.count, 1006)
             let favorites = reloaded.records(in: .favorites)
             reloaded.retention = .oneHundred
@@ -209,6 +209,89 @@ final class HistoryStoreTests: XCTestCase {
         }
     }
 
+    func testAdjacentRetranslationCanBeFavoritedIndependentlyOfPreviousRound() throws {
+        try withHistoryDirectory { directory, defaults in
+            let url = directory.appendingPathComponent("history.json")
+            let store = HistoryStore(fileURL: url, defaults: defaults)
+            let firstTime = Date(timeIntervalSince1970: 100)
+            let first = try XCTUnwrap(store.addFixture(sourceText: "Hello", translatedText: "第一版", createdAt: firstTime))
+            store.toggleFavorite(first)
+            let second = try XCTUnwrap(store.addFixture(
+                sourceText: "Hello", translatedText: "第二版", createdAt: firstTime.addingTimeInterval(1)
+            ))
+
+            XCTAssertEqual(store.records.map(\.reference), [second])
+            XCTAssertNotEqual(first.id, second.id)
+            XCTAssertFalse(store.records(in: .favorites).contains { $0.id == second.id })
+            store.toggleFavorite(second)
+            XCTAssertEqual(store.records(in: .favorites).map(\.reference), [second, first])
+            XCTAssertEqual(store.records(in: .favorites).compactMap { $0.results.first?.translatedText }, ["第二版", "第一版"])
+
+            store.toggleFavorite(second)
+            let reloaded = HistoryStore(fileURL: url, defaults: defaults)
+            XCTAssertEqual(reloaded.records(in: .favorites).map(\.reference), [first])
+            XCTAssertEqual(reloaded.records.map(\.reference), [second])
+        }
+    }
+
+    func testTrialSnapshotsWithReusedUUIDStillHaveIndependentFavoriteAndDeleteActions() throws {
+        try withHistoryDirectory { directory, defaults in
+            let id = UUID()
+            func snapshot(_ text: String, at time: TimeInterval) -> TranslationRecord {
+                TranslationRecord(
+                    id: id, sourceText: "Hello", sourceLanguage: "en", targetLanguage: "zh-Hans",
+                    mode: .translate, createdAt: Date(timeIntervalSince1970: time),
+                    results: [.init(providerID: .google, providerName: "Google", translatedText: text)]
+                )
+            }
+            let favorite = snapshot("第一版", at: 100)
+            let history = snapshot("第二版", at: 101)
+            let url = directory.appendingPathComponent("history.json")
+            let encoder = JSONEncoder()
+            try encoder.encode([history]).write(to: url)
+            try encoder.encode([favorite]).write(to: directory.appendingPathComponent("favorites.json"))
+
+            let store = HistoryStore(fileURL: url, defaults: defaults)
+            store.toggleFavorite(history.reference)
+            XCTAssertEqual(store.records(in: .favorites), [history, favorite])
+            store.delete(favorite.reference, from: .favorites)
+            XCTAssertEqual(store.records(in: .favorites), [history])
+            XCTAssertEqual(store.records, [history])
+        }
+    }
+
+    func testUpdateRecordRepairsDuplicateProvidersFromDiskAndKeepsLatestResult() throws {
+        try withHistoryDirectory { directory, defaults in
+            let url = directory.appendingPathComponent("history.json")
+            let favoritesURL = directory.appendingPathComponent("favorites.json")
+            let duplicated = TranslationRecord(
+                id: UUID(), sourceText: "Hello", sourceLanguage: "en", targetLanguage: "zh-Hans",
+                mode: .translate, createdAt: Date(timeIntervalSince1970: 100),
+                results: [
+                    .init(providerID: .google, providerName: "Google", translatedText: "旧结果"),
+                    .init(providerID: .youdao, providerName: "Youdao", translatedText: "旧有道结果"),
+                    .init(providerID: .google, providerName: "Google", translatedText: "稍新结果"),
+                    .init(providerID: .youdao, providerName: "Youdao", translatedText: "保留的有道结果")
+                ]
+            )
+            let data = try JSONEncoder().encode([duplicated])
+            try data.write(to: url)
+            try data.write(to: favoritesURL)
+            let store = HistoryStore(fileURL: url, defaults: defaults)
+
+            let fresh = TranslationRecord.Result(providerID: .google, providerName: "Google", translatedText: "重试结果")
+            store.updateRecord(duplicated.reference, result: fresh, providerOrder: [.google])
+
+            let reloaded = HistoryStore(fileURL: url, defaults: defaults)
+            for collection in HistoryCollection.allCases {
+                let record = try XCTUnwrap(reloaded.records(in: collection).first)
+                XCTAssertEqual(record.reference, duplicated.reference)
+                XCTAssertEqual(record.results.map(\.providerID), [.google, .youdao])
+                XCTAssertEqual(record.results.map(\.translatedText), ["重试结果", "保留的有道结果"])
+            }
+        }
+    }
+
     func testAdjacentRoundReplacesResultsAndLateUpdateDoesNotRecreateDeletedHistory() throws {
         try withHistoryDirectory { directory, defaults in
             let url = directory.appendingPathComponent("history.json")
@@ -216,13 +299,13 @@ final class HistoryStoreTests: XCTestCase {
             let start = Date(timeIntervalSince1970: 10.123)
             let providerOrder: [TranslationProviderID] = [.youdao, .google]
             let original = try XCTUnwrap(store.addFixture(sourceText: "Hello", translatedText: "第一版", createdAt: start))
-            store.toggleFavorite(original.id)
+            store.toggleFavorite(original)
             let favorites = store.records(in: .favorites)
             let next = start.addingTimeInterval(20)
             let repeated = try XCTUnwrap(store.addFixture(
                 sourceText: "Hello", translatedText: "新版", sourceLanguage: "en-US", createdAt: next
             ))
-            XCTAssertEqual(original.id, repeated.id)
+            XCTAssertNotEqual(original.id, repeated.id)
             XCTAssertEqual(store.records.map(\.createdAt), [next])
             XCTAssertEqual(store.records(in: .favorites), favorites)
 
@@ -249,10 +332,10 @@ final class HistoryStoreTests: XCTestCase {
             let store = HistoryStore(fileURL: url, defaults: defaults)
             let record = try XCTUnwrap(store.addFixture(sourceText: "Favorite source", translatedText: "First answer"))
             let id = record.id
-            store.toggleFavorite(id)
+            store.toggleFavorite(record)
             store.updateRecord(record, result: .init(providerID: .youdao, providerName: "Youdao", translatedText: "Unique answer"),
                                providerOrder: [.youdao, .google])
-            store.delete(id, from: .history)
+            store.delete(record, from: .history)
             let newID = try XCTUnwrap(store.addFixture(sourceText: "History source", translatedText: "Other answer")).id
 
             XCTAssertEqual(store.records(in: .favorites, matching: "  UNIQUE  ").map(\.id), [id])

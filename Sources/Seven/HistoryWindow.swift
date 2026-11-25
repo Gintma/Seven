@@ -119,7 +119,7 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate, Theme
 
 struct HistoryView: View {
     private struct PendingDeletion {
-        let id: UUID
+        let reference: TranslationRecord.Reference
         let collection: HistoryCollection
     }
 
@@ -127,7 +127,7 @@ struct HistoryView: View {
     let speech: SpeechController
     private let themeManager: ThemeManager?
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
-    @State private var selection: UUID?
+    @State private var selection: TranslationRecord.Reference?
     @State private var searchText = ""
     @State private var collection: HistoryCollection = .history
     @State private var pendingDeletion: PendingDeletion?
@@ -151,8 +151,8 @@ struct HistoryView: View {
     private var navigation: some View {
         let filtered = store.records(in: collection, matching: searchText)
         let hasRecords = !store.browsingRecords(in: collection).isEmpty
-        let favoriteIDs = collection == .history ? Set(store.browsingRecords(in: .favorites).map(\.id)) : []
-        let current = filtered.first { $0.id == selection } ?? filtered.first
+        let favorites = collection == .history ? Set(store.browsingRecords(in: .favorites).map(\.reference)) : []
+        let current = filtered.first { $0.reference == selection } ?? filtered.first
         let date = HistoryDatePresentation()
 
         return NavigationSplitView {
@@ -168,13 +168,13 @@ struct HistoryView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, Design.Layout.cardInset)
                 .padding(.top, Design.Space.s)
-                List(filtered, selection: $selection) { record in
+                List(filtered, id: \.reference, selection: $selection) { record in
                     historyRow(
                         record, date: date.row(record.createdAt),
-                        isFavorite: favoriteIDs.contains(record.id)
+                        isFavorite: favorites.contains(record.reference)
                     )
-                    .themeSidebarRow(selected: record.id == selection)
-                    .tag(record.id)
+                    .themeSidebarRow(selected: record.reference == current?.reference)
+                    .tag(record.reference)
                 }
                 .themeSidebar(sourceListOnly: false)
                 .overlay {
@@ -199,15 +199,15 @@ struct HistoryView: View {
             if let current {
                 HistoryRecordDetail(
                     record: current, date: date.detail(current.createdAt),
-                    isFavorite: collection == .favorites || favoriteIDs.contains(current.id),
+                    isFavorite: collection == .favorites || favorites.contains(current.reference),
                     speech: speech,
-                    toggleFavorite: { store.toggleFavorite(current.id) },
+                    toggleFavorite: { store.toggleFavorite(current.reference) },
                     delete: {
-                        pendingDeletion = PendingDeletion(id: current.id, collection: collection)
+                        pendingDeletion = PendingDeletion(reference: current.reference, collection: collection)
                         showingDelete = true
                     }
                 )
-                .id(current.id)
+                .id(current.reference)
             } else {
                 emptyState(L10n.text("selectAnEntry"), systemImage: "text.bubble").themeDetailSurface()
             }
@@ -233,7 +233,7 @@ struct HistoryView: View {
             L10n.text(pendingDeletion?.collection == .favorites ? "history.deleteFavorite" : "deleteThisHistoryEntry"),
             isPresented: $showingDelete, presenting: pendingDeletion
         ) { pending in
-            Button(L10n.text("delete"), role: .destructive) { store.delete(pending.id, from: pending.collection) }
+            Button(L10n.text("delete"), role: .destructive) { store.delete(pending.reference, from: pending.collection) }
             Button(L10n.text("cancel"), role: .cancel) {}
         }
         .alert(
@@ -243,13 +243,13 @@ struct HistoryView: View {
             Button(pending.clearTitle, role: .destructive) { store.clear(pending) }
             Button(L10n.text("cancel"), role: .cancel) {}
         }
-        .onChange(of: current?.id, initial: true) { _, currentID in
+        .onChange(of: current?.reference, initial: true) { _, reference in
             speech.stopHistoryPlayback()
-            selection = currentID
+            selection = reference
         }
         .onChange(of: collection) {
             speech.stopHistoryPlayback()
-            selection = current?.id
+            selection = current?.reference
         }
     }
 

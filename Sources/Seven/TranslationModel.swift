@@ -7,6 +7,7 @@ final class TranslationModel: ObservableObject {
         let sourceText: String
         let sourceLanguage: String
         let targetLanguage: String
+        let mode: TranslationMode
         var record: TranslationRecord.Reference?
     }
 

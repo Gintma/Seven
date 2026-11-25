@@ -1,7 +1,8 @@
 import Foundation
 
 struct TranslationRecord: Codable, Identifiable, Equatable, Sendable {
-    struct Reference: Equatable {
+    /// Earlier builds could reuse the UUID for consecutive rounds.
+    struct Reference: Hashable {
         let id: UUID
         let createdAt: Date
     }

@@ -75,19 +75,22 @@ private actor CountingOnlineService: OnlineTranslationServing {
 
 private actor GatedOnlineService: OnlineTranslationServing {
     private var continuation: CheckedContinuation<Void, Never>?
-    private var firstFinishRequested = false
+    private var gatedFinishRequested = false
     private(set) var attempts = 0
+    private let gatedAttempt: Int
+
+    init(gatedAttempt: Int = 1) { self.gatedAttempt = gatedAttempt }
 
     func translate(_ request: OnlineTranslationRequest) async throws -> OnlineTranslationOutput {
         attempts += 1
-        if attempts == 1, !firstFinishRequested {
+        if attempts == gatedAttempt, !gatedFinishRequested {
             await withCheckedContinuation { continuation = $0 }
         }
         return .init(text: "后台结果 \(attempts)", dictionaryEntry: nil)
     }
 
-    func finishFirstRequest() {
-        firstFinishRequested = true
+    func finishGatedRequest() {
+        gatedFinishRequested = true
         continuation?.resume()
         continuation = nil
     }
@@ -504,7 +507,7 @@ final class TranslationModelTests: XCTestCase {
         XCTAssertTrue(model.isLoading)
         XCTAssertEqual(history.records.count, 1, "首个有效结果应立即入历史")
         let earlyRecord = history.records.first
-        await google.finishFirstRequest()
+        await google.finishGatedRequest()
         let first = try XCTUnwrap(earlyRecord)
         try await waitUntilIdle(model)
         XCTAssertEqual(first.results.map(\.providerID), [.youdao])
@@ -512,12 +515,63 @@ final class TranslationModelTests: XCTestCase {
         XCTAssertEqual(history.records.first?.results.map(\.providerID), [.google, .youdao])
         XCTAssertEqual(history.records.first?.results.map(\.providerName), model.serviceResults.map(\.title))
 
-        history.toggleFavorite(first.id)
+        history.toggleFavorite(first.reference)
         model.retryResult(.google)
         try await waitUntilIdle(model)
         XCTAssertEqual(history.records.map(\.reference), [first.reference])
         XCTAssertEqual(history.records.first?.results.map(\.translatedText), ["后台结果 2", "先完成"])
         XCTAssertEqual(history.records(in: .favorites), history.records)
+    }
+
+    func testMixedServiceHistoryModeAndDeduplicationIgnoreCompletionOrder() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let history = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
+        let google = GatedOnlineService(gatedAttempt: 2)
+        let prompt = GatedStreamingService()
+        let model = TranslationModel(
+            service: prompt, dictionaryService: ImmediateDictionaryService(entry: nil), googleService: google,
+            credentials: MemoryCredentials(), settings: SettingsStore(defaults: defaults), history: history
+        )
+        let custom = try installService(on: model, configuration: ServiceConfiguration(
+            name: "Custom prompt", endpoint: "https://api.example.com/v1/chat/completions", model: "model",
+            mode: .custom, systemPrompt: "Return the revised text."
+        ), key: "test-key")
+        _ = model.addService(.google)
+        for provider in model.serviceInstances {
+            model.setServiceEnabled(provider.id, enabled: [custom, .google].contains(provider.id))
+        }
+        model.setSource("en")
+        model.setTarget("zh-Hans")
+        model.updateInput("Example sentence")
+
+        model.translate()
+        await model.serviceTasks[.google]?.value
+        XCTAssertEqual(history.records.first?.results.map(\.providerID), [.google])
+        XCTAssertEqual(history.records.map(\.mode), [.translate])
+        await prompt.finish()
+        try await waitUntilIdle(model)
+
+        model.translate()
+        await model.serviceTasks[custom]?.value
+        XCTAssertEqual(history.records.first?.results.map(\.providerID), [custom])
+        XCTAssertEqual(history.records.map(\.mode), [.translate])
+        await google.finishGatedRequest()
+        try await waitUntilIdle(model)
+        XCTAssertEqual(history.records.map(\.mode), [.translate])
+        XCTAssertEqual(Set(history.records.first?.results.map(\.providerID) ?? []), [custom, .google])
+
+        let mixed = try XCTUnwrap(history.records.first?.reference)
+        model.setServiceEnabled(.google, enabled: false)
+        model.retryResult(custom)
+        await model.serviceTasks[custom]?.value
+        XCTAssertEqual(history.records.map(\.reference), [mixed])
+        XCTAssertEqual(history.records.map(\.mode), [.translate])
+
+        model.translate()
+        await model.serviceTasks[custom]?.value
+        XCTAssertEqual(history.records.map(\.mode), [.custom, .translate])
     }
 
     func testHistorySkipsFailureBlankTextAndDictionaryWithoutDefinitionsUntilRetrySucceeds() async throws {
@@ -576,6 +630,7 @@ final class TranslationModelTests: XCTestCase {
         model.updateInput("refine")
         model.translate()
         try await waitUntilIdle(model)
+        XCTAssertEqual(history.records.first?.mode, .translate)
         XCTAssertEqual(history.records.first?.results.map(\.providerID), [.ecdict])
         XCTAssertEqual(history.records.first?.results.map(\.translatedText), ["refine\nto improve"])
     }
@@ -1256,7 +1311,7 @@ final class TranslationModelTests: XCTestCase {
         model.translate()
         await Task.yield()
         model.setServiceExpanded(.youdao, expanded: false)
-        await youdao.finishFirstRequest()
+        await youdao.finishGatedRequest()
         try await waitUntilIdle(model)
 
         XCTAssertFalse(model.isServiceExpanded(.youdao))

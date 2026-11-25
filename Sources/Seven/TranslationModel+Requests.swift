@@ -19,7 +19,8 @@ extension TranslationModel {
             return
         }
         detectedSource = detectedLanguage(for: text)
-        let requestTarget = beginRequestTarget(for: text)
+        let requestLanguages = beginRequestLanguages(for: text)
+        let requestTarget = requestLanguages.target
 
         let id = UUID()
         var results: [TranslationServiceResult] = []
@@ -62,7 +63,18 @@ extension TranslationModel {
         generation = id
         serviceResults = results
         let runningResults = results.filter { $0.phase.isRunning }
-        primaryResultID = runningResults.first(where: \.isTranslation)?.id ?? runningResults.first?.id
+        let translators = runningResults.filter(\.isTranslation)
+        if !runningResults.isEmpty {
+            // The dictionary supplements the round. Only the translators determine a custom mode.
+            let onlyCustom = !translators.isEmpty && translators.allSatisfy {
+                compatibleRequests[$0.id]?.configuration.mode == .custom
+            }
+            historyRound = HistoryRound(
+                sourceText: text, sourceLanguage: requestLanguages.source,
+                targetLanguage: requestTarget, mode: onlyCustom ? .custom : .translate
+            )
+        }
+        primaryResultID = translators.first?.id ?? runningResults.first?.id
         isLoading = results.contains { $0.phase.isRunning }
         issue = nil; recoveryAction = nil
         status = isLoading ? "正在获取 \(results.filter { $0.phase.isRunning }.count) 项结果…" : "翻译未完成"
@@ -99,7 +111,8 @@ extension TranslationModel {
             if !(detectingText == text && isDetectingOnline) { scheduleDetection(of: text, after: .zero) }
             return
         }
-        let requestTarget = beginRequestTarget(for: text)
+        let requestLanguages = beginRequestLanguages(for: text)
+        let requestTarget = requestLanguages.target
 
         let id = generation ?? UUID()
         generation = id
@@ -155,6 +168,12 @@ extension TranslationModel {
                 return
             }
         }
+        if historyRound == nil {
+            historyRound = HistoryRound(
+                sourceText: text, sourceLanguage: requestLanguages.source,
+                targetLanguage: requestTarget, mode: compatibleRequest?.configuration.mode ?? .translate
+            )
+        }
         startService(
             provider,
             text: text,
@@ -176,8 +195,8 @@ extension TranslationModel {
         return source == nil || source == "en"
     }
 
-    /// 计算本次请求的目标语言并同步 `resolvedTarget`。润色模式保持原语言。
-    private func beginRequestTarget(for text: String) -> String {
+    /// 计算本次请求的源语和目标语，并同步浮窗的目标语。
+    private func beginRequestLanguages(for text: String) -> (source: String, target: String) {
         let source = effectiveSource(for: text)
         let requestTarget = LanguageRouting.resolvedTarget(
             for: text,
@@ -187,10 +206,7 @@ extension TranslationModel {
             secondary: secondaryLanguage
         )
         resolvedTarget = requestTarget
-        if historyRound == nil {
-            historyRound = HistoryRound(sourceText: text, sourceLanguage: source, targetLanguage: requestTarget)
-        }
-        return requestTarget
+        return (source, requestTarget)
     }
 
     /// 该服务不支持本次源语言或目标语言时的说明（显示为灰色“已跳过”，不发请求）；只在翻译模式下判断。
@@ -307,7 +323,7 @@ extension TranslationModel {
         guard !text.isEmpty else { return }
         let id = generation ?? UUID()
         generation = id
-        let target = beginRequestTarget(for: text)
+        let target = beginRequestLanguages(for: text).target
         serviceResults[index].phase = .loading
         serviceResults[index].issue = nil
         isLoading = true
@@ -328,8 +344,7 @@ extension TranslationModel {
         finishResult(
             .appleTranslation,
             text: text,
-            generation: request.generation,
-            mode: .translate
+            generation: request.generation
         )
     }
 
@@ -352,7 +367,7 @@ extension TranslationModel {
             serviceResults[index].dictionaryEntry = entry
             serviceResults[index].text = entry.formattedText
             serviceResults[index].phase = .success
-            saveHistoryResult(serviceResults[index], mode: .translate)
+            saveHistoryResult(serviceResults[index])
         case .success(nil):
             // 未收录不是错误，重试也不会有结果：灰色说明，不带重试。
             serviceResults[index].phase = .skipped
@@ -372,7 +387,6 @@ extension TranslationModel {
         _ provider: TranslationProviderID,
         text: String,
         generation id: UUID,
-        mode: TranslationMode,
         dictionaryEntry: DictionaryEntry? = nil
     ) {
         guard generation == id, let index = resultIndex(provider) else { return }
@@ -383,11 +397,11 @@ extension TranslationModel {
         result.phase = .success
         result.issue = nil
         serviceResults[index] = result
-        saveHistoryResult(result, mode: mode)
+        saveHistoryResult(result)
         refreshOverallState(generation: id)
     }
 
-    private func saveHistoryResult(_ result: TranslationServiceResult, mode: TranslationMode) {
+    private func saveHistoryResult(_ result: TranslationServiceResult) {
         guard let history, let round = historyRound else { return }
         let text: String
         if result.isTranslation {
@@ -412,7 +426,7 @@ extension TranslationModel {
         } else {
             historyRound?.record = history.beginRecord(
                 sourceText: round.sourceText, sourceLanguage: round.sourceLanguage,
-                targetLanguage: round.targetLanguage, mode: mode, result: saved
+                targetLanguage: round.targetLanguage, mode: round.mode, result: saved
             )
         }
     }
@@ -433,7 +447,6 @@ extension TranslationModel {
                     provider,
                     text: output.text,
                     generation: id,
-                    mode: .translate,
                     dictionaryEntry: output.dictionaryEntry
                 )
                 await logger.record(.info, "translation_succeeded", metadata: [
@@ -473,8 +486,7 @@ extension TranslationModel {
                 self.finishResult(
                     provider,
                     text: result,
-                    generation: id,
-                    mode: request.configuration.mode
+                    generation: id
                 )
                 await logger.record(.info, "translation_succeeded", metadata: [
                     "elapsed_ms": String(Int(Date().timeIntervalSince(start) * 1_000)),

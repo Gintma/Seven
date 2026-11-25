@@ -82,8 +82,7 @@ final class HistoryStore: ObservableObject {
         return query.isEmpty ? records : records.filter { $0.matches(search: query) }
     }
 
-    /// The first successful service of a new round starts a new snapshot, reusing the
-    /// newest row's identity when its source, target and mode match.
+    /// Each round has a new identity, even when it replaces the newest matching history row.
     @discardableResult
     func beginRecord(
         sourceText: String,
@@ -95,14 +94,12 @@ final class HistoryStore: ObservableObject {
     ) -> TranslationRecord.Reference? {
         guard isEnabled, !sourceText.isEmpty, result.hasContent else { return nil }
         var records = self.records
-        let previous = records.first.flatMap { first in
-            first.sourceText == sourceText && first.targetLanguage == targetLanguage && first.mode == mode ? first : nil
-        }
         let record = TranslationRecord(
-            id: previous?.id ?? UUID(), sourceText: sourceText, sourceLanguage: sourceLanguage,
+            id: UUID(), sourceText: sourceText, sourceLanguage: sourceLanguage,
             targetLanguage: targetLanguage, mode: mode, createdAt: createdAt, results: [result]
         )
-        if previous != nil {
+        if let first = records.first,
+           first.sourceText == sourceText, first.targetLanguage == targetLanguage, first.mode == mode {
             records[0] = record
         } else {
             records.insert(record, at: 0)
@@ -123,15 +120,10 @@ final class HistoryStore: ObservableObject {
         guard isEnabled, result.hasContent else { return }
         var records = self.records
         let merge: (inout TranslationRecord) -> Void = { record in
-            var results = record.results
-            if let index = results.firstIndex(where: { $0.id == result.id }) {
-                results[index] = result
-            } else {
-                results.append(result)
-            }
-            let byProvider = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0) })
-            let visible = Set(providerOrder)
-            record.results = providerOrder.compactMap { byProvider[$0] } + results.filter { !visible.contains($0.id) }
+            var byProvider = Dictionary(record.results.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
+            byProvider[result.id] = result
+            let order = providerOrder + record.results.map(\.id) + [result.id]
+            record.results = order.compactMap { byProvider.removeValue(forKey: $0) }
         }
         var updatedHistory = false
         if let index = records.firstIndex(where: { $0.reference == reference }) {
@@ -144,11 +136,11 @@ final class HistoryStore: ObservableObject {
         if updatedHistory || updatedFavorite { notifyBrowser() }
     }
 
-    func toggleFavorite(_ id: UUID) {
+    func toggleFavorite(_ reference: TranslationRecord.Reference) {
         var favorites = favoritesArchive.records
-        if let index = favorites.firstIndex(where: { $0.id == id }) {
+        if let index = favorites.firstIndex(where: { $0.reference == reference }) {
             favorites.remove(at: index)
-        } else if let record = records.first(where: { $0.id == id }) {
+        } else if let record = records.first(where: { $0.reference == reference }) {
             favorites.insert(record, at: 0)
         } else {
             return
@@ -157,9 +149,9 @@ final class HistoryStore: ObservableObject {
         notifyBrowser()
     }
 
-    func delete(_ id: UUID, from collection: HistoryCollection) {
+    func delete(_ reference: TranslationRecord.Reference, from collection: HistoryCollection) {
         var records = records(in: collection)
-        guard let index = records.firstIndex(where: { $0.id == id }) else { return }
+        guard let index = records.firstIndex(where: { $0.reference == reference }) else { return }
         records.remove(at: index)
         archive(for: collection).replace(with: records)
         notifyBrowser()
