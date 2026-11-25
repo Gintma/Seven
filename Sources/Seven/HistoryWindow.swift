@@ -3,17 +3,21 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 @MainActor
-final class HistoryWindowController: NSWindowController, NSWindowDelegate {
+final class HistoryWindowController: NSWindowController, NSWindowDelegate, ThemeApplying {
     private var makeWindow: (() -> NSWindow)?
     private let store: HistoryStore
     private let speech: SpeechController
+    private let themeManager: ThemeManager
+    private var toolbarVariant: ThemeVariant?
 
     init(
         store: HistoryStore, speech: SpeechController,
-        frameName: NSWindow.FrameAutosaveName = "SevenHistoryWindow"
+        frameName: NSWindow.FrameAutosaveName = "SevenHistoryWindow", themeManager: ThemeManager? = nil
     ) {
         self.store = store
         self.speech = speech
+        let themeManager = themeManager ?? .shared
+        self.themeManager = themeManager
         makeWindow = {
             let window = NSWindow(
                 contentRect: NSRect(origin: .zero, size: Design.History.windowSize),
@@ -23,11 +27,10 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
             )
             window.title = L10n.text("history.title")
             window.titleVisibility = .hidden
-            if #unavailable(macOS 26) { window.titlebarAppearsTransparent = true }
             window.toolbarStyle = .unified
             window.isReleasedWhenClosed = false
 
-            let host = NSHostingView(rootView: HistoryView(store: store, speech: speech))
+            let host = NSHostingView(rootView: HistoryView(store: store, speech: speech, themeManager: themeManager))
             // AppKit owns the frame, including while the browser releases its SwiftUI content.
             host.sizingOptions = []
             window.contentView = host
@@ -58,6 +61,30 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
         window = makeWindow()
         window?.delegate = self
         self.makeWindow = nil
+        themeManager.register(self)
+    }
+
+    func applyTheme(_ palette: ThemePalette) {
+        guard let window else { return }
+        window.backgroundColor = palette.surface
+        if #available(macOS 26, *) {
+            let usesThemeSurface = !palette.isSystem
+            let appearanceChanged = toolbarVariant != palette.variant
+            toolbarVariant = palette.variant
+            if usesThemeSurface, window.titlebarAppearsTransparent, appearanceChanged {
+                // Let AppKit refresh the native glass material after propagating the new appearance.
+                window.titlebarAppearsTransparent = false
+                let variant = palette.variant
+                DispatchQueue.main.async { [weak self, weak window] in
+                    guard let self, self.toolbarVariant == variant, !self.themeManager.palette.isSystem else { return }
+                    window?.titlebarAppearsTransparent = true
+                }
+            } else {
+                window.titlebarAppearsTransparent = usesThemeSurface
+            }
+        } else {
+            window.titlebarAppearsTransparent = true
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -98,6 +125,7 @@ struct HistoryView: View {
 
     @ObservedObject var store: HistoryStore
     let speech: SpeechController
+    private let themeManager: ThemeManager?
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     @State private var selection: UUID?
     @State private var searchText = ""
@@ -106,10 +134,16 @@ struct HistoryView: View {
     @State private var showingDelete = false
     @State private var confirmingClear = false
 
+    init(store: HistoryStore, speech: SpeechController, themeManager: ThemeManager? = nil) {
+        self.store = store
+        self.speech = speech
+        self.themeManager = themeManager
+    }
+
     var body: some View {
         // Keep the navigation state, while releasing snapshot-backed views when the window closes.
         if store.isBrowsing {
-            ThemedContent(content: navigation).environment(\.locale, L10n.locale)
+            ThemedContent(content: navigation, manager: themeManager).environment(\.locale, L10n.locale)
         }
     }
 
