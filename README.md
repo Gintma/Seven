@@ -65,7 +65,7 @@
 ### Requirements
 
 - **macOS 14.0 (Sonoma)** or later
-- **Xcode 15+ / Swift 5.9+** (only if building from source)
+- **Xcode 15+ / Swift 5.9+** to build from source. The app packaging script requires Xcode 26+ for Icon Composer assets.
 
 ### Download
 

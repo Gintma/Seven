@@ -91,11 +91,11 @@ extension AppDelegate {
             } catch let error as SelectionReadError {
                 guard selectionGate.accepts(generation), !Task.isCancelled else { return }
                 await logger.record(.warning, "selection_read_failed", metadata: ["reason": String(describing: type(of: error))])
+                guard !Task.isCancelled, selectionGate.finish(generation) else { return }
+                selectionTask = nil
                 Self.routeTranslationCaptureFailure(.selection(error), model: model) {
                     self.presentPanel(near: anchor)
                 }
-                selectionGate.finish(generation)
-                selectionTask = nil
             } catch {
                 guard selectionGate.accepts(generation), !Task.isCancelled else { return }
                 await logger.record(.warning, "selection_read_failed", metadata: ["reason": "unknown"])
@@ -186,15 +186,16 @@ extension AppDelegate {
     static func routeTranslationCaptureFailure(
         _ failure: TranslationCaptureFailure,
         model: TranslationModel,
-        authorize: @MainActor (PermissionGuide.Permission) -> Void = { PermissionGuide.shared.authorize($0) },
+        authorize: ((PermissionGuide.Permission) -> Void)? = nil,
+        presentAlert: @MainActor (NSAlert) -> NSApplication.ModalResponse = { AppAlert.runModal($0) },
         present: () -> Void
     ) {
         switch failure {
         case .selection(.accessibilityPermission):
-            authorize(.accessibility)
+            AppAlert.confirmPermission(.accessibility, present: presentAlert, authorize: authorize)
             return
         case .screenshot(.permissionDenied):
-            authorize(.screenRecording)
+            AppAlert.confirmPermission(.screenRecording, present: presentAlert, authorize: authorize)
             return
         case .screenshot(.cancelled):
             return

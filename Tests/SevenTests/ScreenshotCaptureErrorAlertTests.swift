@@ -12,7 +12,8 @@ final class ScreenshotCaptureErrorAlertTests: XCTestCase {
             XCTAssertEqual(alert.buttons.last?.keyEquivalent, "\u{1b}")
             events.append("dismiss")
             return .alertFirstButtonReturn
-        }, authorize: {
+        }, authorize: { permission in
+            XCTAssertEqual(permission, .screenRecording)
             events.append("authorize")
         })
         XCTAssertEqual(events, ["dismiss", "authorize"])
@@ -23,7 +24,7 @@ final class ScreenshotCaptureErrorAlertTests: XCTestCase {
         ScreenshotCaptureErrorAlert.show(.captureFailed, present: { alert in
             XCTAssertEqual(alert.buttons.map(\.title), [L10n.text("ok")])
             return .alertFirstButtonReturn
-        }, authorize: {
+        }, authorize: { _ in
             authorizations += 1
         })
         XCTAssertEqual(authorizations, 0)
@@ -33,7 +34,7 @@ final class ScreenshotCaptureErrorAlertTests: XCTestCase {
         var authorizations = 0
         ScreenshotCaptureErrorAlert.show(.permissionDenied, present: { _ in
             .alertSecondButtonReturn
-        }, authorize: {
+        }, authorize: { _ in
             authorizations += 1
         })
         XCTAssertEqual(authorizations, 0)
@@ -43,7 +44,7 @@ final class ScreenshotCaptureErrorAlertTests: XCTestCase {
         var authorizations = 0
         ScreenshotCaptureErrorAlert.show(.permissionDenied, present: { _ in
             .abort
-        }, authorize: {
+        }, authorize: { _ in
             authorizations += 1
         })
         XCTAssertEqual(authorizations, 0)

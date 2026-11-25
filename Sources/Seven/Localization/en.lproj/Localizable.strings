@@ -7,6 +7,7 @@
 "aboutSeven" = "About Seven";
 "accessDeniedCheckTheAPIKeyAnd" = "Access denied. Check the API key and account permissions.";
 "accessibility" = "Accessibility";
+"accessibilityPermissionRequired" = "Accessibility Access Required";
 "actions" = "Actions";
 "add" = "Add";
 "add2" = "Add %1$@";
@@ -108,7 +109,7 @@
 "cornerRadius0Px" = "Corner Radius: 0 px";
 "cornerRadiusPt" = "Corner Radius: %1$@ pt";
 "cornerRadiusPx" = "Corner Radius: %1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "Could not capture the selected area.";
+"couldNotCaptureTheSelectedAreaSelect" = "Could not capture selection";
 "couldNotChangeLaunchAtLogin" = "Could not change launch at login: %1$@";
 "couldNotCopyTheRecognizedTextTry" = "Could not copy the recognized text. Try again.";
 "couldNotCreateTheOfflineDictionary" = "Could not create the offline dictionary";
@@ -496,7 +497,7 @@
 "sevenAppIcon" = "Seven App Icon";
 "sevenHistory" = "Seven History.%1$@";
 "sevenNeedsAccessibilityPermissionToReadSelected" = "Accessibility permission is required to read the selected text.";
-"sevenNeedsScreenRecordingPermissionToCapture" = "Screen Recording permission is required to take screenshots.";
+"sevenNeedsScreenRecordingPermissionToCapture" = "Screen Recording Required";
 "sevenReplacesSelectedTextOrTheEntire" = "Seven replaces selected text or the entire field if nothing is selected. It never sends a message. It uses the first enabled and expanded service in Translation mode.";
 "sevenSettings" = "Seven Settings";
 "shadow" = "Shadow";

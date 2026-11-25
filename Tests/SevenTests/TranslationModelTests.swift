@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import XCTest
 @testable import Seven
@@ -367,7 +368,7 @@ final class TranslationModelTests: XCTestCase {
         XCTAssertEqual(model.serviceResults.map(\.phase), [.cancelled])
     }
 
-    func testCapturePermissionFailuresRouteToGuideWithoutPresentingAnIssue() throws {
+    func testCapturePermissionFailuresConfirmBeforeOpeningGuide() throws {
         let defaults = try XCTUnwrap(isolatedDefaults())
         let model = TranslationModel(
             service: ControlledService(), credentials: MemoryCredentials(),
@@ -375,19 +376,32 @@ final class TranslationModelTests: XCTestCase {
         )
         defer { model.cancel() }
         model.updateInput("Previous source")
-        var permissions: [PermissionGuide.Permission] = []
-        let authorize: (PermissionGuide.Permission) -> Void = { permissions.append($0) }
-        let present = { XCTFail("Permission denial should only open the permission guide") }
+        let cases: [(AppDelegate.TranslationCaptureFailure, PermissionGuide.Permission, String, String)] = [
+            (.selection(.accessibilityPermission), .accessibility, "accessibilityPermissionRequired", "openAccessibilitySettings"),
+            (.screenshot(.permissionDenied), .screenRecording, "sevenNeedsScreenRecordingPermissionToCapture", "openScreenRecordingSettings")
+        ]
 
-        for failure: AppDelegate.TranslationCaptureFailure in [
-            .selection(.accessibilityPermission), .screenshot(.permissionDenied)
-        ] {
-            AppDelegate.routeTranslationCaptureFailure(failure, model: model, authorize: authorize, present: present)
-            XCTAssertNil(model.errorMessage)
-            XCTAssertNil(model.recoveryTitle)
-            XCTAssertEqual(model.input, "Previous source")
+        for (failure, permission, title, settingsButton) in cases {
+            for response in [NSApplication.ModalResponse.alertFirstButtonReturn, .alertSecondButtonReturn, .abort] {
+                var events: [String] = []
+                AppDelegate.routeTranslationCaptureFailure(failure, model: model, authorize: {
+                    XCTAssertEqual($0, permission)
+                    events.append("authorize")
+                }, presentAlert: { alert in
+                    XCTAssertEqual(alert.messageText, L10n.text(title))
+                    XCTAssertEqual(alert.buttons.map(\.title), [L10n.text(settingsButton), L10n.text("cancel")])
+                    XCTAssertEqual(alert.buttons.last?.keyEquivalent, "\u{1b}")
+                    events.append("dismiss")
+                    return response
+                }, present: {
+                    XCTFail("Permission denial should present the alert instead of the translation panel")
+                })
+                XCTAssertEqual(events, response == .alertFirstButtonReturn ? ["dismiss", "authorize"] : ["dismiss"])
+                XCTAssertNil(model.errorMessage)
+                XCTAssertNil(model.recoveryTitle)
+                XCTAssertEqual(model.input, "Previous source")
+            }
         }
-        XCTAssertEqual(permissions, [.accessibility, .screenRecording])
     }
 
     func testScreenshotCaptureIssueClearsWhenRecognitionSucceeds() throws {
@@ -400,6 +414,9 @@ final class TranslationModelTests: XCTestCase {
         var presentations = 0
         AppDelegate.routeTranslationCaptureFailure(.screenshot(.noText), model: model, authorize: { _ in
             XCTFail("Empty recognition should display a translation issue")
+        }, presentAlert: { _ in
+            XCTFail("Empty recognition should not show a modal alert")
+            return .abort
         }, present: { presentations += 1 })
         XCTAssertEqual(presentations, 1)
         XCTAssertEqual(model.issue, ScreenshotTranslationError.noText.issue)

@@ -7,6 +7,7 @@
 "aboutSeven" = "关于 Seven";
 "accessDeniedCheckTheAPIKeyAnd" = "服务拒绝访问。请检查 API Key 和账户权限。";
 "accessibility" = "辅助功能";
+"accessibilityPermissionRequired" = "需要辅助功能权限";
 "actions" = "操作";
 "add" = "添加";
 "add2" = "添加%1$@";
@@ -108,7 +109,7 @@
 "cornerRadius0Px" = "圆角：0 px";
 "cornerRadiusPt" = "圆角：%1$@ pt";
 "cornerRadiusPx" = "圆角：%1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "无法截取所选区域。";
+"couldNotCaptureTheSelectedAreaSelect" = "无法截取所选区域";
 "couldNotChangeLaunchAtLogin" = "无法修改开机启动：%1$@";
 "couldNotCopyTheRecognizedTextTry" = "无法复制识别结果，请重试。";
 "couldNotCreateTheOfflineDictionary" = "无法创建本地词库";

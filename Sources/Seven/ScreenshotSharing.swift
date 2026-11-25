@@ -47,7 +47,8 @@ import AppKit
             session.picker.show(relativeTo:view.bounds,of:view,preferredEdge:.minY)
         } catch {
             let alert=NSAlert();alert.messageText=L10n.text("couldNotPrepareTheImageForSharing")
-            alert.window.level=view.window?.level ?? .normal;alert.runModal()
+            alert.window.level=view.window?.level ?? .normal
+            AppAlert.runModal(alert)
         }
     }
     func sharingServicePicker(_ sharingServicePicker:NSSharingServicePicker,delegateFor sharingService:NSSharingService)->(any NSSharingServiceDelegate)? {self}

@@ -73,7 +73,7 @@ extension AppDelegate {
         do { showScreenshotPin(try ScreenshotClipboardPin.image(from: .general)) }
         catch {
             let alert = NSAlert(); alert.messageText = L10n.text("couldNotPinFromClipboard"); alert.informativeText = error.localizedDescription
-            alert.runModal()
+            AppAlert.runModal(alert)
         }
     }
     private func showScreenshotPin(_ image: NSImage) {

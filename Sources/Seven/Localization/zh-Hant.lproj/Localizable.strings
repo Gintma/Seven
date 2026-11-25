@@ -7,6 +7,7 @@
 "aboutSeven" = "關於 Seven";
 "accessDeniedCheckTheAPIKeyAnd" = "服務拒絕存取。請檢查 API Key 和帳號權限。";
 "accessibility" = "輔助使用";
+"accessibilityPermissionRequired" = "需要輔助使用權限";
 "actions" = "操作";
 "add" = "新增";
 "add2" = "新增%1$@";
@@ -108,7 +109,7 @@
 "cornerRadius0Px" = "圓角：0 px";
 "cornerRadiusPt" = "圓角：%1$@ pt";
 "cornerRadiusPx" = "圓角：%1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "無法擷取所選區域。";
+"couldNotCaptureTheSelectedAreaSelect" = "無法擷取所選區域";
 "couldNotChangeLaunchAtLogin" = "無法修改開機啟動：%1$@";
 "couldNotCopyTheRecognizedTextTry" = "無法複製辨識結果，請重試。";
 "couldNotCreateTheOfflineDictionary" = "無法建立本機詞庫";

@@ -80,9 +80,13 @@ final class PermissionGuide {
             }
     }
 
-    func authorize(_ permission: Permission, owner: AnyObject? = nil) {
+    func authorize(
+        _ permission: Permission,
+        owner: AnyObject? = nil,
+        returningTo application: NSRunningApplication? = NSWorkspace.shared.frontmostApplication
+    ) {
         if self.permission == nil {
-            previousApplication = NSWorkspace.shared.frontmostApplication
+            previousApplication = application
         }
         close()
         guard !isGranted(permission) else { return }

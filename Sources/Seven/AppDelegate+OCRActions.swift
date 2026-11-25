@@ -32,6 +32,9 @@ extension AppDelegate {
         }
     }
     private func showOCRError(_ message:String) {
-        let alert=NSAlert();alert.messageText=L10n.text("ocrFailed");alert.informativeText=message;alert.runModal()
+        let alert = NSAlert()
+        alert.messageText = L10n.text("ocrFailed")
+        alert.informativeText = message
+        AppAlert.runModal(alert)
     }
 }

@@ -7,6 +7,7 @@
 "aboutSeven" = "Acerca de Seven";
 "accessDeniedCheckTheAPIKeyAnd" = "Acceso denegado. Comprueba la clave de API y los permisos de la cuenta.";
 "accessibility" = "Accesibilidad";
+"accessibilityPermissionRequired" = "Se requiere accesibilidad";
 "actions" = "Acciones";
 "add" = "Añadir";
 "add2" = "Añadir %1$@";
@@ -108,7 +109,7 @@
 "cornerRadius0Px" = "Radio de esquina: 0 px";
 "cornerRadiusPt" = "Radio de esquina: %1$@ pt";
 "cornerRadiusPx" = "Radio de esquina: %1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "No se pudo capturar el área seleccionada.";
+"couldNotCaptureTheSelectedAreaSelect" = "No se pudo capturar la selección";
 "couldNotChangeLaunchAtLogin" = "No se pudo cambiar el inicio de sesión: %1$@";
 "couldNotCopyTheRecognizedTextTry" = "No se pudo copiar el texto reconocido. Inténtalo de nuevo.";
 "couldNotCreateTheOfflineDictionary" = "No se pudo crear el diccionario sin conexión";
@@ -496,7 +497,7 @@
 "sevenAppIcon" = "Icono de Seven";
 "sevenHistory" = "Historial de Seven.%1$@";
 "sevenNeedsAccessibilityPermissionToReadSelected" = "Se necesita permiso de accesibilidad para leer el texto seleccionado.";
-"sevenNeedsScreenRecordingPermissionToCapture" = "Se necesita permiso de grabación de pantalla para hacer capturas.";
+"sevenNeedsScreenRecordingPermissionToCapture" = "Permiso de grabación de pantalla";
 "sevenReplacesSelectedTextOrTheEntire" = "Seven reemplaza el texto seleccionado o todo el campo si no hay selección. Nunca envía mensajes. Usa el primer servicio activo y expandido en modo de traducción.";
 "sevenSettings" = "Configuración de Seven";
 "shadow" = "Sombra";

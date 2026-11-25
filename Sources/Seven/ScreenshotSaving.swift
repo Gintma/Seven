@@ -67,7 +67,7 @@ final class ScreenshotSavePreferences {
             alert.informativeText = L10n.text("checkSavePermissionsAndFreeSpace")
             alert.addButton(withTitle: L10n.text("ok"))
             alert.window.level = NSWindow.Level(rawValue: (parent?.level.rawValue ?? 0) + 2)
-            alert.runModal()
+            AppAlert.runModal(alert)
         }
         if let directory=preferences.directory {
             do {_ = try writeUnique(data,directory:directory,name:filename(format:format));completed()}catch{failure()}

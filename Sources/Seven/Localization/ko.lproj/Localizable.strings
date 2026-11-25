@@ -7,6 +7,7 @@
 "aboutSeven" = "Seven 정보";
 "accessDeniedCheckTheAPIKeyAnd" = "접근이 거부되었습니다. API 키와 계정 권한을 확인하세요.";
 "accessibility" = "손쉬운 사용";
+"accessibilityPermissionRequired" = "손쉬운 사용 권한 필요";
 "actions" = "동작";
 "add" = "추가";
 "add2" = "%1$@ 추가";
@@ -108,7 +109,7 @@
 "cornerRadius0Px" = "모서리 반경: 0 px";
 "cornerRadiusPt" = "모서리 반경: %1$@ pt";
 "cornerRadiusPx" = "모서리 반경: %1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "선택한 영역을 캡처하지 못했습니다.";
+"couldNotCaptureTheSelectedAreaSelect" = "선택한 영역을 캡처하지 못했습니다";
 "couldNotChangeLaunchAtLogin" = "로그인 시 실행 설정을 변경할 수 없습니다: %1$@";
 "couldNotCopyTheRecognizedTextTry" = "인식한 텍스트를 복사할 수 없습니다. 다시 시도하세요.";
 "couldNotCreateTheOfflineDictionary" = "오프라인 사전을 만들 수 없습니다";
@@ -496,7 +497,7 @@
 "sevenAppIcon" = "Seven 앱 아이콘";
 "sevenHistory" = "Seven 기록.%1$@";
 "sevenNeedsAccessibilityPermissionToReadSelected" = "선택한 텍스트를 읽으려면 손쉬운 사용 권한이 필요합니다.";
-"sevenNeedsScreenRecordingPermissionToCapture" = "스크린샷을 찍으려면 화면 기록 권한이 필요합니다.";
+"sevenNeedsScreenRecordingPermissionToCapture" = "화면 기록 권한 필요";
 "sevenReplacesSelectedTextOrTheEntire" = "Seven은 선택한 텍스트를 바꾸며, 선택한 항목이 없으면 입력란 전체를 바꿉니다. 메시지는 전송하지 않습니다. 번역 모드에서 활성화되고 펼쳐진 첫 번째 서비스를 사용합니다.";
 "sevenSettings" = "Seven 설정";
 "shadow" = "그림자";

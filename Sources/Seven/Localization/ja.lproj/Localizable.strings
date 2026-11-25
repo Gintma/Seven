@@ -7,6 +7,7 @@
 "aboutSeven" = "Seven について";
 "accessDeniedCheckTheAPIKeyAnd" = "アクセスが拒否されました。API キーとアカウントの権限を確認してください。";
 "accessibility" = "アクセシビリティ";
+"accessibilityPermissionRequired" = "アクセシビリティの許可が必要";
 "actions" = "操作";
 "add" = "追加";
 "add2" = "%1$@ を追加";
@@ -108,7 +109,7 @@
 "cornerRadius0Px" = "角の半径：0 px";
 "cornerRadiusPt" = "角の半径：%1$@ pt";
 "cornerRadiusPx" = "角の半径：%1$@ px";
-"couldNotCaptureTheSelectedAreaSelect" = "選択範囲をキャプチャできませんでした。";
+"couldNotCaptureTheSelectedAreaSelect" = "選択範囲を撮影できません";
 "couldNotChangeLaunchAtLogin" = "ログイン時の起動設定を変更できませんでした：%1$@";
 "couldNotCopyTheRecognizedTextTry" = "認識したテキストをコピーできませんでした。もう一度お試しください。";
 "couldNotCreateTheOfflineDictionary" = "オフライン辞書を作成できませんでした";
@@ -496,7 +497,7 @@
 "sevenAppIcon" = "Seven のアプリアイコン";
 "sevenHistory" = "Seven 履歴.%1$@";
 "sevenNeedsAccessibilityPermissionToReadSelected" = "選択したテキストを読み取るにはアクセシビリティの許可が必要です。";
-"sevenNeedsScreenRecordingPermissionToCapture" = "スクリーンショットを撮るには画面収録の許可が必要です。";
+"sevenNeedsScreenRecordingPermissionToCapture" = "画面収録の許可が必要";
 "sevenReplacesSelectedTextOrTheEntire" = "Seven は選択範囲を置換します。選択がなければ入力欄全体を置換します。メッセージは送信しません。翻訳モードで有効かつ展開されている最初のサービスを使います。";
 "sevenSettings" = "Seven の設定";
 "shadow" = "影";
