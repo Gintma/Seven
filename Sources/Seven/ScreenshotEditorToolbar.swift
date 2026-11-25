@@ -272,19 +272,6 @@ final class ScreenshotEditorToolsPanel: NSPanel {
 private final class ScreenshotSliderCell: NSSliderCell {
     var palette = ThemePalette.system
 
-    override func drawKnob(_ knobRect: NSRect) {
-        if palette.isSystem {
-            super.drawKnob(knobRect)
-        } else {
-            let knob = NSBezierPath(ovalIn: knobRect.insetBy(dx: 1, dy: 1))
-            palette.surfaceRaised.setFill()
-            knob.fill()
-            (isEnabled ? palette.focusStroke : palette.separator).setStroke()
-            knob.lineWidth = 1
-            knob.stroke()
-        }
-    }
-
     override func drawBar(inside rect: NSRect, flipped: Bool) {
         let height = Design.ScreenshotEditor.toolbarTrackHeight
         let track = CGRect(x: rect.minX, y: rect.midY - height / 2, width: rect.width, height: height)

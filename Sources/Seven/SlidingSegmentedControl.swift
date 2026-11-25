@@ -202,16 +202,6 @@ private final class SegmentSurface: NSView, ThemeApplying {
     override func draw(_ dirtyRect: NSRect) {
         palette.segmentSelectedFill.setFill()
         NSBezierPath(roundedRect: bounds, xRadius: radius, yRadius: radius).fill()
-        if !palette.isSystem {
-            let thickness = Design.Layout.dividerWidth
-            let inset = thickness / 2
-            let strokeRadius = max(0, radius - inset)
-            let border = NSBezierPath(roundedRect: bounds.insetBy(dx: inset, dy: inset),
-                                      xRadius: strokeRadius, yRadius: strokeRadius)
-            palette.separator.setStroke()
-            border.lineWidth = thickness
-            border.stroke()
-        }
     }
 }
 private final class SegmentContent: NSView {
