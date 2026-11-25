@@ -10,7 +10,7 @@ extension SettingsView {
                         Text(OCRRecognitionLanguages.name(code)).tag(code)
                     }
                 }
-                SettingsToggleRow(L10n.text("smartSelection"), isOn: $ocrSmartSelectionEnabled, explanation: L10n.text("detectInterfaceElementsAutomatically"))
+                smartSelectionToggle($ocrSmartSelectionEnabled)
             }
             SettingsGroup(L10n.text("keyboardShortcuts")) {
                 ForEach(OCRMode.allCases){mode in

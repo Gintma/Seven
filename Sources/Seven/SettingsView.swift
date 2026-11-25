@@ -208,6 +208,7 @@ struct SettingsView: View {
 #endif
     @State var confirmingDictionaryDelete = false
     @AppStorage(ScreenshotToolPreferences.smartSelectionKey) var smartSelectionEnabled = true
+    @State private var smartSelectionAccess = SettingsSmartSelectionAccess()
 #if DEBUG || SEVEN_DEVELOPMENT
     @AppStorage(ScreenshotScrollTrace.enabledKey) var scrollDiagnosticsEnabled = false
 #endif
@@ -228,6 +229,10 @@ struct SettingsView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                 screenCaptureTrusted = CGPreflightScreenCaptureAccess()
+                smartSelectionAccess.refresh()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
+                if notification.object is SettingsCloseConfirmingWindow { smartSelectionAccess.refresh() }
             }
 #if DEBUG || SEVEN_DEVELOPMENT
             .task(id: selection) {
@@ -260,6 +265,7 @@ struct SettingsView: View {
         .onAppear {
             dictionaryManager.refresh()
             screenCaptureTrusted = CGPreflightScreenCaptureAccess()
+            smartSelectionAccess.refresh()
             if selectedService == nil { selectedService = model.serviceInstances.first?.id }
             prepareServiceDraft()
         }
@@ -276,6 +282,11 @@ struct SettingsView: View {
             .frame(width: 0, height: 0)
         }
         .environment(\.locale, L10n.locale)
+    }
+
+    func smartSelectionToggle(_ preference: Binding<Bool>) -> some View {
+        SettingsToggleRow(L10n.text("smartSelection"), isOn: smartSelectionAccess.binding(for: preference),
+                          explanation: L10n.text("detectInterfaceElementsAutomatically"))
     }
 
     private var sidebarSelection: Binding<SettingsSection> {

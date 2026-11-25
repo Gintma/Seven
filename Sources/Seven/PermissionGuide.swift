@@ -49,6 +49,7 @@ final class PermissionGuide {
     private var openingTask: Task<Void, Never>?
     private var activationObserver: AnyCancellable?
     private var permission: Permission?
+    private var onGranted: (() -> Void)?
     private weak var owner: AnyObject?
     private var previousApplication: NSRunningApplication?
     private var isWaiting = true
@@ -67,10 +68,7 @@ final class PermissionGuide {
             self.isWaiting = false
             self.placePanel(near: frame, animate: firstFrame)
         }
-        tracker.onPoll = { [weak self] in
-            guard let self, let permission, isGranted(permission) else { return }
-            close()
-        }
+        tracker.onPoll = { [weak self] in self?.refreshPermission() }
         tracker.onSettingsClosed = { [weak self] in self?.close() }
         activationObserver = NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.didActivateApplicationNotification)
@@ -80,18 +78,30 @@ final class PermissionGuide {
             }
     }
 
+    func refreshPermission() {
+        guard let permission, isGranted(permission) else { return }
+        let notifyGranted = onGranted
+        close()
+        notifyGranted?()
+    }
+
     func authorize(
         _ permission: Permission,
         owner: AnyObject? = nil,
-        returningTo application: NSRunningApplication? = NSWorkspace.shared.frontmostApplication
+        returningTo application: NSRunningApplication? = NSWorkspace.shared.frontmostApplication,
+        onGranted: (() -> Void)? = nil
     ) {
         if self.permission == nil {
             previousApplication = application
         }
         close()
-        guard !isGranted(permission) else { return }
+        guard !isGranted(permission) else {
+            onGranted?()
+            return
+        }
         self.owner = owner
         self.permission = permission
+        self.onGranted = onGranted
         isWaiting = true
         openingFailed = false
         didAttach = false
@@ -197,6 +207,7 @@ final class PermissionGuide {
         tracker.stop()
         owner = nil
         permission = nil
+        onGranted = nil
         panel?.orderOut(nil)
         if returnToPreviousApp {
             previousApplication?.activate(options: [.activateAllWindows])

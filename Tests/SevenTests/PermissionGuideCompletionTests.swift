@@ -9,7 +9,7 @@ final class PermissionGuideCompletionTests: XCTestCase {
         var onSettingsClosed: (() -> Void)?
         var onPoll: (() -> Void)?
         var running = false
-        let started = XCTestExpectation(description: "开始跟踪授权页")
+        var started = XCTestExpectation(description: "开始跟踪授权页")
         func start() { running = true; started.fulfill() }
         func stop() { running = false }
     }
@@ -30,5 +30,47 @@ final class PermissionGuideCompletionTests: XCTestCase {
             XCTAssertFalse(tracker.running)
             guide.close()
         }
+    }
+
+    func testClosingSettingsDiscardsRequestAndCurrentGrantCompletesOnce() async {
+        let tracker = Tracker()
+        var granted = false
+        let guide = PermissionGuide(tracker: tracker, openPane: { _ in true }, isGranted: { _ in granted })
+        var completions: [String] = []
+        guide.authorize(.accessibility, onGranted: { completions.append("previous") })
+        await fulfillment(of: [tracker.started], timeout: 2)
+        tracker.onSettingsClosed?()
+        XCTAssertFalse(tracker.running)
+        XCTAssertTrue(completions.isEmpty)
+
+        tracker.started = XCTestExpectation(description: "跟踪下一次授权")
+        guide.authorize(.accessibility, onGranted: { completions.append("current") })
+        await fulfillment(of: [tracker.started], timeout: 2)
+        granted = true
+        tracker.onPoll?()
+        tracker.onPoll?()
+        guide.close()
+        XCTAssertEqual(completions, ["current"])
+    }
+
+    func testRefreshCompletesManualGrantWhenOpeningSettingsFailed() async {
+        let tracker = Tracker()
+        let triedOpening = expectation(description: "尝试打开系统设置")
+        var granted = false
+        let guide = PermissionGuide(tracker: tracker, openPane: { _ in
+            triedOpening.fulfill()
+            return false
+        }, isGranted: { _ in granted })
+        var completions = 0
+        guide.authorize(.accessibility, onGranted: { completions += 1 })
+        await fulfillment(of: [triedOpening], timeout: 2)
+        XCTAssertFalse(tracker.running)
+        guide.refreshPermission()
+        XCTAssertEqual(completions, 0)
+
+        granted = true
+        guide.refreshPermission()
+        guide.refreshPermission()
+        XCTAssertEqual(completions, 1)
     }
 }

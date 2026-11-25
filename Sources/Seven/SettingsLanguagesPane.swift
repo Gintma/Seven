@@ -23,7 +23,7 @@ extension SettingsView {
                 }
             }
             SettingsGroup(L10n.text("translateScreenshot")) {
-                SettingsToggleRow(L10n.text("smartSelection"), isOn: $translationSmartSelectionEnabled, explanation: L10n.text("detectInterfaceElementsAutomatically"))
+                smartSelectionToggle($translationSmartSelectionEnabled)
             }
             SettingsGroup(L10n.text("favoriteLanguages")) {
                 SettingsCommonLanguages(model: model)

@@ -33,7 +33,7 @@ extension SettingsView {
                 SettingsToggleRow(L10n.text("showScreenshotShortcuts"),isOn:$showScreenshotHints,explanation:L10n.text("showsAShortcutCardInTheLower"))
             }
             SettingsGroup(L10n.text("actions")) {
-                SettingsToggleRow(L10n.text("smartSelection"),isOn:$smartSelectionEnabled,explanation:L10n.text("detectInterfaceElementsAutomatically"))
+                smartSelectionToggle($smartSelectionEnabled)
                 SettingsPickerRow(L10n.text("doubleClick"),selection:$screenshotDoubleClick) {ForEach(ScreenshotDoubleClickAction.allCases){Text($0.title).tag($0)}}
             }
         }.onChange(of:screenshotSaveLocation) {oldValue,newValue in

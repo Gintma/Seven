@@ -39,7 +39,9 @@ enum FrozenCapturePurpose: String {
     var isTextSelection: Bool { self == .translation || self == .ocr }
     var previousAreaKey: String { self == .screenshot ? "screenshotPreviousArea.v1" : "\(rawValue).previousArea.v1" }
     var smartSelectionKey: String { isTextSelection ? "\(rawValue).smartSelection.v1" : ScreenshotToolPreferences.smartSelectionKey }
-    func smartSelectionEnabled(in defaults: UserDefaults) -> Bool { defaults.object(forKey: smartSelectionKey) as? Bool ?? true }
+    func smartSelectionEnabled(in defaults: UserDefaults, accessibilityGranted: Bool) -> Bool {
+        accessibilityGranted && (defaults.object(forKey: smartSelectionKey) as? Bool ?? true)
+    }
     func permits(_ command: FrozenSelectionCommand) -> Bool {
         if self == .scroll { return command != .copyColor }
         return !isTextSelection || command == .cancel || command == .previousArea
@@ -76,6 +78,7 @@ final class FrozenScreenshotCaptureCoordinator {
     typealias Completion = (Result<NSImage, ScreenshotTranslationError>) -> Void
     private let capture: FrozenScreenshotCapturing
     private let hasPermission: () -> Bool
+    private let hasAccessibilityPermission: () -> Bool
     private let defaults: UserDefaults
     private let windowCapture: IndependentWindowCapturing
     private let windowCandidatesProvider: (() -> [FrozenWindowCandidate])?
@@ -98,11 +101,13 @@ final class FrozenScreenshotCaptureCoordinator {
          hasPermission: @escaping () -> Bool = CGPreflightScreenCaptureAccess,
          defaults: UserDefaults = .standard,
          windowCapture: IndependentWindowCapturing? = nil,
-         windowCandidatesProvider: (() -> [FrozenWindowCandidate])? = nil) {
+         windowCandidatesProvider: (() -> [FrozenWindowCandidate])? = nil,
+         hasAccessibilityPermission: @escaping () -> Bool = { SelectionReader.isAccessibilityTrusted }) {
         self.windowCandidatesProvider = windowCandidatesProvider
         self.windowCapture = windowCapture ?? SystemIndependentWindowCapture()
         self.capture = capture ?? SystemFrozenScreenshotCapture()
         self.hasPermission = hasPermission
+        self.hasAccessibilityPermission = hasAccessibilityPermission
         self.defaults = defaults
     }
 
@@ -128,6 +133,7 @@ final class FrozenScreenshotCaptureCoordinator {
             candidates = FrozenWindowCandidate.candidates(from: windowInfo, primaryScreenTop: NSScreen.screens.first?.frame.maxY ?? 0, includingWindowIDs: translationWindows)
         }
         multiSelection = FrozenMultiWindowSelection()
+        let smartSelectionEnabled = purpose.smartSelectionEnabled(in: defaults, accessibilityGranted: hasAccessibilityPermission())
         for frame in frames {
             let panel = FrozenSelectionPanel(contentRect: frame.screenFrame,
                                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
@@ -139,7 +145,7 @@ final class FrozenScreenshotCaptureCoordinator {
             panel.acceptsMouseMovedEvents = true
             panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             panel.contentView = FrozenSelectionView(frame: CGRect(origin: .zero, size: frame.screenFrame.size), image: frame.image,
-                                                   screenFrame: frame.screenFrame, candidates: candidates, smartSelectionEnabled: purpose.smartSelectionEnabled(in: defaults), outputCornerRadius: purpose.isTextSelection ? 0 : ScreenshotToolPreferences(defaults: defaults).outputCornerRadius,capturePreferences:ScreenshotCapturePreferences(defaults:defaults), purpose: purpose,
+                                                   screenFrame: frame.screenFrame, candidates: candidates, smartSelectionEnabled: smartSelectionEnabled, outputCornerRadius: purpose.isTextSelection ? 0 : ScreenshotToolPreferences(defaults: defaults).outputCornerRadius,capturePreferences:ScreenshotCapturePreferences(defaults:defaults), purpose: purpose,
                                                    fullScreen: { [weak self] in
                 self?.finishArea(CGRect(origin: .zero, size: frame.screenFrame.size), in: frame, token: token)
             }, previousArea: { [weak self] in

@@ -57,10 +57,13 @@ extension OCRCapturePurposeTests {
             defaults.set(screenshot, forKey: ScreenshotToolPreferences.smartSelectionKey)
             defaults.set(ocr, forKey: FrozenCapturePurpose.ocr.smartSelectionKey)
             defaults.set(translation, forKey: FrozenCapturePurpose.translation.smartSelectionKey)
-            XCTAssertEqual(FrozenCapturePurpose.screenshot.smartSelectionEnabled(in: defaults), screenshot)
-            XCTAssertEqual(FrozenCapturePurpose.scroll.smartSelectionEnabled(in: defaults), screenshot)
-            XCTAssertEqual(FrozenCapturePurpose.ocr.smartSelectionEnabled(in: defaults), ocr)
-            XCTAssertEqual(FrozenCapturePurpose.translation.smartSelectionEnabled(in: defaults), translation)
+            XCTAssertEqual(FrozenCapturePurpose.screenshot.smartSelectionEnabled(in: defaults, accessibilityGranted: true), screenshot)
+            XCTAssertEqual(FrozenCapturePurpose.scroll.smartSelectionEnabled(in: defaults, accessibilityGranted: true), screenshot)
+            XCTAssertEqual(FrozenCapturePurpose.ocr.smartSelectionEnabled(in: defaults, accessibilityGranted: true), ocr)
+            XCTAssertEqual(FrozenCapturePurpose.translation.smartSelectionEnabled(in: defaults, accessibilityGranted: true), translation)
+            for purpose in [FrozenCapturePurpose.screenshot, .scroll, .ocr, .translation] {
+                XCTAssertFalse(purpose.smartSelectionEnabled(in: defaults, accessibilityGranted: false))
+            }
         }
     }
 }
