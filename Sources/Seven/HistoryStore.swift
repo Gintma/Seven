@@ -165,10 +165,11 @@ final class HistoryStore: ObservableObject {
         notifyBrowser()
     }
 
-    func clearHistory() {
+    func clear(_ collection: HistoryCollection) {
+        let archive = archive(for: collection)
         // Resolve the recovery target before writing even if the browser has never opened.
-        _ = historyArchive.records
-        historyArchive.replace(with: [])
+        _ = archive.records
+        archive.replace(with: [])
         notifyBrowser()
     }
 

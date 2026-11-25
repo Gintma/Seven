@@ -39,6 +39,8 @@ enum HistoryCollection: String, CaseIterable, Identifiable {
     var icon: String { self == .history ? "clock" : "star" }
     var emptyMessage: String { L10n.text(self == .history ? "noHistoryYet" : "history.noFavorites") }
     var exportNameKey: String { self == .history ? "sevenHistory" : "history.favoritesExportName" }
+    var clearTitle: String { L10n.text(self == .history ? "clearHistory" : "history.clearFavorites") }
+    var clearConfirmation: String { L10n.text(self == .history ? "clearAllHistory" : "history.clearAllFavorites") }
 }
 
 enum HistoryRetention: Int, CaseIterable {

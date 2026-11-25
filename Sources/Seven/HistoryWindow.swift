@@ -132,6 +132,7 @@ struct HistoryView: View {
     @State private var collection: HistoryCollection = .history
     @State private var pendingDeletion: PendingDeletion?
     @State private var showingDelete = false
+    @State private var pendingClear: HistoryCollection?
     @State private var confirmingClear = false
 
     init(store: HistoryStore, speech: SpeechController, themeManager: ThemeManager? = nil) {
@@ -219,12 +220,13 @@ struct HistoryView: View {
                 } label: { Label(L10n.text("export"), systemImage: "square.and.arrow.up") }
                 .disabled(!hasRecords)
 
-                if collection == .history {
-                    Button(role: .destructive) { confirmingClear = true } label: {
-                        Label(L10n.text("clearHistory"), systemImage: "trash")
-                    }
-                    .disabled(!hasRecords)
+                Button(role: .destructive) {
+                    pendingClear = collection
+                    confirmingClear = true
+                } label: {
+                    Label(collection.clearTitle, systemImage: "trash")
                 }
+                .disabled(!hasRecords)
             }
         }
         .alert(
@@ -234,8 +236,11 @@ struct HistoryView: View {
             Button(L10n.text("delete"), role: .destructive) { store.delete(pending.id, from: pending.collection) }
             Button(L10n.text("cancel"), role: .cancel) {}
         }
-        .alert(L10n.text("clearAllHistory"), isPresented: $confirmingClear) {
-            Button(L10n.text("clearHistory"), role: .destructive) { store.clearHistory() }
+        .alert(
+            (pendingClear ?? collection).clearConfirmation,
+            isPresented: $confirmingClear, presenting: pendingClear
+        ) { pending in
+            Button(pending.clearTitle, role: .destructive) { store.clear(pending) }
             Button(L10n.text("cancel"), role: .cancel) {}
         }
         .onChange(of: current?.id, initial: true) { _, currentID in

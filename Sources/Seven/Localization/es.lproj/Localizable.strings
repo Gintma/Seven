@@ -259,6 +259,8 @@
 "hideOriginalImage" = "Ocultar imagen original";
 "high" = "Alto";
 "hindi" = "Hindi";
+"history.clearAllFavorites" = "¿Borrar todos los favoritos?";
+"history.clearFavorites" = "Borrar favoritos";
 "history.deleteFavorite" = "¿Quitar este favorito?";
 "history.favorites" = "Favoritos";
 "history.favoritesExportName" = "Favoritos de Seven.%1$@";

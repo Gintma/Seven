@@ -139,12 +139,41 @@ final class HistoryStoreTests: XCTestCase {
             store.toggleFavorite(second)
             XCTAssertEqual(store.records.map(\.id), [second])
 
-            store.clearHistory()
+            store.clear(.history)
             let current = HistoryStore(fileURL: url, defaults: defaults)
             XCTAssertTrue(current.records.isEmpty)
             XCTAssertEqual(current.records(in: .favorites).map(\.id), [first])
             current.toggleFavorite(first)
             XCTAssertTrue(current.records(in: .favorites).isEmpty)
+        }
+    }
+
+    func testClearingFavoritesPreservesHistoryAndLateResultsDoNotRestoreFavorites() throws {
+        try withHistoryDirectory { directory, defaults in
+            let url = directory.appendingPathComponent("history.json")
+            let store = HistoryStore(fileURL: url, defaults: defaults)
+            let favoriteOnly = try XCTUnwrap(store.addFixture(sourceText: "Favorite only", translatedText: "只有收藏"))
+            store.toggleFavorite(favoriteOnly.id)
+            store.delete(favoriteOnly.id, from: .history)
+            let shared = try XCTUnwrap(store.addFixture(sourceText: "History record", translatedText: "历史记录"))
+            store.toggleFavorite(shared.id)
+            XCTAssertEqual(store.records(in: .favorites).map(\.id), [shared.id, favoriteOnly.id])
+            let historyFile = try Data(contentsOf: url)
+
+            store.clear(.favorites)
+
+            XCTAssertTrue(store.records(in: .favorites).isEmpty)
+            XCTAssertEqual(store.records.map(\.id), [shared.id])
+            XCTAssertEqual(try Data(contentsOf: url), historyFile)
+
+            let result = TranslationRecord.Result(providerID: .youdao, providerName: "Youdao", translatedText: "另一份结果")
+            store.updateRecord(shared, result: result, providerOrder: [.google, .youdao])
+            store.updateRecord(favoriteOnly, result: result, providerOrder: [.google, .youdao])
+
+            let reloaded = HistoryStore(fileURL: url, defaults: defaults)
+            XCTAssertEqual(reloaded.records.map(\.id), [shared.id])
+            XCTAssertEqual(reloaded.records.first?.results.map(\.providerID), [.google, .youdao])
+            XCTAssertTrue(reloaded.records(in: .favorites).isEmpty)
         }
     }
 
@@ -202,7 +231,7 @@ final class HistoryStoreTests: XCTestCase {
             XCTAssertEqual(store.records.first?.results.map(\.providerID), providerOrder)
             XCTAssertEqual(store.records.first?.createdAt, next)
             XCTAssertEqual(store.records(in: .favorites), favorites)
-            store.clearHistory()
+            store.clear(.history)
             store.updateRecord(original, result: other, providerOrder: providerOrder)
             XCTAssertTrue(store.records.isEmpty)
             XCTAssertEqual(store.records(in: .favorites).first?.results.map(\.providerID), providerOrder)

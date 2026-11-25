@@ -259,6 +259,8 @@
 "hideOriginalImage" = "元の画像を隠す";
 "high" = "高";
 "hindi" = "ヒンディー語";
+"history.clearAllFavorites" = "すべてのお気に入りを消去しますか？";
+"history.clearFavorites" = "お気に入りを消去";
 "history.deleteFavorite" = "このお気に入りを削除しますか？";
 "history.favorites" = "お気に入り";
 "history.favoritesExportName" = "Seven お気に入り.%1$@";

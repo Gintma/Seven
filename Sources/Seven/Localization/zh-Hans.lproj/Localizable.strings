@@ -259,6 +259,8 @@
 "hideOriginalImage" = "隐藏原图";
 "high" = "高";
 "hindi" = "印地语";
+"history.clearAllFavorites" = "清空全部收藏？";
+"history.clearFavorites" = "清空收藏夹";
 "history.deleteFavorite" = "移除这条收藏？";
 "history.favorites" = "收藏夹";
 "history.favoritesExportName" = "Seven 收藏夹.%1$@";

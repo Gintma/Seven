@@ -259,6 +259,8 @@
 "hideOriginalImage" = "원본 이미지 가리기";
 "high" = "높음";
 "hindi" = "힌디어";
+"history.clearAllFavorites" = "모든 즐겨찾기를 지울까요?";
+"history.clearFavorites" = "즐겨찾기 지우기";
 "history.deleteFavorite" = "이 즐겨찾기를 삭제할까요?";
 "history.favorites" = "즐겨찾기";
 "history.favoritesExportName" = "Seven 즐겨찾기.%1$@";
