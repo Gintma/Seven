@@ -544,6 +544,44 @@ extension HistoryStoreTests {
         XCTAssertEqual(window.frame.size, resized)
     }
 
+    func testHistoryWindowRejectsWidthAndHeightBelowMinimumDuringResize() async throws {
+        _ = NSApplication.shared
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        let frameName = UUID().uuidString
+        let store = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
+        store.addFixture(sourceText: "The library opens at nine.", translatedText: "图书馆九点开门。")
+        let controller = HistoryWindowController(
+            store: store, speech: SpeechController(settings: SettingsStore(defaults: defaults)), frameName: frameName
+        )
+        controller.showWindow(nil)
+        let window = try XCTUnwrap(controller.window)
+        defer {
+            controller.close()
+            NSWindow.removeFrame(usingName: frameName)
+            try? FileManager.default.removeItem(at: directory)
+        }
+        try await Task.sleep(for: .milliseconds(50))
+
+        let minimum = Design.History.minimumSize
+        for proposed in [
+            NSSize(width: minimum.width - 80, height: minimum.height + 60),
+            NSSize(width: minimum.width + 80, height: minimum.height - 60)
+        ] {
+            let frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: proposed))
+            let resized = window.delegate?.windowWillResize?(window, to: frame.size) ?? frame.size
+            let accepted = window.contentRect(forFrameRect: NSRect(origin: .zero, size: resized)).size
+            XCTAssertEqual(accepted.width, max(proposed.width, minimum.width))
+            XCTAssertEqual(accepted.height, max(proposed.height, minimum.height))
+
+            window.setContentSize(proposed)
+            window.layoutIfNeeded()
+            let actual = window.contentRect(forFrameRect: window.frame).size
+            XCTAssertEqual(actual.width, max(proposed.width, minimum.width))
+            XCTAssertEqual(actual.height, max(proposed.height, minimum.height))
+        }
+    }
+
     func testHistoryWindowRecoversFromPersistedUndersizedFrame() throws {
         _ = NSApplication.shared
         try withHistoryDirectory { directory, defaults in
@@ -562,8 +600,8 @@ extension HistoryStoreTests {
             defer { controller.close() }
             let window = try XCTUnwrap(controller.window)
             let size = window.contentRect(forFrameRect: window.frame).size
-            XCTAssertGreaterThanOrEqual(size.width, window.contentMinSize.width)
-            XCTAssertGreaterThanOrEqual(size.height, window.contentMinSize.height)
+            XCTAssertGreaterThanOrEqual(size.width, Design.History.minimumSize.width)
+            XCTAssertGreaterThanOrEqual(size.height, Design.History.minimumSize.height)
         }
     }
 

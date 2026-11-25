@@ -31,9 +31,14 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
             // AppKit owns the frame, including while the browser releases its SwiftUI content.
             host.sizingOptions = []
             window.contentView = host
+            let minimum = Design.History.minimumSize
+            // Auto Layout windows use content constraints in addition to the window size properties.
+            NSLayoutConstraint.activate([
+                host.widthAnchor.constraint(greaterThanOrEqualToConstant: minimum.width),
+                host.heightAnchor.constraint(greaterThanOrEqualToConstant: minimum.height)
+            ])
 
             window.setFrameAutosaveName(frameName)
-            let minimum = Design.History.minimumSize
             if !window.setFrameUsingName(frameName) ||
                 window.frame.width < minimum.width || window.frame.height < minimum.height {
                 window.setContentSize(Design.History.windowSize)
@@ -62,6 +67,11 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
     override func showWindow(_ sender: Any?) {
         store.setBrowsing(true)
         super.showWindow(sender)
+    }
+
+    func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        let minimum = sender.frameRect(forContentRect: NSRect(origin: .zero, size: Design.History.minimumSize)).size
+        return NSSize(width: max(frameSize.width, minimum.width), height: max(frameSize.height, minimum.height))
     }
 
     func windowWillClose(_ notification: Notification) {

@@ -31,8 +31,8 @@ struct HistoryRecordDetail: View {
             }
             .font(.callout)
             .buttonStyle(.borderless)
-            .padding(Design.Layout.pageInset)
-            ThemedDivider()
+            .padding(.horizontal, Design.Layout.pageInset)
+            .padding(.vertical, Design.Space.m)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Design.Space.m) {
                     HistoryTextCard(
@@ -48,7 +48,9 @@ struct HistoryRecordDetail: View {
                         )
                     }
                 }
-                .padding(Design.Layout.pageInset)
+                .padding(.horizontal, Design.Layout.pageInset)
+                .padding(.top, Design.Space.xs)
+                .padding(.bottom, Design.Layout.pageInset)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
