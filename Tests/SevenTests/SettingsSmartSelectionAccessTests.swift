@@ -29,6 +29,24 @@ final class SettingsSmartSelectionAccessTests: XCTestCase {
         XCTAssertTrue(preference)
     }
 
+    func testBindingReadsUpdatedPermissionImmediatelyAfterWriting() {
+        var trusted = false
+        var preference = false
+        let access = SettingsSmartSelectionAccess(isTrusted: { trusted }, requestPermission: { _ in
+            XCTFail("已经授权，无需再次发起授权请求")
+        })
+        let saved = Binding(get: { preference }, set: { preference = $0 })
+        let binding = access.binding(for: saved)
+        XCTAssertFalse(binding.wrappedValue)
+
+        trusted = true
+        binding.wrappedValue = true
+
+        XCTAssertTrue(access.isGranted)
+        XCTAssertTrue(preference)
+        XCTAssertTrue(binding.wrappedValue, "同一个绑定应立即读取刷新后的权限")
+    }
+
     func testOnlyConfirmedPendingSwitchChangesAndRequiresActualGrant() {
         var trusted = false
         var screenshot = false

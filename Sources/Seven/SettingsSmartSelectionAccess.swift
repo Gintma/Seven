@@ -31,8 +31,9 @@ final class SettingsSmartSelectionAccess {
     }
 
     func binding(for preference: Binding<Bool>) -> Binding<Bool> {
-        let granted = isGranted
-        return Binding(get: { granted && preference.wrappedValue }, set: { enabled in
+        // 在构建绑定时登记权限状态的 Observation 依赖。
+        let _ = isGranted
+        return Binding(get: { self.isGranted && preference.wrappedValue }, set: { enabled in
             self.refresh()
             if self.isGranted {
                 preference.wrappedValue = enabled
