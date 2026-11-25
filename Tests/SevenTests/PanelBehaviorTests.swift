@@ -326,12 +326,12 @@ extension PanelBehaviorTests {
         }
 
         model.presentSelectionError(.copyTimedOut)
-        issueView.applyModel(animated: false)
+        issueView.applyModel()
         XCTAssertFalse(issueView.isHidden)
         XCTAssertFalse(visibleRetry(in: issueView))
 
         model.presentScreenshotError(.noText)
-        issueView.applyModel(animated: false)
+        issueView.applyModel()
         XCTAssertFalse(issueView.isHidden)
         XCTAssertFalse(visibleRetry(in: issueView))
         XCTAssertEqual(model.input, "Previous source")
@@ -342,16 +342,79 @@ extension PanelBehaviorTests {
         let issueView = AppKitGlobalIssueView(model: model)
         issueView.frame.size.width = TranslationPanelSize.minimumWidth
         model.issue = .verbatim("Unavailable.")
-        issueView.applyModel(animated: false)
+        issueView.applyModel()
         let singleLineHeight = issueView.preferredHeight
 
         model.issue = .verbatim("The target application did not return any text.")
-        issueView.applyModel(animated: false)
+        issueView.applyModel()
         XCTAssertEqual(issueView.preferredHeight, singleLineHeight, "Space without actions is available for the message")
 
         model.issue = .verbatim(String(repeating: "The target application did not return any text. ", count: 4))
-        issueView.applyModel(animated: false)
+        issueView.applyModel()
         XCTAssertGreaterThan(issueView.preferredHeight, singleLineHeight)
+    }
+
+    func testFirstIssueInVisiblePanelMeasuresAtAvailableContentWidth() throws {
+        let model = try panelModel()
+        let panel = TranslationPanel(model: model)
+        let host = NSView()
+        panel.contentView = host
+        panel.orderFront(nil)
+        defer { panel.orderOut(nil); model.cancel() }
+
+        let issue = AppKitGlobalIssueView(model: model)
+        host.addSubview(issue)
+        XCTAssertTrue(panel.isVisible)
+        XCTAssertEqual(issue.bounds.width, 0)
+        XCTAssertTrue(issue.isHidden)
+        model.issue = .verbatim(String(repeating: "The target application did not provide the selected text. ", count: 4))
+        let reference = AppKitGlobalIssueView(model: model)
+        reference.frame.size.width = host.bounds.width
+        reference.applyModel()
+        XCTAssertGreaterThan(reference.preferredHeight, 40)
+
+        issue.applyModel(availableWidth: host.bounds.width)
+
+        XCTAssertFalse(issue.isHidden)
+        XCTAssertEqual(issue.preferredHeight, reference.preferredHeight, accuracy: 0.5)
+    }
+
+    func testIssueHeightUsesNewWidthAfterPanelAnimation() async throws {
+        let model = try panelModel()
+        let panel = TranslationPanel(model: model)
+        let controller = AppKitTranslationViewController(model: model)
+        panel.contentViewController = controller
+        panel.setContentSize(NSSize(width: 560, height: 350))
+        panel.orderFront(nil)
+        defer { panel.orderOut(nil); model.cancel() }
+        controller.view.layoutSubtreeIfNeeded()
+        controller.reloadFromModel(animated: false)
+
+        let scroll = try XCTUnwrap(controller.view.subviews.compactMap { $0 as? NSScrollView }.first)
+        let stack = try XCTUnwrap(scroll.documentView?.subviews.compactMap { $0 as? NSStackView }.first)
+        let issue = try XCTUnwrap(stack.arrangedSubviews.compactMap { $0 as? AppKitGlobalIssueView }.first)
+        let originalWidth = stack.bounds.width
+        XCTAssertTrue(panel.isVisible)
+        XCTAssertTrue(issue.isHidden)
+        model.issue = .verbatim(String(repeating: "The target application did not provide the selected text. ", count: 6))
+        let widthChanged = expectation(description: "width changes during the layout transaction")
+        let animationFinished = expectation(description: "issue animation finishes")
+        controller.onPreferredPanelHeightChange = { _ in
+            controller.onPreferredPanelHeightChange = nil
+            var frame = panel.frame
+            frame.size.width = TranslationPanelSize.minimumWidth
+            panel.setFrame(frame, display: false)
+            widthChanged.fulfill()
+        }
+        controller.reloadFromModel(animated: true) { animationFinished.fulfill() }
+        await fulfillment(of: [widthChanged, animationFinished], timeout: 2)
+
+        XCTAssertLessThan(stack.bounds.width, originalWidth)
+        let reference = AppKitGlobalIssueView(model: model)
+        reference.frame.size.width = stack.bounds.width
+        reference.applyModel()
+        XCTAssertEqual(issue.preferredHeight, reference.preferredHeight, accuracy: 0.5)
+        XCTAssertEqual(issue.renderedHeight, reference.preferredHeight, accuracy: 0.5)
     }
 
     func testServiceIssueFitsBothActionsAtMinimumWidth() throws {

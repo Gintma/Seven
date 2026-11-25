@@ -15,12 +15,11 @@ final class AppKitGlobalIssueView: LayerBackedView, ThemeApplying {
     private let recoveryButton = NSButton(title: "", target: nil, action: nil)
     private let actions = NSStackView()
     private var messageTrailing: NSLayoutConstraint!
-    private var heightConstraint: NSLayoutConstraint!
+    private(set) var heightConstraint: NSLayoutConstraint!
     private var measuredWidth: CGFloat = 0
-    var layoutHeightConstraints: [NSLayoutConstraint] { [heightConstraint] }
     var renderedHeight: CGFloat { heightConstraint.constant }
     private(set) var preferredHeight: CGFloat = 0
-    var onPreferredHeightChange: ((CGFloat, Bool) -> Void)?
+    var onPreferredHeightChange: ((CGFloat) -> Void)?
 
     init(model: TranslationModel) {
         self.model = model
@@ -72,7 +71,7 @@ final class AppKitGlobalIssueView: LayerBackedView, ThemeApplying {
             messageBottom
         ])
         ThemeManager.shared.register(self)
-        applyModel(animated: false)
+        applyModel()
     }
 
     func applyTheme(_ palette: ThemePalette) {
@@ -92,8 +91,7 @@ final class AppKitGlobalIssueView: LayerBackedView, ThemeApplying {
         icon.image?.accessibilityDescription = L10n.text("warning")
     }
 
-    @discardableResult
-    func applyModel(animated: Bool) -> Bool {
+    func applyModel(availableWidth: CGFloat? = nil) {
         let issue = model.serviceResults.isEmpty ? model.errorMessage : nil
         message.stringValue = issue ?? ""
         retryButton.isHidden = !model.canRetryGlobalIssue
@@ -101,12 +99,14 @@ final class AppKitGlobalIssueView: LayerBackedView, ThemeApplying {
         recoveryButton.isHidden = model.recoveryTitle == nil
         actions.isHidden = retryButton.isHidden && recoveryButton.isHidden
         isHidden = issue == nil
-        return updateHeight(animated: animated)
+        let width = availableWidth ?? bounds.width
+        let defaultWidth = TranslationPanelSize.defaultWidth - 2 * Design.Space.l
+        let resolvedWidth = width.isFinite && width > 1 ? width : defaultWidth
+        updateHeight(at: resolvedWidth)
     }
 
-    @discardableResult
-    private func updateHeight(animated: Bool) -> Bool {
-        measuredWidth = bounds.width
+    private func updateHeight(at width: CGFloat) {
+        measuredWidth = width
         let next: CGFloat
         if isHidden {
             next = 0
@@ -116,26 +116,29 @@ final class AppKitGlobalIssueView: LayerBackedView, ThemeApplying {
                 ? Design.Space.blockInset
                 : Design.Space.iconButtonEdge + buttonSizes.reduce(0) { $0 + $1.width + actions.spacing }
             let textLeading = Design.Space.blockInset + Self.iconSize + Design.Space.s
-            let textWidth = max(1, measuredWidth - textLeading - actionsInset)
+            let textWidth = max(0, width - textLeading - actionsInset)
             messageTrailing.constant = -actionsInset
             message.preferredMaxLayoutWidth = textWidth
             let textBounds = NSRect(x: 0, y: 0, width: textWidth, height: .greatestFiniteMagnitude)
-            let textHeight = ceil(message.cell?.cellSize(forBounds: textBounds).height ?? 0)
+            let textHeight = textWidth > 0 ? ceil(message.cell?.cellSize(forBounds: textBounds).height ?? 0) : 0
             let messageBottom = Design.Space.m + max(Self.iconSize, textHeight)
             let actionsBottom = Design.Space.s + (buttonSizes.map(\.height).max() ?? 0)
             next = max(messageBottom, actionsBottom) + Design.Space.blockInset
         }
         let changed = abs(preferredHeight - next) > 0.5
         preferredHeight = next
-        heightConstraint.constant = next
-        if changed { onPreferredHeightChange?(next, animated) }
-        return changed
+        if let onPreferredHeightChange {
+            if changed { onPreferredHeightChange(next) }
+        } else {
+            heightConstraint.constant = next
+        }
     }
 
     override func layout() {
         super.layout()
-        if !isHidden, abs(bounds.width - measuredWidth) > 0.5 {
-            updateHeight(animated: false)
+        let width = bounds.width
+        if !isHidden, width.isFinite, width > 1, abs(width - measuredWidth) > 0.5 {
+            updateHeight(at: width)
         }
     }
 
