@@ -124,6 +124,14 @@ class ThemedDrawingView: NSView, ThemeApplying {
 }
 
 extension NSTextField {
+    func requestFocusAfterAttachingToWindow() {
+        guard let window else { return }
+        DispatchQueue.main.async { [weak self, weak window] in
+            guard let self, let window, self.window === window, isEnabled else { return }
+            window.makeFirstResponder(self)
+        }
+    }
+
     func applyTheme(_ palette: ThemePalette, placeholder: String) {
         textColor = palette.isSystem ? ThemePalette.nativeControlInk : palette.ink
         backgroundColor = palette.surfaceInset

@@ -26,6 +26,8 @@ struct SettingsEditableTextField: NSViewRepresentable {
         let field: NSTextField
         if case .key(revealed: false) = style {
             field = NSSecureTextField()
+        } else if autofocus {
+            field = AutofocusingTextField()
         } else {
             field = NSTextField()
         }
@@ -33,6 +35,7 @@ struct SettingsEditableTextField: NSViewRepresentable {
         field.controlSize = .regular
         field.font = Design.Settings.controlFont
         field.bezelStyle = .roundedBezel
+        field.focusRingType = .none
         if case .key = style {
             field.maximumNumberOfLines = 2
             field.lineBreakMode = .byCharWrapping
@@ -43,7 +46,6 @@ struct SettingsEditableTextField: NSViewRepresentable {
             field.cell?.isScrollable = true
             field.cell?.usesSingleLineMode = true
         }
-        context.coordinator.focusRing = SettingsFieldFocusRing(editor: field, in: field, autofocus: autofocus)
         return field
     }
 
@@ -52,7 +54,6 @@ struct SettingsEditableTextField: NSViewRepresentable {
         field.isEnabled = isEnabled
         field.setAccessibilityLabel(title)
         field.applyTheme(theme, placeholder: placeholder)
-        context.coordinator.focusRing?.applyTheme(theme)
         let hasMarkedText = (field.currentEditor() as? NSTextView)?.hasMarkedText() == true
         if !hasMarkedText, field.stringValue != text { field.stringValue = text }
     }
@@ -67,9 +68,15 @@ struct SettingsEditableTextField: NSViewRepresentable {
         nsView.delegate = nil
     }
 
+    private final class AutofocusingTextField: NSTextField {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            requestFocusAfterAttachingToWindow()
+        }
+    }
+
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: SettingsEditableTextField
-        var focusRing: SettingsFieldFocusRing?
 
         init(_ parent: SettingsEditableTextField) { self.parent = parent }
 

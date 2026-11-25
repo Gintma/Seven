@@ -4,8 +4,7 @@ import XCTest
 @testable import Seven
 
 private final class SettingsFocusWindow: NSWindow {
-    var simulatedKeyStatus = true
-    override var isKeyWindow: Bool { simulatedKeyStatus }
+    override var isKeyWindow: Bool { true }
 }
 
 private struct SettingsFocusFixture: View {
@@ -31,15 +30,7 @@ private struct SettingsFocusFixture: View {
 
 @MainActor
 final class SettingsTextFocusTests: XCTestCase {
-    private func waitForFocusRing(_ ring: SettingsFieldFocusRing, visible: Bool) async throws {
-        let deadline = ContinuousClock.now + .seconds(1)
-        while ring.isHidden == visible && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        XCTAssertEqual(ring.isHidden, !visible)
-    }
-
-    func testThemedFocusFollowsSettingsFieldEditorsAndWindowActivation() async throws {
+    func testSettingsTextFieldsKeepKeyboardFocusWithoutFocusRings() async throws {
         _ = NSApplication.shared
         let custom = ThemePreset.resolve("codex", for: .light).palette(for: .light)
         XCTAssertFalse(custom.isSystem)
@@ -48,7 +39,7 @@ final class SettingsTextFocusTests: XCTestCase {
         func fixture(_ palette: ThemePalette) -> SettingsFocusFixture {
             SettingsFocusFixture(palette: palette, onSubmit: { submissions += 1 }, onEndEditing: { ended += 1 })
         }
-        let host = NSHostingView(rootView: fixture(custom))
+        let host = NSHostingView(rootView: fixture(.system))
         let window = SettingsFocusWindow(contentRect: NSRect(x: 0, y: 0, width: 360, height: 320),
                                          styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
@@ -63,38 +54,30 @@ final class SettingsTextFocusTests: XCTestCase {
         let search = try XCTUnwrap(fields.compactMap { $0 as? NSSearchField }.first)
         let prompt = try XCTUnwrap(children.compactMap { ($0 as? SettingsPromptScrollView)?.documentView }.first as? NSTextView)
         let editors: [NSView] = [address, secure, revealed, search, prompt]
-        let containers = [address, secure, revealed, search, try XCTUnwrap(prompt.enclosingScrollView?.superview)] as [NSView]
-        let rings = try containers.map { container in
-            try XCTUnwrap(container.subviews.compactMap { $0 as? SettingsFieldFocusRing }.first)
+        let deadline = ContinuousClock.now + .seconds(1)
+        while search.currentEditor() == nil && ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
         }
-        // 添加语言弹窗原有的自动聚焦，也要在首次键入前显示描边。
-        try await waitForFocusRing(rings[3], visible: true)
-        for (index, editor) in editors.enumerated() {
-            XCTAssertTrue(window.makeFirstResponder(editor))
-            try await waitForFocusRing(rings[index], visible: true)
-            XCTAssertEqual(rings.filter { !$0.isHidden }.count, 1)
-            XCTAssertEqual(editor.focusRingType, .none)
-            if editor === address {
-                let fieldEditor = try XCTUnwrap(address.currentEditor() as? NSTextView)
-                fieldEditor.doCommand(by: #selector(NSResponder.insertNewline(_:)))
-                XCTAssertEqual(submissions, 1)
-            }
-        }
-        XCTAssertEqual(ended, 1)
+        XCTAssertTrue(window.firstResponder === (try XCTUnwrap(search.currentEditor())))
 
-        window.simulatedKeyStatus = false
-        NotificationCenter.default.post(name: NSWindow.didResignKeyNotification, object: window)
-        XCTAssertTrue(rings[4].isHidden)
-        window.simulatedKeyStatus = true
-        NotificationCenter.default.post(name: NSWindow.didBecomeKeyNotification, object: window)
-        XCTAssertFalse(rings[4].isHidden)
-
+        window.recalculateKeyViewLoop()
         XCTAssertTrue(window.makeFirstResponder(address))
-        try await waitForFocusRing(rings[0], visible: true)
-        host.rootView = fixture(.system)
+        let fieldEditor = try XCTUnwrap(address.currentEditor() as? NSTextView)
+        fieldEditor.doCommand(by: #selector(NSResponder.insertNewline(_:)))
+        XCTAssertEqual(submissions, 1)
+        fieldEditor.doCommand(by: #selector(NSResponder.insertTab(_:)))
+        let secureEditor = try XCTUnwrap(secure.currentEditor())
+        XCTAssertTrue(window.firstResponder === secureEditor)
+        XCTAssertEqual(ended, 1)
+        for editor in editors {
+            XCTAssertEqual(editor.focusRingType, .none)
+        }
+
+        host.rootView = fixture(custom)
         host.layoutSubtreeIfNeeded()
-        try await waitForFocusRing(rings[0], visible: false)
-        XCTAssertEqual(address.focusRingType, .default)
-        XCTAssertTrue(window.firstResponder === address.currentEditor())
+        XCTAssertTrue(window.firstResponder === secureEditor)
+        for editor in editors {
+            XCTAssertEqual(editor.focusRingType, .none)
+        }
     }
 }

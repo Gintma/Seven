@@ -11,11 +11,10 @@ struct SettingsPromptEditor: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    func makeNSView(context: Context) -> NSView {
-        let container = NSView()
+    func makeNSView(context: Context) -> SettingsPromptScrollView {
         let scroll = SettingsPromptScrollView()
-        scroll.autoresizingMask = [.width, .height]
         scroll.borderType = .noBorder
+        scroll.focusRingType = .none
         scroll.wantsLayer = true
         scroll.layer?.cornerRadius = Design.Radius.control
         scroll.layer?.masksToBounds = true
@@ -25,6 +24,7 @@ struct SettingsPromptEditor: NSViewRepresentable {
         scroll.autohidesScrollers = true
         scroll.scrollerStyle = .overlay
         let editor = SettingsPromptTextView(frame: scroll.contentView.bounds)
+        editor.focusRingType = .none
         editor.isRichText = false
         editor.importsGraphics = false
         editor.allowsUndo = true
@@ -39,18 +39,14 @@ struct SettingsPromptEditor: NSViewRepresentable {
         editor.font = Design.Settings.controlFont
         editor.delegate = context.coordinator
         scroll.documentView = editor
-        container.addSubview(scroll)
-        context.coordinator.scroll = scroll
-        context.coordinator.focusRing = SettingsFieldFocusRing(editor: editor, in: container)
-        return container
+        return scroll
     }
 
-    func updateNSView(_ container: NSView, context: Context) {
+    func updateNSView(_ scroll: SettingsPromptScrollView, context: Context) {
         context.coordinator.parent = self
-        guard let scroll = context.coordinator.scroll, let editor = scroll.documentView as? SettingsPromptTextView else { return }
+        guard let editor = scroll.documentView as? SettingsPromptTextView else { return }
         scroll.applyTheme(theme)
         editor.isEditable = isEnabled
-        context.coordinator.focusRing?.applyTheme(theme)
         editor.setAccessibilityLabel(accessibilityLabel)
         editor.placeholder = placeholder
         if editor.string != text {
@@ -65,8 +61,6 @@ struct SettingsPromptEditor: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: SettingsPromptEditor
-        weak var scroll: SettingsPromptScrollView?
-        var focusRing: SettingsFieldFocusRing?
         init(_ parent: SettingsPromptEditor) { self.parent = parent }
         func textDidChange(_ notification: Notification) {
             guard let editor = notification.object as? SettingsPromptTextView else { return }

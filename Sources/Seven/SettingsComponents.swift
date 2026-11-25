@@ -665,7 +665,7 @@ struct SettingsLanguageAddition: View {
     }
 }
 
-/// 使用系统搜索框的放大镜、清除按钮与焦点外观。
+/// 使用系统搜索框的放大镜和清除按钮。
 struct SettingsLanguageSearch: NSViewRepresentable {
     @Environment(\.theme) private var theme
     @Environment(\.isEnabled) private var isEnabled
@@ -673,26 +673,31 @@ struct SettingsLanguageSearch: NSViewRepresentable {
     @Binding var text: String
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSSearchField {
-        let field = NSSearchField()
+        let field = SearchField()
+        field.focusRingType = .none
         field.placeholderString = L10n.text("search")
         field.setAccessibilityLabel(L10n.text("searchLanguages"))
         field.sendsSearchStringImmediately = true
         field.sendsWholeSearchString = false
         field.delegate = context.coordinator
-        context.coordinator.focusRing = SettingsFieldFocusRing(editor: field, in: field, autofocus: true)
         return field
     }
     func updateNSView(_ field: NSSearchField, context: Context) {
         field.isEnabled = isEnabled
         field.applyTheme(theme, placeholder: L10n.text("search"))
-        context.coordinator.focusRing?.applyTheme(theme)
         field.setAccessibilityLabel(L10n.text("searchLanguages"))
         context.coordinator.parent = self
         if field.stringValue != text { field.stringValue = text }
     }
+    private final class SearchField: NSSearchField {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            requestFocusAfterAttachingToWindow()
+        }
+    }
+
     final class Coordinator: NSObject, NSSearchFieldDelegate {
         var parent: SettingsLanguageSearch
-        var focusRing: SettingsFieldFocusRing?
         init(_ parent: SettingsLanguageSearch) { self.parent = parent }
         func controlTextDidChange(_ notification: Notification) {
             guard let field = notification.object as? NSSearchField else { return }
