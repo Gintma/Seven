@@ -65,5 +65,5 @@ swift test               # 必须全部通过
 ## 已知注意事项
 
 - 合并前运行 `git branch --show-current`，确认目标工作树位于预期分支。
-- 不同工作树构建的正式包使用同一 Bundle ID。独立试用可用 `./build-app.sh release --variant <name>`，生成带独立 Bundle ID 和凭据目录的 `Seven-<name>.app`。
+- 不同工作树构建的正式包使用同一 Bundle ID。独立试用可用 `./build-app.sh release --variant <name>`，生成带独立 Bundle ID 及凭据、翻译历史和收藏数据目录的 `Seven-<name>.app`。
 - 使用当前的 AppKit 翻译浮窗和截图协调器。禁止恢复已删除的 SwiftUI 浮窗 `TranslationView`、旧 `ScreenshotCaptureCoordinator` 或内置智谱密钥。

@@ -1,16 +1,5 @@
 import Foundation
 
-struct TranslationRecord: Codable, Identifiable, Equatable, Sendable {
-    let id: UUID
-    var sourceText: String
-    var translatedText: String
-    var sourceLanguage: String
-    var targetLanguage: String
-    var mode: TranslationMode
-    var createdAt: Date
-    var isFavorite: Bool
-}
-
 enum HistoryExportFormat {
     case json
     case markdown
@@ -20,128 +9,171 @@ enum HistoryExportFormat {
 
 @MainActor
 final class HistoryStore: ObservableObject {
+    private static let enabledKey = "historyEnabled"
+    static let retentionKey = "historyRetention"
+
     @Published private(set) var revision = 0
+    @Published private(set) var isBrowsing = false
     @Published var isEnabled: Bool {
-        didSet { defaults.set(isEnabled, forKey: enabledKey) }
+        didSet { defaults.set(isEnabled, forKey: Self.enabledKey) }
+    }
+    @Published var retention: HistoryRetention {
+        didSet {
+            guard retention != oldValue else { return }
+            defaults.set(retention.rawValue, forKey: Self.retentionKey)
+            if retention.limit != nil { _ = trimHistoryIfNeeded(notify: true) }
+        }
     }
 
-    private let originalFileURL: URL
-    private var fileURL: URL
     private let defaults: UserDefaults
-    private let enabledKey = "historyEnabled"
-    private let maximumRecords: Int
-    private let logger: () -> DiagnosticLogging
-    private let readData: (URL) throws -> Data
-    private let idleSnapshotLifetime: Duration
-    private var cachedRecords: [TranslationRecord]?
-    private(set) var isBrowsing = false
-    private var hasUnpersistedChanges = false
-    private var idleReleaseTask: Task<Void, Never>?
-    private static let idleBodyBudget = 8 * 1_024 * 1_024
+    private let historyArchive: HistoryArchive
+    private let favoritesArchive: HistoryArchive
 
     init(
         fileURL: URL? = nil,
         defaults: UserDefaults = .standard,
-        maximumRecords: Int = 500,
         logger: @autoclosure @escaping () -> DiagnosticLogging? = nil,
         idleSnapshotLifetime: Duration = .seconds(30),
         readData: @escaping (URL) throws -> Data = { try Data(contentsOf: $0, options: .mappedIfSafe) }
     ) {
-        let directory = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first!.appending(path: "Seven", directoryHint: .isDirectory)
-        let url = fileURL ?? directory.appending(path: "history.json", directoryHint: .checkFileSystem)
-        // Resolve even the default shared logger only when an event is recorded.
-        // Explicit file URLs keep isolated stores away from user diagnostic files.
-        self.logger = { logger() ?? (fileURL == nil ? FileDiagnosticLogger.shared : NoopDiagnosticLogger()) }
-        self.readData = readData
-        self.idleSnapshotLifetime = idleSnapshotLifetime
-        self.originalFileURL = url
-        self.fileURL = url
+        let variant = AppDataPaths.variant(bundleIdentifier: Bundle.main.bundleIdentifier)
+        let url = fileURL ?? AppDataPaths.directory(variant: variant).appending(path: "history.json")
+        let resolveLogger = { logger() ?? (fileURL == nil ? FileDiagnosticLogger.shared : NoopDiagnosticLogger()) }
         self.defaults = defaults
-        self.maximumRecords = maximumRecords
-        self.isEnabled = defaults.object(forKey: enabledKey) as? Bool ?? true
+        self.isEnabled = defaults.object(forKey: Self.enabledKey) as? Bool ?? true
+        self.retention = (defaults.object(forKey: Self.retentionKey) as? Int)
+            .flatMap(HistoryRetention.init(rawValue:)) ?? .fiveHundred
+        historyArchive = HistoryArchive(
+            collection: .history, fileURL: url, logger: resolveLogger,
+            readData: readData, idleSnapshotLifetime: idleSnapshotLifetime
+        )
+        favoritesArchive = HistoryArchive(
+            collection: .favorites, fileURL: url.deletingLastPathComponent().appending(path: "favorites.json"),
+            logger: resolveLogger, readData: readData, idleSnapshotLifetime: idleSnapshotLifetime
+        )
     }
 
-    deinit { idleReleaseTask?.cancel() }
+    var records: [TranslationRecord] { trimHistoryIfNeeded() }
 
-    var records: [TranslationRecord] {
-        if let cachedRecords { return cachedRecords }
-        let loaded = autoreleasepool {
-            Self.load(from: fileURL, logger: logger, readData: readData, allowsRecovery: fileURL == originalFileURL)
-        }
-        fileURL = loaded.url
-        cachedRecords = loaded.records
-        scheduleIdleRelease()
-        return loaded.records
+    // A hidden view may recompute on appearance changes without loading archives.
+    func browsingRecords(in collection: HistoryCollection) -> [TranslationRecord] {
+        if isBrowsing { return records(in: collection) }
+        return archive(for: collection).cachedRecords ?? []
     }
-
-    // 不可见的托管视图仍可因系统外观等原因重算，但只能读已有快照。
-    var browsingRecords: [TranslationRecord] { isBrowsing ? records : cachedRecords ?? [] }
 
     func setBrowsing(_ isBrowsing: Bool) {
         guard self.isBrowsing != isBrowsing else { return }
+        historyArchive.setBrowsing(isBrowsing)
+        favoritesArchive.setBrowsing(isBrowsing)
         self.isBrowsing = isBrowsing
-        scheduleIdleRelease()
         if isBrowsing { revision &+= 1 }
     }
 
-    func add(
+    func records(in collection: HistoryCollection) -> [TranslationRecord] {
+        switch collection {
+        case .history: records
+        case .favorites: favoritesArchive.records
+        }
+    }
+
+    func records(in collection: HistoryCollection, matching search: String) -> [TranslationRecord] {
+        let records = records(in: collection)
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        return query.isEmpty ? records : records.filter { $0.matches(search: query) }
+    }
+
+    /// The first successful service of a new round starts a new snapshot, reusing the
+    /// newest row's identity when its source, target and mode match.
+    @discardableResult
+    func beginRecord(
         sourceText: String,
-        translatedText: String,
         sourceLanguage: String,
         targetLanguage: String,
-        mode: TranslationMode
-    ) {
-        guard isEnabled, !sourceText.isEmpty, !translatedText.isEmpty else { return }
+        mode: TranslationMode,
+        result: TranslationRecord.Result,
+        createdAt: Date = Date()
+    ) -> TranslationRecord.Reference? {
+        guard isEnabled, !sourceText.isEmpty, result.hasContent else { return nil }
         var records = self.records
-        if let first = records.first,
-           first.sourceText == sourceText,
-           first.translatedText == translatedText,
-           first.targetLanguage == targetLanguage,
-           first.mode == mode {
-            records[0].createdAt = Date()
+        let previous = records.first.flatMap { first in
+            first.sourceText == sourceText && first.targetLanguage == targetLanguage && first.mode == mode ? first : nil
+        }
+        let record = TranslationRecord(
+            id: previous?.id ?? UUID(), sourceText: sourceText, sourceLanguage: sourceLanguage,
+            targetLanguage: targetLanguage, mode: mode, createdAt: createdAt, results: [result]
+        )
+        if previous != nil {
+            records[0] = record
         } else {
-            records.insert(TranslationRecord(
-                id: UUID(),
-                sourceText: sourceText,
-                translatedText: translatedText,
-                sourceLanguage: sourceLanguage,
-                targetLanguage: targetLanguage,
-                mode: mode,
-                createdAt: Date(),
-                isFavorite: false
-            ), at: 0)
+            records.insert(record, at: 0)
+            if let limit = retention.limit, records.count > limit {
+                records.removeLast(records.count - limit)
+            }
         }
-        if records.count > maximumRecords {
-            let favorites = records.filter(\.isFavorite)
-            let regular = records.filter { !$0.isFavorite }.prefix(maximumRecords - min(favorites.count, maximumRecords))
-            records = Array((favorites + regular).prefix(maximumRecords)).sorted { $0.createdAt > $1.createdAt }
+        historyArchive.replace(with: records)
+        notifyBrowser()
+        return record.reference
+    }
+
+    /// A deleted or trimmed row is never reinserted by a late result or retry.
+    func updateRecord(
+        _ reference: TranslationRecord.Reference, result: TranslationRecord.Result,
+        providerOrder: [TranslationProviderID]
+    ) {
+        guard isEnabled, result.hasContent else { return }
+        var records = self.records
+        let merge: (inout TranslationRecord) -> Void = { record in
+            var results = record.results
+            if let index = results.firstIndex(where: { $0.id == result.id }) {
+                results[index] = result
+            } else {
+                results.append(result)
+            }
+            let byProvider = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0) })
+            let visible = Set(providerOrder)
+            record.results = providerOrder.compactMap { byProvider[$0] } + results.filter { !visible.contains($0.id) }
         }
-        update(records)
+        var updatedHistory = false
+        if let index = records.firstIndex(where: { $0.reference == reference }) {
+            let previous = records[index]
+            merge(&records[index])
+            updatedHistory = records[index] != previous
+            if updatedHistory { historyArchive.replace(with: records) }
+        }
+        let updatedFavorite = updateFavorite(reference, change: merge)
+        if updatedHistory || updatedFavorite { notifyBrowser() }
     }
 
     func toggleFavorite(_ id: UUID) {
-        var records = self.records
+        var favorites = favoritesArchive.records
+        if let index = favorites.firstIndex(where: { $0.id == id }) {
+            favorites.remove(at: index)
+        } else if let record = records.first(where: { $0.id == id }) {
+            favorites.insert(record, at: 0)
+        } else {
+            return
+        }
+        favoritesArchive.replace(with: favorites)
+        notifyBrowser()
+    }
+
+    func delete(_ id: UUID, from collection: HistoryCollection) {
+        var records = records(in: collection)
         guard let index = records.firstIndex(where: { $0.id == id }) else { return }
-        records[index].isFavorite.toggle()
-        update(records)
+        records.remove(at: index)
+        archive(for: collection).replace(with: records)
+        notifyBrowser()
     }
 
-    func delete(_ id: UUID) {
-        var records = self.records
-        records.removeAll { $0.id == id }
-        update(records)
-    }
-
-    func clear() {
+    func clearHistory() {
         // Resolve the recovery target before writing even if the browser has never opened.
-        _ = records
-        update([])
+        _ = historyArchive.records
+        historyArchive.replace(with: [])
+        notifyBrowser()
     }
 
-    func export(_ records: [TranslationRecord], to url: URL, format: HistoryExportFormat) throws {
+    func export(_ collection: HistoryCollection, to url: URL, format: HistoryExportFormat) throws {
+        let records = records(in: collection)
         switch format {
         case .json:
             let encoder = JSONEncoder()
@@ -149,139 +181,48 @@ final class HistoryStore: ObservableObject {
             encoder.dateEncodingStrategy = .iso8601
             try encoder.encode(records).write(to: url, options: .atomic)
         case .markdown:
-            let formatter = DateFormatter()
-            formatter.locale = L10n.locale
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .short
+            let date = HistoryDatePresentation()
             let body = records.map { record in
-                """
-                ## \(formatter.string(from: record.createdAt)) · \(LanguageCatalog.displayName(stored: record.targetLanguage))
-
-                **\(L10n.text("sourceText"))**
-
-                \(record.sourceText)
-
-                **\(L10n.text("translation"))**
-
-                \(record.translatedText)
-                """
+                let source = LanguageCatalog.displayName(stored: record.sourceLanguage)
+                let target = LanguageCatalog.displayName(stored: record.targetLanguage)
+                let mode = record.mode == .translate ? "" : " · \(record.mode.title)"
+                let sections = record.results.map { "### \($0.providerName)\n\n\($0.translatedText)" }
+                return ([
+                    "## \(date.detail(record.createdAt)) · \(source) → \(target)\(mode)",
+                    "**\(L10n.text("sourceText"))**", record.sourceText
+                ] + sections).joined(separator: "\n\n")
             }.joined(separator: "\n\n---\n\n")
             try Data(body.utf8).write(to: url, options: .atomic)
         }
     }
 
-    private static func fitsIdleBudget(_ records: [TranslationRecord]) -> Bool {
-        var remaining = idleBodyBudget
-        for record in records {
-            remaining -= record.sourceText.utf8.count
-            guard remaining >= 0 else { return false }
-            remaining -= record.translatedText.utf8.count
-            guard remaining >= 0 else { return false }
-        }
+    private func trimHistoryIfNeeded(notify: Bool = false) -> [TranslationRecord] {
+        let records = historyArchive.records
+        guard let limit = retention.limit, records.count > limit else { return records }
+        let trimmed = Array(records.prefix(limit))
+        historyArchive.replace(with: trimmed)
+        if notify { notifyBrowser() }
+        return trimmed
+    }
+
+    private func updateFavorite(
+        _ reference: TranslationRecord.Reference, change: (inout TranslationRecord) -> Void
+    ) -> Bool {
+        var favorites = favoritesArchive.records
+        // A bookmark follows completions from its own round, even if that history row is gone.
+        guard let index = favorites.firstIndex(where: { $0.reference == reference }) else { return false }
+        let previous = favorites[index]
+        change(&favorites[index])
+        guard favorites[index] != previous else { return false }
+        favoritesArchive.replace(with: favorites)
         return true
     }
 
-    private func update(_ records: [TranslationRecord]) {
-        hasUnpersistedChanges = !autoreleasepool { persist(records) }
-        cachedRecords = records
-        scheduleIdleRelease()
+    private func archive(for collection: HistoryCollection) -> HistoryArchive {
+        collection == .history ? historyArchive : favoritesArchive
+    }
+
+    private func notifyBrowser() {
         if isBrowsing { revision &+= 1 }
-    }
-
-    private func scheduleIdleRelease() {
-        idleReleaseTask?.cancel()
-        idleReleaseTask = nil
-        guard !isBrowsing, !hasUnpersistedChanges, let cachedRecords,
-              !Self.fitsIdleBudget(cachedRecords) else { return }
-        idleReleaseTask = Task { [weak self, idleSnapshotLifetime] in
-            do { try await Task.sleep(for: idleSnapshotLifetime) }
-            catch { return }
-            guard let self, !Task.isCancelled else { return }
-            self.cachedRecords = nil
-            self.idleReleaseTask = nil
-        }
-    }
-
-    private func persist(_ records: [TranslationRecord]) -> Bool {
-        do {
-            try FileManager.default.createDirectory(
-                at: fileURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            try encoder.encode(records).write(to: fileURL, options: .atomic)
-            return true
-        } catch {
-            // History persistence must not interrupt translation.
-            return false
-        }
-    }
-
-    private static func load(
-        from url: URL,
-        logger: @escaping () -> DiagnosticLogging,
-        readData: (URL) throws -> Data,
-        allowsRecovery: Bool = true
-    ) -> (records: [TranslationRecord], url: URL) {
-        let manager = FileManager.default
-        let recoveryURL = url.deletingLastPathComponent().appending(path: "history.recovery.json", directoryHint: .checkFileSystem)
-        do {
-            let data = try readData(url)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            return (try decoder.decode([TranslationRecord].self, from: data), url)
-        } catch {
-            if (error as NSError).domain == NSCocoaErrorDomain,
-               (error as NSError).code == NSFileReadNoSuchFileError {
-                if allowsRecovery, manager.fileExists(atPath: recoveryURL.fileSystemPath) {
-                    return load(from: recoveryURL, logger: logger, readData: readData, allowsRecovery: false)
-                }
-                return ([], url)
-            }
-            logFailure("history_load_failed", error: error, logger: logger)
-        }
-
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let stamp = formatter.string(from: Date()).replacingOccurrences(of: ":", with: "-")
-            + "-" + String(format: "%.9f", Date().timeIntervalSince1970)
-        let backup = url.deletingLastPathComponent()
-            .appending(path: "history.corrupt-\(stamp)-\(UUID().uuidString).json", directoryHint: .checkFileSystem)
-        do {
-            try manager.moveItem(at: url, to: backup)
-            pruneCorruptBackups(beside: url, logger: logger)
-        } catch {
-            logFailure("history_quarantine_failed", error: error, logger: logger)
-            if allowsRecovery {
-                return load(from: recoveryURL, logger: logger, readData: readData, allowsRecovery: false)
-            }
-            // Both files are unreadable and cannot be moved. A directory cannot be
-            // atomically replaced by persist(), so neither original is overwritten.
-            return ([], url.deletingLastPathComponent())
-        }
-        if allowsRecovery, manager.fileExists(atPath: recoveryURL.fileSystemPath) {
-            return load(from: recoveryURL, logger: logger, readData: readData, allowsRecovery: false)
-        }
-        return ([], url)
-    }
-
-    private static func pruneCorruptBackups(beside url: URL, logger: @escaping () -> DiagnosticLogging) {
-        do {
-            let backups = try FileManager.default.contentsOfDirectory(
-                at: url.deletingLastPathComponent(), includingPropertiesForKeys: nil
-            ).filter { $0.lastPathComponent.hasPrefix("history.corrupt-") && $0.pathExtension == "json" }
-                .sorted { $0.lastPathComponent > $1.lastPathComponent }
-            for backup in backups.dropFirst(5) {
-                try FileManager.default.removeItem(at: backup)
-            }
-        } catch {
-            logFailure("history_backup_cleanup_failed", error: error, logger: logger)
-        }
-    }
-
-    private static func logFailure(_ event: String, error: Error, logger: @escaping () -> DiagnosticLogging) {
-        let metadata = ["errorType": String(describing: type(of: error))]
-        Task { await logger().record(.warning, event, metadata: metadata) }
     }
 }

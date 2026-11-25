@@ -44,7 +44,7 @@
 
 - **Multiple Entry Points** — Input translation, cross-app selection translation (`⌥D`), screenshot translation (`⌥S`), and in-place **Translate & Replace** (`⌃⌥T`) that safely verifies target focus and UTF-16 selection before writing back.
 - **Built-in & Bring-Your-Own-Key Providers** — Apple Translation, offline English-Chinese dictionary (ECDICT), Youdao, and Google built in; streaming BYOK support for OpenAI, Claude, Gemini, DeepSeek, MiniMax, Zhipu, Kimi, Qwen, Doubao, OpenRouter, and custom compatible endpoints.
-- **Smart Language Routing & Custom Prompts** — Automatic first/second language routing with fixed-target override, streaming responses that respect your reading scroll position, custom prompts (`{{text}}`, `{{source}}`, `{{target}}`, `{{firstLanguage}}`), offline TTS, and searchable translation history with JSON/Markdown export.
+- **Smart Language Routing & Custom Prompts** — Automatic first/second language routing with fixed-target override, streaming responses that respect your reading scroll position, custom prompts (`{{text}}`, `{{source}}`, `{{target}}`, `{{firstLanguage}}`), offline TTS, and searchable multi-service translation history, separate favorites, and JSON/Markdown export.
 
 ### Screenshots, Scroll Capture & Floating Pins
 

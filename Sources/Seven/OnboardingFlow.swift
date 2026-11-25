@@ -91,14 +91,17 @@ struct OnboardingFlow {
             "appleTranslationEnabled", "ecdictEnabled", "youdaoEnabled", "googleEnabled", "customServiceEnabled",
             "selectionHotKey.v1", "screenshotHotKey.v1", "inputHotKey.v1", "replacementHotKey.v1",
             "primaryLanguage", "secondaryLanguage", "sourceLanguage.v1", "targetLanguage.v1",
-            "historyEnabled", "pinned", PanelPlacementMode.storageKey,
+            "historyEnabled", HistoryStore.retentionKey, "pinned", PanelPlacementMode.storageKey,
             InterfaceLanguage.preferenceKey, AppearanceMode.storageKey, ThemeManager.lightThemeKey, ThemeManager.darkThemeKey,
             "NSWindow Frame SevenTranslationPanelV2", "NSWindow Frame SevenSettingsWindowV2", "NSWindow Frame SevenHistoryWindow"
         ]
         if settingsKeys.contains(where: { preferences[$0] != nil }) { return true }
 
         // 目录本身可能仅用于构建签名；只检查业务文件是否存在。
-        let dataEntries = ["history.json", "history.recovery.json", "credentials.json", "ECDICT", "PinLibrary"]
+        let dataEntries = [
+            "history.json", "history.recovery.json", "favorites.json", "favorites.recovery.json",
+            "credentials.json", "ECDICT", "PinLibrary"
+        ]
         return dataEntries.contains {
             FileManager.default.fileExists(atPath: dataDirectory.appendingPathComponent($0).fileSystemPath)
         }

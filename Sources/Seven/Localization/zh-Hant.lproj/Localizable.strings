@@ -259,6 +259,14 @@
 "hideOriginalImage" = "隱藏原圖";
 "high" = "高";
 "hindi" = "印地語";
+"history.deleteFavorite" = "移除這條收藏？";
+"history.favorites" = "收藏夾";
+"history.favoritesExportName" = "Seven 收藏夾.%1$@";
+"history.noFavorites" = "尚無收藏";
+"history.retention" = "歷史保留上限";
+"history.todayAt" = "今天 %1$@";
+"history.unlimited" = "不限制";
+"history.yesterdayAt" = "昨天 %1$@";
 "history.title" = "歷史記錄";
 "holdToCaptureASquareArea" = "按住以擷取正方形區域";
 "holdToCaptureMultipleWindows" = "按住以擷取多個視窗";

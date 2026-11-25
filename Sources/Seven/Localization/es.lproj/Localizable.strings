@@ -259,6 +259,14 @@
 "hideOriginalImage" = "Ocultar imagen original";
 "high" = "Alto";
 "hindi" = "Hindi";
+"history.deleteFavorite" = "¿Quitar este favorito?";
+"history.favorites" = "Favoritos";
+"history.favoritesExportName" = "Favoritos de Seven.%1$@";
+"history.noFavorites" = "Aún no hay favoritos";
+"history.retention" = "Límite del historial";
+"history.todayAt" = "Hoy, %1$@";
+"history.unlimited" = "Sin límite";
+"history.yesterdayAt" = "Ayer, %1$@";
 "history.title" = "Historial";
 "holdToCaptureASquareArea" = "Mantén pulsada la tecla para capturar un área cuadrada";
 "holdToCaptureMultipleWindows" = "Mantén pulsada la tecla para capturar varias ventanas";

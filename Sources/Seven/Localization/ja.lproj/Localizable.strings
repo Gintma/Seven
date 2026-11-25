@@ -259,6 +259,14 @@
 "hideOriginalImage" = "元の画像を隠す";
 "high" = "高";
 "hindi" = "ヒンディー語";
+"history.deleteFavorite" = "このお気に入りを削除しますか？";
+"history.favorites" = "お気に入り";
+"history.favoritesExportName" = "Seven お気に入り.%1$@";
+"history.noFavorites" = "お気に入りはまだありません";
+"history.retention" = "履歴の保存上限";
+"history.todayAt" = "今日 %1$@";
+"history.unlimited" = "無制限";
+"history.yesterdayAt" = "昨日 %1$@";
 "history.title" = "履歴";
 "holdToCaptureASquareArea" = "押しながら正方形で撮影";
 "holdToCaptureMultipleWindows" = "押しながら複数のウィンドウを撮影";

@@ -143,7 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             dictionaryManager: dictionaryManager,
             diagnostics: logger
         )
-        historyWindowController = HistoryWindowController(store: historyStore)
+        historyWindowController = HistoryWindowController(store: historyStore, speech: model.speech)
     }
 
     private func showOnboarding() {

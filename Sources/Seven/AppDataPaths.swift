@@ -1,7 +1,7 @@
 import Foundation
 import CoreFoundation
 
-/// 全局历史、词库与诊断延续原有共享规则；变体凭据单独隔离。
+/// 词库与通用诊断沿用共享目录。试用变体的凭据、翻译历史和收藏夹使用变体目录。
 enum AppDataPaths {
     static func variant(bundleIdentifier: String?) -> String? {
         let prefix = "local.seven.translator."

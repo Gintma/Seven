@@ -10,7 +10,7 @@ final class HistoryStoreTests: XCTestCase {
         try withHistoryDirectory { directory, defaults in
             let url = directory.appendingPathComponent("history.json")
             let fixture = HistoryStore(fileURL: url, defaults: defaults)
-            fixture.add(sourceText: String(repeating: "a", count: 8 * 1_024 * 1_024), translatedText: "large",
+            fixture.addFixture(sourceText: String(repeating: "a", count: 8 * 1_024 * 1_024), translatedText: "large",
                         sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
             var reads = 0
             let store = HistoryStore(fileURL: url, defaults: defaults, readData: { url in
@@ -31,7 +31,7 @@ final class HistoryStoreTests: XCTestCase {
             defer { observer.cancel() }
             store.setBrowsing(false)
             for source in ["first", "second"] {
-                store.add(sourceText: source, translatedText: "result",
+                store.addFixture(sourceText: source, translatedText: "result",
                           sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
             }
             XCTAssertEqual(refreshes, 0, "隐藏窗口不应随翻译写入刷新")
@@ -66,26 +66,26 @@ final class HistoryStoreTests: XCTestCase {
             return try Data(contentsOf: url, options: .mappedIfSafe)
         })
         store.setBrowsing(true)
-        store.add(sourceText: String(repeating: "a", count: 8 * 1_024 * 1_024), translatedText: "one",
+        store.addFixture(sourceText: String(repeating: "a", count: 8 * 1_024 * 1_024), translatedText: "one",
                   sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
-        XCTAssertEqual(store.browsingRecords.count, 1)
+        XCTAssertEqual(store.browsingRecords(in: .history).count, 1)
         XCTAssertTrue(try Data(contentsOf: url).count > 8 * 1_024 * 1_024)
         store.setBrowsing(false)
-        XCTAssertEqual(store.browsingRecords.count, 1, "关闭后的短时间内应保留快照")
+        XCTAssertEqual(store.browsingRecords(in: .history).count, 1, "关闭后的短时间内应保留快照")
         let readsBeforeIdle = reads
-        for _ in 0..<100 where !store.browsingRecords.isEmpty {
+        for _ in 0..<100 where !store.browsingRecords(in: .history).isEmpty {
             try await Task.sleep(for: .milliseconds(10))
         }
-        XCTAssertTrue(store.browsingRecords.isEmpty, "空闲时应释放超预算快照")
+        XCTAssertTrue(store.browsingRecords(in: .history).isEmpty, "空闲时应释放超预算快照")
         XCTAssertEqual(reads, readsBeforeIdle, "隐藏视图的读访问不应重载文件")
         for source in ["first", "second"] {
-            store.add(sourceText: source, translatedText: "result",
+            store.addFixture(sourceText: source, translatedText: "result",
                       sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
         }
         XCTAssertEqual(reads, readsBeforeIdle + 1, "过期后只应解码一次，连续写入继续复用")
         store.setBrowsing(true)
-        XCTAssertEqual(store.browsingRecords.prefix(2).map(\.sourceText), ["second", "first"])
-        XCTAssertEqual(store.browsingRecords.count, 3)
+        XCTAssertEqual(store.browsingRecords(in: .history).prefix(2).map(\.sourceText), ["second", "first"])
+        XCTAssertEqual(store.browsingRecords(in: .history).count, 3)
         XCTAssertEqual(reads, readsBeforeIdle + 1, "重开应使用刚写入的快照")
     }
 
@@ -101,11 +101,11 @@ final class HistoryStoreTests: XCTestCase {
         }
         let store = HistoryStore(fileURL: fileURL, defaults: defaults)
 
-        store.add(
+        store.addFixture(
             sourceText: "Hello", translatedText: "你好",
             sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate
         )
-        store.add(
+        store.addFixture(
             sourceText: "Hello", translatedText: "你好",
             sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate
         )
@@ -113,11 +113,182 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertEqual(store.records.count, 1)
         let id = try XCTUnwrap(store.records.first?.id)
         store.toggleFavorite(id)
-        XCTAssertTrue(store.records[0].isFavorite)
+        XCTAssertEqual(store.records(in: .favorites).first?.id, id)
 
         let reloaded = HistoryStore(fileURL: fileURL, defaults: defaults)
         XCTAssertEqual(reloaded.records.count, 1)
-        XCTAssertTrue(reloaded.records[0].isFavorite)
+        XCTAssertEqual(reloaded.records(in: .favorites).first?.id, id)
+    }
+
+    func testDeletedAndClearedHistoryLeavesFavoritesAndFavoriteDeletionLeavesHistory() throws {
+        try withHistoryDirectory { directory, defaults in
+            let url = directory.appendingPathComponent("history.json")
+            let store = HistoryStore(fileURL: url, defaults: defaults)
+            let first = try XCTUnwrap(store.addFixture(sourceText: "First", translatedText: "第一")).id
+            let second = try XCTUnwrap(store.addFixture(sourceText: "Second", translatedText: "第二")).id
+            store.toggleFavorite(first)
+            store.toggleFavorite(second)
+
+            store.delete(first, from: .history)
+            XCTAssertEqual(store.records.map(\.id), [second])
+            XCTAssertEqual(store.records(in: .favorites).map(\.id), [second, first])
+            store.delete(second, from: .favorites)
+            XCTAssertEqual(store.records.map(\.id), [second])
+            XCTAssertEqual(store.records(in: .favorites).map(\.id), [first])
+            store.toggleFavorite(second)
+            store.toggleFavorite(second)
+            XCTAssertEqual(store.records.map(\.id), [second])
+
+            store.clearHistory()
+            let current = HistoryStore(fileURL: url, defaults: defaults)
+            XCTAssertTrue(current.records.isEmpty)
+            XCTAssertEqual(current.records(in: .favorites).map(\.id), [first])
+            current.toggleFavorite(first)
+            XCTAssertTrue(current.records(in: .favorites).isEmpty)
+        }
+    }
+
+    func testRetentionTrimsImmediatelyAndUnlimitedSurvivesReload() throws {
+        try withHistoryDirectory { directory, defaults in
+            let url = directory.appendingPathComponent("history.json")
+            let store = HistoryStore(fileURL: url, defaults: defaults)
+            XCTAssertEqual(store.retention, .fiveHundred)
+            store.retention = .unlimited
+            let fixture = (0..<1005).reversed().map { index in
+                TranslationRecord(
+                    id: UUID(), sourceText: "Source \(index)", sourceLanguage: "en", targetLanguage: "zh-Hans",
+                    mode: .translate, createdAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                    results: [.init(providerID: .google, providerName: "Google", translatedText: "译文")]
+                )
+            }
+            try JSONEncoder().encode(fixture).write(to: url)
+            let reloaded = HistoryStore(fileURL: url, defaults: defaults)
+            XCTAssertEqual(reloaded.retention, .unlimited)
+            XCTAssertEqual(reloaded.records.count, 1005)
+            let newest = try XCTUnwrap(reloaded.addFixture(sourceText: "Newest", translatedText: "最新")).id
+            for record in fixture.suffix(101) { reloaded.toggleFavorite(record.id) }
+            XCTAssertEqual(reloaded.records.count, 1006)
+            let favorites = reloaded.records(in: .favorites)
+            reloaded.retention = .oneHundred
+            XCTAssertEqual(reloaded.records.map(\.id), [newest] + fixture.prefix(99).map(\.id))
+            XCTAssertEqual(reloaded.records(in: .favorites), favorites)
+            XCTAssertEqual(favorites.count, 101)
+            let trimmed = HistoryStore(fileURL: url, defaults: defaults)
+            XCTAssertEqual(trimmed.retention, .oneHundred)
+            XCTAssertEqual(trimmed.records, reloaded.records)
+            XCTAssertEqual(trimmed.records(in: .favorites), favorites)
+        }
+    }
+
+    func testAdjacentRoundReplacesResultsAndLateUpdateDoesNotRecreateDeletedHistory() throws {
+        try withHistoryDirectory { directory, defaults in
+            let url = directory.appendingPathComponent("history.json")
+            let store = HistoryStore(fileURL: url, defaults: defaults)
+            let start = Date(timeIntervalSince1970: 10.123)
+            let providerOrder: [TranslationProviderID] = [.youdao, .google]
+            let original = try XCTUnwrap(store.addFixture(sourceText: "Hello", translatedText: "第一版", createdAt: start))
+            store.toggleFavorite(original.id)
+            let favorites = store.records(in: .favorites)
+            let next = start.addingTimeInterval(20)
+            let repeated = try XCTUnwrap(store.addFixture(
+                sourceText: "Hello", translatedText: "新版", sourceLanguage: "en-US", createdAt: next
+            ))
+            XCTAssertEqual(original.id, repeated.id)
+            XCTAssertEqual(store.records.map(\.createdAt), [next])
+            XCTAssertEqual(store.records(in: .favorites), favorites)
+
+            let other = TranslationRecord.Result(providerID: .youdao, providerName: "Youdao", translatedText: "另一版")
+            store.updateRecord(repeated, result: other, providerOrder: providerOrder)
+            XCTAssertEqual(store.records.first?.results.map(\.providerID), providerOrder)
+            XCTAssertEqual(store.records.first?.createdAt, next)
+            XCTAssertEqual(store.records(in: .favorites), favorites)
+            store.clearHistory()
+            store.updateRecord(original, result: other, providerOrder: providerOrder)
+            XCTAssertTrue(store.records.isEmpty)
+            XCTAssertEqual(store.records(in: .favorites).first?.results.map(\.providerID), providerOrder)
+
+            store.addFixture(sourceText: "Hello", translatedText: "简体")
+            store.addFixture(sourceText: "Hello", translatedText: "繁體", targetLanguage: "zh-Hant")
+            store.addFixture(sourceText: "Hello", translatedText: "改寫", targetLanguage: "zh-Hant", mode: .custom)
+            XCTAssertEqual(store.records.count, 3)
+        }
+    }
+
+    func testSearchMatchesEveryTranslationAndExportIncludesEveryServiceInSelectedCollection() throws {
+        try withHistoryDirectory { directory, defaults in
+            let url = directory.appendingPathComponent("history.json")
+            let store = HistoryStore(fileURL: url, defaults: defaults)
+            let record = try XCTUnwrap(store.addFixture(sourceText: "Favorite source", translatedText: "First answer"))
+            let id = record.id
+            store.toggleFavorite(id)
+            store.updateRecord(record, result: .init(providerID: .youdao, providerName: "Youdao", translatedText: "Unique answer"),
+                               providerOrder: [.youdao, .google])
+            store.delete(id, from: .history)
+            let newID = try XCTUnwrap(store.addFixture(sourceText: "History source", translatedText: "Other answer")).id
+
+            XCTAssertEqual(store.records(in: .favorites, matching: "  UNIQUE  ").map(\.id), [id])
+            XCTAssertEqual(store.records(in: .favorites, matching: "FIRST").map(\.id), [id])
+            XCTAssertEqual(store.records(in: .history, matching: "history SOURCE").map(\.id), [newID])
+            XCTAssertTrue(store.records(in: .history, matching: "unique").isEmpty)
+
+            for collection in HistoryCollection.allCases {
+                let jsonURL = directory.appendingPathComponent(collection.rawValue + "-export.json")
+                let markdownURL = directory.appendingPathComponent(collection.rawValue + "-export.md")
+                try store.export(collection, to: jsonURL, format: .json)
+                try store.export(collection, to: markdownURL, format: .markdown)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                let exported = try decoder.decode([TranslationRecord].self, from: Data(contentsOf: jsonURL))
+                let markdown = try String(contentsOf: markdownURL)
+                if collection == .favorites {
+                    XCTAssertEqual(exported.map(\.id), [id])
+                    XCTAssertEqual(exported.first?.results.map(\.providerName), ["Youdao", "Google"])
+                    XCTAssertEqual(exported.first?.results.map(\.translatedText), ["Unique answer", "First answer"])
+                    XCTAssertTrue(markdown.contains("### Youdao\n\nUnique answer"))
+                    XCTAssertTrue(markdown.contains("### Google\n\nFirst answer"))
+                    XCTAssertFalse(markdown.contains("History source"))
+                } else {
+                    XCTAssertEqual(exported.map(\.id), [newID])
+                    XCTAssertTrue(markdown.contains("### Google\n\nOther answer"))
+                    XCTAssertFalse(markdown.contains("Favorite source"))
+                }
+            }
+        }
+    }
+
+    func testIdleFavoritesReleaseCountsPerRecordOverheadAndDoesNotReloadHiddenViews() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        let fixtures = (0..<22_000).map { index in
+            TranslationRecord(
+                id: UUID(), sourceText: "a", sourceLanguage: "en", targetLanguage: "es",
+                mode: .translate, createdAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                results: [.init(providerID: .google, providerName: "Google", translatedText: "b")]
+            )
+        }
+        let favoritesURL = directory.appendingPathComponent("favorites.json")
+        try JSONEncoder().encode(fixtures).write(to: favoritesURL)
+        var reads: [URL] = []
+        let store = HistoryStore(
+            fileURL: directory.appendingPathComponent("history.json"), defaults: defaults,
+            idleSnapshotLifetime: .milliseconds(20), readData: { url in
+                reads.append(url)
+                return try Data(contentsOf: url)
+            }
+        )
+        store.setBrowsing(true)
+        XCTAssertEqual(store.browsingRecords(in: .favorites).count, 22_000)
+        store.setBrowsing(false)
+        for _ in 0..<100 where !store.browsingRecords(in: .favorites).isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertTrue(store.browsingRecords(in: .favorites).isEmpty)
+        XCTAssertEqual(reads.map(\.lastPathComponent), ["favorites.json"])
+        store.setBrowsing(true)
+        XCTAssertEqual(store.browsingRecords(in: .favorites).count, 22_000)
+        XCTAssertEqual(reads.map(\.lastPathComponent), ["favorites.json", "favorites.json"])
     }
 
     func testHistoryRespectsDisabledSettingAndExports() throws {
@@ -132,21 +303,21 @@ final class HistoryStoreTests: XCTestCase {
         }
         let store = HistoryStore(fileURL: historyURL, defaults: defaults)
         store.isEnabled = false
-        store.add(
+        store.addFixture(
             sourceText: "Ignored", translatedText: "忽略",
             sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate
         )
         XCTAssertTrue(store.records.isEmpty)
 
         store.isEnabled = true
-        store.add(
+        store.addFixture(
             sourceText: "Hello", translatedText: "你好",
             sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate
         )
         let markdownURL = directory.appendingPathComponent("export.md")
         let jsonURL = directory.appendingPathComponent("export.json")
-        try store.export(store.records, to: markdownURL, format: .markdown)
-        try store.export(store.records, to: jsonURL, format: .json)
+        try store.export(.history, to: markdownURL, format: .markdown)
+        try store.export(.history, to: jsonURL, format: .json)
 
         XCTAssertTrue(try String(contentsOf: markdownURL).contains("你好"))
         XCTAssertFalse(try Data(contentsOf: jsonURL).isEmpty)
@@ -165,7 +336,7 @@ final class HistoryStoreTests: XCTestCase {
         try original.write(to: url)
         let store = HistoryStore(fileURL: url, defaults: defaults)
         XCTAssertTrue(store.records.isEmpty)
-        store.add(sourceText: "New", translatedText: "新", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
+        store.addFixture(sourceText: "New", translatedText: "新", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
         let backups = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
             .filter { $0.lastPathComponent.hasPrefix("history.corrupt-") }
         XCTAssertEqual(backups.count, 1)
@@ -184,11 +355,11 @@ final class HistoryStoreTests: XCTestCase {
             defaults.removePersistentDomain(forName: suite)
         }
         let store = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
-        store.add(sourceText: "PRIVATE SOURCE", translatedText: "PRIVATE TRANSLATION", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
-        let view = HistoryView(store: store)
+        store.addFixture(sourceText: "PRIVATE SOURCE", translatedText: "PRIVATE TRANSLATION", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
+        let view = HistoryView(store: store, speech: SpeechController(settings: SettingsStore(defaults: defaults)))
         for format in [HistoryExportFormat.json, .markdown] {
             var alert: NSAlert?
-            view.export(to: directory.appendingPathComponent("missing/export"), format: format) { alert = $0 }
+            view.export(.history, to: directory.appendingPathComponent("missing/export"), format: format) { alert = $0 }
             let presented = try XCTUnwrap(alert)
             XCTAssertFalse(presented.informativeText.contains("PRIVATE"))
         }
@@ -224,7 +395,7 @@ final class HistoryStoreTests: XCTestCase {
             try original.write(to: url)
             try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: url.path)
             let store = HistoryStore(fileURL: url, defaults: defaults)
-            store.add(sourceText: "New", translatedText: "新", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
+            store.addFixture(sourceText: "New", translatedText: "新", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
             let backup = try XCTUnwrap(FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
                 .first { $0.lastPathComponent.hasPrefix("history.corrupt-") })
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: backup.path)
@@ -242,7 +413,7 @@ final class HistoryStoreTests: XCTestCase {
             let store = HistoryStore(fileURL: url, defaults: defaults)
             XCTAssertTrue(store.records.isEmpty)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path)
-            store.add(sourceText: "Recovered", translatedText: "恢复", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
+            store.addFixture(sourceText: "Recovered", translatedText: "恢复", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
             XCTAssertEqual(try Data(contentsOf: url), original)
             XCTAssertTrue(FileManager.default.fileExists(atPath: directory.appendingPathComponent("history.recovery.json").path))
             let reloaded = HistoryStore(fileURL: url, defaults: defaults)
@@ -261,7 +432,7 @@ final class HistoryStoreTests: XCTestCase {
             let store = HistoryStore(fileURL: url, defaults: defaults)
             XCTAssertTrue(store.records.isEmpty)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path)
-            store.add(sourceText: "New", translatedText: "新", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
+            store.addFixture(sourceText: "New", translatedText: "新", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
             XCTAssertEqual(try String(contentsOf: url), "original")
             XCTAssertEqual(try String(contentsOf: recovery), "recovery")
             XCTAssertTrue(try directory.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true)
@@ -337,23 +508,75 @@ private actor HistoryTestLogger: DiagnosticLogging {
 }
 
 extension HistoryStoreTests {
+    func testHistoryWindowCloseStopsOnlyHistoryPlayback() throws {
+        _ = NSApplication.shared
+        try withHistoryDirectory { directory, defaults in
+            let store = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
+            let backend = HistorySpeechBackend()
+            let speech = SpeechController(
+                settings: SettingsStore(defaults: defaults), systemBackend: backend, systemVoiceLanguages: { ["en-US"] }
+            )
+            speech.selectEngine(.system)
+            let window = HistoryWindowController(store: store, speech: speech)
+            window.showWindow(nil)
+            let historyContent = SpeechContent.history(recordID: UUID(), provider: nil)
+            speech.toggle(content: historyContent, text: "History sample", declaredLanguage: "en")
+            XCTAssertTrue(speech.isActive(historyContent))
+            window.close()
+            XCTAssertEqual(speech.state, .idle)
+            XCTAssertFalse(store.isBrowsing)
+
+            window.showWindow(nil)
+            speech.toggle(content: .source, text: "Panel sample", declaredLanguage: "en")
+            XCTAssertTrue(speech.isActive(.source))
+            window.close()
+            XCTAssertTrue(speech.isActive(.source))
+            speech.stop()
+            XCTAssertEqual(backend.spoken, ["History sample", "Panel sample"])
+        }
+    }
+
     func testHistoryWindowLoadsCurrentRecordsLazilyAndReusesItsContent() throws {
         _ = NSApplication.shared
         try withHistoryDirectory { directory, defaults in
             let store = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
-            let controller = HistoryWindowController(store: store)
+            let controller = HistoryWindowController(store: store, speech: SpeechController(settings: SettingsStore(defaults: defaults)))
             XCTAssertFalse(controller.isWindowLoaded)
-            store.add(sourceText: "输入", translatedText: "Result", sourceLanguage: "zh-Hans", targetLanguage: "en", mode: .translate)
+            store.addFixture(sourceText: "输入", translatedText: "Result", sourceLanguage: "zh-Hans", targetLanguage: "en", mode: .translate)
             controller.showWindow(nil)
             let window = try XCTUnwrap(controller.window)
             defer { controller.close() }
             let host = try XCTUnwrap(window.contentView as? NSHostingView<HistoryView>)
             XCTAssertTrue(host.rootView.store === store)
-            XCTAssertEqual(host.rootView.store.records.map(\.translatedText), ["Result"])
+            XCTAssertEqual(host.rootView.store.records.flatMap(\.results).map(\.translatedText), ["Result"])
             controller.close()
             controller.showWindow(nil)
             XCTAssertTrue(controller.window === window)
             XCTAssertTrue(window.contentView === host)
         }
     }
+}
+
+@MainActor
+extension HistoryStore {
+    @discardableResult
+    fileprivate func addFixture(
+        sourceText: String, translatedText: String, sourceLanguage: String = "en",
+        targetLanguage: String = "zh-Hans", mode: TranslationMode = .translate, createdAt: Date = Date()
+    ) -> TranslationRecord.Reference? {
+        beginRecord(sourceText: sourceText, sourceLanguage: sourceLanguage, targetLanguage: targetLanguage,
+                    mode: mode, result: .init(providerID: .google, providerName: "Google", translatedText: translatedText),
+                    createdAt: createdAt)
+    }
+}
+
+@MainActor
+private final class HistorySpeechBackend: SystemSpeechBackend {
+    var onEnd: ((SpeechPlaybackEnd) -> Void)?
+    private(set) var spoken: [String] = []
+
+    func speak(_ text: String, languageIdentifier: String?, rate: SpeechRate) { spoken.append(text) }
+    func pause() -> Bool { true }
+    func resume() -> Bool { true }
+    func stop() {}
 }

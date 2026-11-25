@@ -259,6 +259,14 @@
 "hideOriginalImage" = "Hide Original Image";
 "high" = "High";
 "hindi" = "Hindi";
+"history.deleteFavorite" = "Remove this favorite?";
+"history.favorites" = "Favorites";
+"history.favoritesExportName" = "Seven Favorites.%1$@";
+"history.noFavorites" = "No favorites yet";
+"history.retention" = "History retention limit";
+"history.todayAt" = "Today, %1$@";
+"history.unlimited" = "Unlimited";
+"history.yesterdayAt" = "Yesterday, %1$@";
 "history.title" = "History";
 "holdToCaptureASquareArea" = "Hold to capture a square area";
 "holdToCaptureMultipleWindows" = "Hold to capture multiple windows";

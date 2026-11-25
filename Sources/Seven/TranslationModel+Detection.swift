@@ -7,7 +7,7 @@ extension TranslationModel {
     /// 原文改变时取消进行中的识别，停止输入 `languageDetectionDelay` 后再识别。
     internal func inputDidChange() {
         localDetectionCache = nil
-        pendingHistory = nil
+        historyRound = nil
         translateAfterDetection = false
         retryAfterDetection = []
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -29,7 +29,12 @@ extension TranslationModel {
 
     func editOccurred() {
         speech.stop()
-        cancel(); serviceResults = []; issue = nil; recoveryAction = nil; resolvedTarget = nil
+        cancel()
+        historyRound = nil
+        serviceResults = []
+        issue = nil
+        recoveryAction = nil
+        resolvedTarget = nil
         status = "准备好，开始一段翻译。"
     }
 
@@ -43,6 +48,7 @@ extension TranslationModel {
         speech.stop()
         cancel()
         input = ""
+        historyRound = nil
         issue = nil
         recoveryAction = nil
         resolvedTarget = nil
@@ -78,6 +84,7 @@ extension TranslationModel {
         speech.stop()
         cancel()
         input = value
+        historyRound = nil
         serviceResults = []
         issue = nil
         recoveryAction = nil
@@ -90,6 +97,7 @@ extension TranslationModel {
     func presentSelectionError(_ error: SelectionReadError) {
         speech.stop()
         cancel()
+        historyRound = nil
         serviceResults = []
         issue = .forError(error)
         recoveryAction = nil
@@ -106,6 +114,7 @@ extension TranslationModel {
     func presentScreenshotError(_ error: ScreenshotTranslationError) {
         speech.stop()
         cancel()
+        historyRound = nil
         serviceResults = []
         issue = .forError(error)
         recoveryAction = nil

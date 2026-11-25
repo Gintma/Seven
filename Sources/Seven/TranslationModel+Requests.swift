@@ -9,7 +9,7 @@ extension TranslationModel {
         guard text.count <= 20_000 else { issue = .key("translationInputTooLong"); return }
         speech.stop()
         cancel()
-        pendingHistory = nil
+        historyRound = nil
         if needsOnlineDetection(for: text) {
             // 识别完成后再翻译；同一段原文正在联网识别时不重复请求。
             translateAfterDetection = true
@@ -63,7 +63,6 @@ extension TranslationModel {
         serviceResults = results
         let runningResults = results.filter { $0.phase.isRunning }
         primaryResultID = runningResults.first(where: \.isTranslation)?.id ?? runningResults.first?.id
-        pendingHistory = runningResults.first(where: \.isTranslation).map { .preferred($0.id) }
         isLoading = results.contains { $0.phase.isRunning }
         issue = nil; recoveryAction = nil
         status = isLoading ? "正在获取 \(results.filter { $0.phase.isRunning }.count) 项结果…" : "翻译未完成"
@@ -90,7 +89,6 @@ extension TranslationModel {
         guard !text.isEmpty, text.count <= 20_000 else { return }
 
         speech.stop()
-        serviceResults[index].didFinishTranslation = false
         // 与 translate() 共用识别等待：识别完成后只启动这个服务，不重启全部服务。
         if needsOnlineDetection(for: text) {
             if !retryAfterDetection.contains(provider) { retryAfterDetection.append(provider) }
@@ -105,10 +103,10 @@ extension TranslationModel {
 
         let id = generation ?? UUID()
         generation = id
+        serviceTasks[provider]?.cancel()
+        serviceTasks[provider] = nil
+        if provider == .appleTranslation { appleTranslationRequest = nil }
         if let message = unsupportedLanguageMessage(serviceResults[index], text: text, target: requestTarget) {
-            serviceTasks[provider]?.cancel()
-            serviceTasks[provider] = nil
-            if provider == .appleTranslation { appleTranslationRequest = nil }
             serviceResults[index].phase = .skipped
             serviceResults[index].text = ""
             serviceResults[index].dictionaryEntry = nil
@@ -189,7 +187,9 @@ extension TranslationModel {
             secondary: secondaryLanguage
         )
         resolvedTarget = requestTarget
-        historyLanguages = (source, requestTarget)
+        if historyRound == nil {
+            historyRound = HistoryRound(sourceText: text, sourceLanguage: source, targetLanguage: requestTarget)
+        }
         return requestTarget
     }
 
@@ -329,7 +329,6 @@ extension TranslationModel {
             .appleTranslation,
             text: text,
             generation: request.generation,
-            sourceText: request.text,
             mode: .translate
         )
     }
@@ -353,6 +352,7 @@ extension TranslationModel {
             serviceResults[index].dictionaryEntry = entry
             serviceResults[index].text = entry.formattedText
             serviceResults[index].phase = .success
+            saveHistoryResult(serviceResults[index], mode: .translate)
         case .success(nil):
             // 未收录不是错误，重试也不会有结果：灰色说明，不带重试。
             serviceResults[index].phase = .skipped
@@ -372,7 +372,6 @@ extension TranslationModel {
         _ provider: TranslationProviderID,
         text: String,
         generation id: UUID,
-        sourceText: String,
         mode: TranslationMode,
         dictionaryEntry: DictionaryEntry? = nil
     ) {
@@ -383,23 +382,39 @@ extension TranslationModel {
         result.dictionaryEntry = dictionaryEntry
         result.phase = .success
         result.issue = nil
-        result.didFinishTranslation = result.isTranslation
         serviceResults[index] = result
-        if pendingHistory == .preferred(provider) {
-            saveHistory(sourceText: sourceText, translatedText: text, mode: mode)
-        }
+        saveHistoryResult(result, mode: mode)
         refreshOverallState(generation: id)
     }
 
-    private func saveHistory(sourceText: String, translatedText: String, mode: TranslationMode) {
-        pendingHistory = nil
-        history?.add(
-            sourceText: sourceText,
-            translatedText: translatedText,
-            sourceLanguage: historyLanguages.source,
-            targetLanguage: historyLanguages.target,
-            mode: mode
-        )
+    private func saveHistoryResult(_ result: TranslationServiceResult, mode: TranslationMode) {
+        guard let history, let round = historyRound else { return }
+        let text: String
+        if result.isTranslation {
+            text = result.text
+        } else {
+            guard let dictionary = result.dictionaryEntry else { return }
+            let hasDefinition = dictionary.blocks.contains {
+                !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+            let english = dictionary.englishDefinitions.filter {
+                !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+            let hasPhraseMeaning = dictionary.phrases.contains { phrase in
+                phrase.meanings.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            }
+            guard hasDefinition || !english.isEmpty || hasPhraseMeaning else { return }
+            text = ([result.text] + english).joined(separator: "\n")
+        }
+        let saved = TranslationRecord.Result(providerID: result.id, providerName: result.title, translatedText: text)
+        if let record = round.record {
+            history.updateRecord(record, result: saved, providerOrder: serviceResults.map(\.id))
+        } else {
+            historyRound?.record = history.beginRecord(
+                sourceText: round.sourceText, sourceLanguage: round.sourceLanguage,
+                targetLanguage: round.targetLanguage, mode: mode, result: saved
+            )
+        }
     }
 
     private func startOnlineTranslation(
@@ -418,7 +433,6 @@ extension TranslationModel {
                     provider,
                     text: output.text,
                     generation: id,
-                    sourceText: request.text,
                     mode: .translate,
                     dictionaryEntry: output.dictionaryEntry
                 )
@@ -460,7 +474,6 @@ extension TranslationModel {
                     provider,
                     text: result,
                     generation: id,
-                    sourceText: request.text,
                     mode: request.configuration.mode
                 )
                 await logger.record(.info, "translation_succeeded", metadata: [
@@ -503,14 +516,6 @@ extension TranslationModel {
         guard generation == id else { return }
         let running = serviceResults.filter { $0.phase.isRunning }.count
         isLoading = running > 0
-        if pendingHistory != nil, pendingHistory == .fallback || running == 0,
-           let fallback = serviceResults.first(where: {
-               $0.phase == .success && $0.didFinishTranslation && !$0.text.isEmpty
-           }) {
-            saveHistory(
-                sourceText: input, translatedText: fallback.text, mode: instance(fallback.id)?.mode ?? .translate
-            )
-        }
         if running > 0 {
             status = "正在获取 \(running) 项结果…"
             return

@@ -107,11 +107,14 @@ final class FileCredentialTests: XCTestCase {
         XCTAssertFalse(logs.contains("PRIVATE-EXPORT-SENTINEL"))
         let defaults = try XCTUnwrap(isolatedDefaults(suiteName: UUID().uuidString))
         let history = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
-        history.add(sourceText: "Hello", translatedText: "你好", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate)
+        history.beginRecord(
+            sourceText: "Hello", sourceLanguage: "en", targetLanguage: "zh-Hans", mode: .translate,
+            result: .init(providerID: .google, providerName: "Google", translatedText: "你好")
+        )
         XCTAssertEqual(history.records.count, 1)
         for format in [HistoryExportFormat.json, .markdown] {
             let url = directory.appendingPathComponent("export." + format.fileExtension)
-            try history.export(history.records, to: url, format: format)
+            try history.export(.history, to: url, format: format)
             let output = try String(contentsOf: url)
             XCTAssertTrue(output.contains("Hello"))
             XCTAssertFalse(output.contains("PRIVATE-EXPORT-SENTINEL"))

@@ -129,13 +129,10 @@ struct TranslationServiceResult: Identifiable, Equatable, Sendable {
         set { issue = newValue.map(LocalizedMessage.verbatim) }
     }
     var appleMissingLanguages: [String] = []
-    // 取消流式请求可保留片段供用户交换。只有服务正常完成才有资格写入历史。
-    var didFinishTranslation = false
 
     init(id: TranslationProviderID, title: String, subtitle: String, isTranslation: Bool,
          phase: TranslationResultPhase, text: String, dictionaryEntry: DictionaryEntry?,
-         errorMessage: String?, appleMissingLanguages: [String] = [],
-         didFinishTranslation: Bool = false) {
+         errorMessage: String?, appleMissingLanguages: [String] = []) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
@@ -145,7 +142,6 @@ struct TranslationServiceResult: Identifiable, Equatable, Sendable {
         self.dictionaryEntry = dictionaryEntry
         issue = errorMessage.map(LocalizedMessage.verbatim)
         self.appleMissingLanguages = appleMissingLanguages
-        self.didFinishTranslation = didFinishTranslation
     }
 }
 

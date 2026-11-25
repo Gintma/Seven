@@ -259,6 +259,14 @@
 "hideOriginalImage" = "원본 이미지 가리기";
 "high" = "높음";
 "hindi" = "힌디어";
+"history.deleteFavorite" = "이 즐겨찾기를 삭제할까요?";
+"history.favorites" = "즐겨찾기";
+"history.favoritesExportName" = "Seven 즐겨찾기.%1$@";
+"history.noFavorites" = "즐겨찾기가 없습니다";
+"history.retention" = "기록 보관 한도";
+"history.todayAt" = "오늘 %1$@";
+"history.unlimited" = "제한 없음";
+"history.yesterdayAt" = "어제 %1$@";
 "history.title" = "기록";
 "holdToCaptureASquareArea" = "누른 채 정사각형 영역 캡처";
 "holdToCaptureMultipleWindows" = "누른 채 여러 윈도우 캡처";

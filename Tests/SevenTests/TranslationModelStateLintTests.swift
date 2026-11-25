@@ -15,8 +15,7 @@ final class TranslationModelStateLintTests: XCTestCase {
         // 原 private 存储中可变的缓存、识别状态及任务句柄；不包含只读注入依赖和常量。
         "confirmedDetection", "localDetectionCache", "detectionTask", "detectingText", "isDetectingOnline",
         "translateAfterDetection", "retryAfterDetection", "serviceTasks",
-        "configurationTestTask", "generation", "primaryResultID", "pendingHistory",
-        "historyLanguages", "systemTranslationBridgeAvailable"
+        "configurationTestTask", "generation", "primaryResultID", "historyRound", "systemTranslationBridgeAvailable"
     ]
 
     private static func isModelFile(_ name: String) -> Bool {
@@ -26,7 +25,7 @@ final class TranslationModelStateLintTests: XCTestCase {
     private static func writeRanges(in source: String) throws -> [NSRange] {
         let properties = protectedProperties.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
         let property = #"\.\s*(?:"# + properties + #")\b"#
-        // 同时检查下标和成员写回，例如 serviceResults[index].phase =、historyLanguages.source =。
+        // 同时检查下标和成员写回，例如 serviceResults[index].phase =、historyRound?.record =。
         let memberPath = #"(?:\s*\?\s*)?(?:\s*\[[^\]\n]*\]|\s*\??\.\s*[A-Za-z_][A-Za-z0-9_]*)*"#
         let mutatingMethod = #"(?:append\w*|insert\w*|remove\w*|replaceSubrange|replace|swapAt|sort|shuffle|reverse|formUnion|formIntersection|formSymmetricDifference|subtract|updateValue|merge|reserveCapacity|toggle|cancel)"#
         let patterns = [
@@ -77,7 +76,7 @@ final class TranslationModelStateLintTests: XCTestCase {
             "model.status += suffix", "model.panelScreenHeight -= 1",
             "model?.serviceResults.append(result)", "model.expandedProviders.insert(provider)",
             "model.serviceTasks.removeAll()", "model.retryAfterDetection.removeFirst()",
-            "model.serviceResults[0].phase = .loading", "model.historyLanguages.source = code",
+            "model.serviceResults[0].phase = .loading", "model.historyRound?.record = code",
             "model.serviceTasks[provider]?.cancel()",
             "model.detectionTask?.cancel()", "model.isLoading.toggle()",
             "self.$model.input", "$holder.model.input", "mutate(&model.status)",

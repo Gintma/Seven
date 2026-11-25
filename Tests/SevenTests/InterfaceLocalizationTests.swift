@@ -41,6 +41,24 @@ final class InterfaceLocalizationTests: XCTestCase {
         }
     }
 
+    func testHistoryCountsRetentionAndDayLabelsFormatAcrossAllInterfaceLanguages() {
+        for language in InterfaceLanguage.allCases where language != .system {
+            L10n.$languageOverride.withValue(language) {
+                XCTAssertTrue(L10n.format("history.itemCount", Int64(0)).contains("0"))
+                XCTAssertTrue(L10n.format("history.itemCount", Int64(2)).contains("2"))
+                XCTAssertTrue(HistoryRetention.fiveHundred.title.contains("500"))
+                XCTAssertFalse(HistoryRetention.unlimited.title.contains("history."))
+                XCTAssertTrue(L10n.format("history.todayAt", "10:13").contains("10:13"))
+                XCTAssertTrue(L10n.format("history.yesterdayAt", "10:13").contains("10:13"))
+                XCTAssertTrue(L10n.format("history.favoritesExportName", "json").hasSuffix(".json"))
+            }
+        }
+        L10n.$languageOverride.withValue(.english) {
+            XCTAssertEqual(L10n.format("history.itemCount", Int64(1)), "1 item")
+            XCTAssertEqual(L10n.format("history.itemCount", Int64(2)), "2 items")
+        }
+    }
+
     func testLocalizedResourcesKeepKeysAndFormatPlaceholdersAligned() throws {
         func readPlist<T>(_ file: String, extension ext: String, in bundle: Bundle) throws -> T {
             let url = try XCTUnwrap(bundle.url(forResource: file, withExtension: ext))

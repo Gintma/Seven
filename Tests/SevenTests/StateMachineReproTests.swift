@@ -3,7 +3,7 @@ import XCTest
 @testable import Seven
 
 // 保持设置迁移、服务排序和历史配置走生产入口，偏好值只存在内存中。
-final class ReproDefaults: UserDefaults, @unchecked Sendable {
+final class ReproDefaults: UserDefaults {
     private var values: [String: Any] = [:]
 
     override func object(forKey key: String) -> Any? { values[key] }
@@ -180,7 +180,7 @@ final class StateMachineReproTests: XCTestCase {
         await (try XCTUnwrap(model.serviceTasks[a])).value
 
         XCTAssertEqual(model.serviceResults.first?.phase, .failure)
-        XCTAssertEqual(history.records.map(\.translatedText), [])
+        XCTAssertEqual(history.records.flatMap(\.results).map(\.translatedText), [])
     }
 
     func testRepro03_failedPartialResultKeepsCopyAndSpeechAvailable() async throws {
@@ -237,7 +237,7 @@ final class StateMachineReproTests: XCTestCase {
         XCTAssertEqual(model.serviceResults.map(\.id), [b])
         XCTAssertEqual(model.serviceResults.first?.phase, .success)
         XCTAssertFalse(model.isLoading)
-        XCTAssertEqual(history.records.map(\.translatedText), ["B 的完整译文"])
+        XCTAssertEqual(history.records.flatMap(\.results).map(\.translatedText), ["B 的完整译文"])
     }
 
     func descendants(_ view: NSView) -> [NSView] {

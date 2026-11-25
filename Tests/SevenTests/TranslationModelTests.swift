@@ -477,6 +477,109 @@ final class TranslationModelTests: XCTestCase {
         XCTAssertEqual(model.resolvedTarget, "en")
     }
 
+    func testFirstSuccessfulServiceCreatesHistoryWhileEarlierCardIsPending() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let history = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
+        let google = GatedOnlineService()
+        let model = TranslationModel(
+            dictionaryService: ImmediateDictionaryService(entry: nil),
+            youdaoService: ImmediateOnlineService(response: "先完成"),
+            googleService: google, credentials: MemoryCredentials(), settings: SettingsStore(defaults: defaults),
+            history: history
+        )
+        _ = model.addService(.google)
+        _ = model.addService(.youdao)
+        model.setServiceEnabled(.google, enabled: true)
+        model.setServiceEnabled(.youdao, enabled: true)
+        let googleIndex = try XCTUnwrap(model.serviceInstances.firstIndex { $0.id == .google })
+        model.moveServices(from: IndexSet(integer: googleIndex), to: 0)
+        model.setSource("en")
+        model.setTarget("zh-Hans")
+        model.updateInput("Example sentence")
+        model.translate()
+
+        await model.serviceTasks[.youdao]?.value
+        XCTAssertTrue(model.isLoading)
+        XCTAssertEqual(history.records.count, 1, "首个有效结果应立即入历史")
+        let earlyRecord = history.records.first
+        await google.finishFirstRequest()
+        let first = try XCTUnwrap(earlyRecord)
+        try await waitUntilIdle(model)
+        XCTAssertEqual(first.results.map(\.providerID), [.youdao])
+        XCTAssertEqual(history.records.map(\.reference), [first.reference])
+        XCTAssertEqual(history.records.first?.results.map(\.providerID), [.google, .youdao])
+        XCTAssertEqual(history.records.first?.results.map(\.providerName), model.serviceResults.map(\.title))
+
+        history.toggleFavorite(first.id)
+        model.retryResult(.google)
+        try await waitUntilIdle(model)
+        XCTAssertEqual(history.records.map(\.reference), [first.reference])
+        XCTAssertEqual(history.records.first?.results.map(\.translatedText), ["后台结果 2", "先完成"])
+        XCTAssertEqual(history.records(in: .favorites), history.records)
+    }
+
+    func testHistorySkipsFailureBlankTextAndDictionaryWithoutDefinitionsUntilRetrySucceeds() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let history = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
+        let dictionary = DictionaryEntry(
+            headword: "hello", pronunciations: [.init(label: "US", value: "həˈloʊ")],
+            blocks: [], englishDefinitions: [], forms: [], labels: [], rawText: ""
+        )
+        let model = TranslationModel(
+            dictionaryService: ImmediateDictionaryService(entry: dictionary),
+            youdaoService: FailOnceOnlineService(), googleService: ImmediateOnlineService(response: "  \n"),
+            credentials: MemoryCredentials(), settings: SettingsStore(defaults: defaults), history: history
+        )
+        _ = model.addService(.dictionary)
+        _ = model.addService(.youdao)
+        _ = model.addService(.google)
+        for provider in [TranslationProviderID.ecdict, .youdao, .google] {
+            model.setServiceEnabled(provider, enabled: true)
+        }
+        model.setSource("en")
+        model.setTarget("zh-Hans")
+        model.updateInput("hello")
+        model.translate()
+        try await waitUntilIdle(model)
+        XCTAssertEqual(model.serviceResults.first { $0.id == .ecdict }?.phase, .success)
+        XCTAssertEqual(model.serviceResults.first { $0.id == .youdao }?.phase, .failure)
+        XCTAssertTrue(history.records.isEmpty)
+
+        model.retryResult(.youdao)
+        try await waitUntilIdle(model)
+        XCTAssertEqual(history.records.count, 1)
+        XCTAssertEqual(history.records.first?.results.map(\.providerID), [.youdao])
+        XCTAssertEqual(history.records.first?.results.map(\.translatedText), ["有道恢复结果"])
+    }
+
+    func testDictionaryOnlyWithEnglishDefinitionCreatesHistory() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let history = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
+        let dictionary = DictionaryEntry(
+            headword: "refine", pronunciations: [], blocks: [], englishDefinitions: ["to improve"],
+            forms: [], labels: [], rawText: ""
+        )
+        let model = TranslationModel(
+            dictionaryService: ImmediateDictionaryService(entry: dictionary),
+            credentials: MemoryCredentials(), settings: SettingsStore(defaults: defaults), history: history
+        )
+        _ = model.addService(.dictionary)
+        for provider in model.serviceInstances { model.setServiceEnabled(provider.id, enabled: provider.id == .ecdict) }
+        model.setSource("en")
+        model.setTarget("zh-Hans")
+        model.updateInput("refine")
+        model.translate()
+        try await waitUntilIdle(model)
+        XCTAssertEqual(history.records.first?.results.map(\.providerID), [.ecdict])
+        XCTAssertEqual(history.records.first?.results.map(\.translatedText), ["refine\nto improve"])
+    }
+
     func testSuccessfulTranslationIsAddedToHistory() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("SevenTests.\(UUID().uuidString)", isDirectory: true)
@@ -514,7 +617,7 @@ final class TranslationModelTests: XCTestCase {
 
         XCTAssertEqual(history.records.count, 1)
         XCTAssertEqual(history.records[0].sourceText, "Hello")
-        XCTAssertEqual(history.records[0].translatedText, "你好")
+        XCTAssertEqual(history.records.first?.results.first?.translatedText, "你好")
         XCTAssertEqual(history.records[0].targetLanguage, "zh-Hans")
     }
 

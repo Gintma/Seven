@@ -3,9 +3,11 @@ import AppKit
 @MainActor
 final class TranslationModel: ObservableObject {
     enum RecoveryAction { case serviceSettings }
-    enum PendingHistory: Equatable {
-        case preferred(TranslationProviderID)
-        case fallback
+    struct HistoryRound {
+        let sourceText: String
+        let sourceLanguage: String
+        let targetLanguage: String
+        var record: TranslationRecord.Reference?
     }
 
     nonisolated static let languages = LanguageCatalog.codes
@@ -91,9 +93,8 @@ final class TranslationModel: ObservableObject {
     internal var configurationTestTask: Task<Void, Never>?
     internal var generation: UUID?
     internal var primaryResultID: TranslationProviderID?
-    internal var pendingHistory: PendingHistory?
-    /// 发起请求时记下的语言代码，写入历史；不读取之后变化的输入状态。
-    internal var historyLanguages = (source: LanguageCatalog.automatic, target: LanguageCatalog.automatic)
+    /// 与浮窗这一轮结果同寿命。请求结束后仍供单服务重试更新已有记录。
+    internal var historyRound: HistoryRound?
     internal var systemTranslationBridgeAvailable = false
     var onHide: (() -> Void)?
     var onOpenSettings: (() -> Void)?

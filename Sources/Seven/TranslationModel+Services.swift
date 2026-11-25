@@ -49,7 +49,6 @@ extension TranslationModel {
             serviceTasks[removed.id] = nil
             if removed.id == .appleTranslation { appleTranslationRequest = nil }
             if primaryResultID == removed.id { primaryResultID = nil }
-            if pendingHistory == .preferred(removed.id) { pendingHistory = .fallback }
             retryAfterDetection.removeAll { $0 == removed.id }
         }
         let existing = Dictionary(uniqueKeysWithValues: serviceResults.map { ($0.id, $0) })

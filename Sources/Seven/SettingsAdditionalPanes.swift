@@ -87,6 +87,11 @@ extension SettingsView {
         SettingsForm {
             SettingsGroup {
                 SettingsToggleRow(L10n.text("saveHistory"), isOn: $history.isEnabled)
+                SettingsFixedPickerRow(
+                    title: L10n.text("history.retention"),
+                    selection: $history.retention,
+                    options: HistoryRetention.allCases.map { ($0, $0.title) }
+                )
                 SettingsButtonRow(L10n.text("history.title")) { Button(L10n.text("open")) { model.openHistory() } }
             }
         }

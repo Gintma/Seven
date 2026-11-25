@@ -9,6 +9,7 @@ enum SpeechContent: Hashable {
     case dictionary
     case dictionaryUS
     case dictionaryUK
+    case history(recordID: UUID, provider: TranslationProviderID?)
 
     /// 某个翻译服务卡片上朗读按钮对应的身份。
     static func result(of provider: TranslationProviderID) -> SpeechContent {
@@ -241,6 +242,11 @@ final class SpeechController: NSObject, ObservableObject {
         finishPlayback()
     }
 
+    func stopHistoryPlayback() {
+        guard case .history? = activeContent else { return }
+        stop()
+    }
+
     func isActive(_ content: SpeechContent) -> Bool {
         activeContent == content && state != .idle
     }
@@ -274,6 +280,8 @@ final class SpeechController: NSObject, ObservableObject {
         case .dictionary: noun = L10n.text("definitions")
         case .dictionaryUS: noun = L10n.text("usPronunciation")
         case .dictionaryUK: noun = L10n.text("ukPronunciation")
+        case .history(_, let provider):
+            noun = L10n.text(provider == nil ? "sourceText" : provider == .ecdict ? "definitions" : "translation")
         }
         switch appearance(for: content) {
         case .idle: return L10n.format("readAloud", String(describing: noun))
