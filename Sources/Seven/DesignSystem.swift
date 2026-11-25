@@ -142,6 +142,14 @@ enum Design {
         static let cardInset: CGFloat = 10
     }
 
+    enum History {
+        static let windowSize = NSSize(width: 860, height: 600)
+        static let minimumSize = NSSize(width: 720, height: 500)
+        static let sidebarMinimum: CGFloat = 220
+        static let sidebarIdeal: CGFloat = 250
+        static let sidebarMaximum: CGFloat = 320
+    }
+
     /// 词典音标行：为原生朗读按钮保留可点击区域，换行后仍与音标对齐。
     enum Dictionary {
         static let pronunciationButtonSize: CGFloat = 26
@@ -485,6 +493,8 @@ enum Design {
     enum Icon {
         /// 工具与卡片操作按钮。
         static let action: CGFloat = 16
+        /// 卡片操作的固定点击区域，图标或反馈变化时保持布局。
+        static let cardActionSize: CGFloat = 26
         /// 展开箭头等小图标。
         static let small: CGFloat = 11
         /// 弹出菜单的上下小尖角。

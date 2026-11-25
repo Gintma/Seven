@@ -8,24 +8,38 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
     private let store: HistoryStore
     private let speech: SpeechController
 
-    init(store: HistoryStore, speech: SpeechController) {
+    init(
+        store: HistoryStore, speech: SpeechController,
+        frameName: NSWindow.FrameAutosaveName = "SevenHistoryWindow"
+    ) {
         self.store = store
         self.speech = speech
         makeWindow = {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 860, height: 600),
+                contentRect: NSRect(origin: .zero, size: Design.History.windowSize),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
             window.title = L10n.text("history.title")
-            window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
+            if #unavailable(macOS 26) { window.titlebarAppearsTransparent = true }
+            window.toolbarStyle = .unified
             window.isReleasedWhenClosed = false
-            window.minSize = NSSize(width: 720, height: 500)
-            window.setFrameAutosaveName("SevenHistoryWindow")
-            window.contentView = NSHostingView(rootView: HistoryView(store: store, speech: speech))
-            window.center()
+
+            let host = NSHostingView(rootView: HistoryView(store: store, speech: speech))
+            // AppKit owns the frame, including while the browser releases its SwiftUI content.
+            host.sizingOptions = []
+            window.contentView = host
+
+            window.setFrameAutosaveName(frameName)
+            let minimum = Design.History.minimumSize
+            if !window.setFrameUsingName(frameName) ||
+                window.frame.width < minimum.width || window.frame.height < minimum.height {
+                window.setContentSize(Design.History.windowSize)
+                window.center()
+            }
+            window.contentMinSize = minimum
             return window
         }
         super.init(window: nil)
@@ -98,13 +112,17 @@ struct HistoryView: View {
 
         return NavigationSplitView {
             VStack(alignment: .leading, spacing: Design.Space.s) {
-                HistoryCollectionPicker(collection: $collection)
-                    .padding(.horizontal, Design.Layout.cardInset)
-                Text(L10n.format("history.itemCount", Int64(filtered.count)))
-                    .font(.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(ThemeStyle.nativeSecondary)
-                    .padding(.horizontal, Design.Layout.pageInset)
+                VStack(spacing: Design.Space.s) {
+                    HistoryCollectionPicker(collection: $collection)
+                        .fixedSize()
+                    Text(L10n.format("history.itemCount", Int64(filtered.count)))
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(ThemeStyle.nativeSecondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, Design.Layout.cardInset)
+                .padding(.top, Design.Space.s)
                 List(filtered, selection: $selection) { record in
                     historyRow(
                         record, date: date.row(record.createdAt),
@@ -127,7 +145,11 @@ struct HistoryView: View {
             .settingsOverlayScrollbars()
             .searchable(text: $searchText,
                         prompt: Text(L10n.text("searchSourceTextOrTranslations")).foregroundStyle(ThemeStyle.placeholder))
-            .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 400)
+            .navigationSplitViewColumnWidth(
+                min: Design.History.sidebarMinimum,
+                ideal: Design.History.sidebarIdeal,
+                max: Design.History.sidebarMaximum
+            )
         } detail: {
             if let current {
                 HistoryRecordDetail(

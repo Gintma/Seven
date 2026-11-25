@@ -508,6 +508,65 @@ private actor HistoryTestLogger: DiagnosticLogging {
 }
 
 extension HistoryStoreTests {
+    func testHistoryWindowRetainsItsResizedFrameAcrossCloseAndReopen() async throws {
+        _ = NSApplication.shared
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
+        store.addFixture(
+            sourceText: String(repeating: "Long source line. ", count: 40),
+            translatedText: String(repeating: "Long translation line. ", count: 40)
+        )
+        let frameName = UUID().uuidString
+        let controller = HistoryWindowController(
+            store: store, speech: SpeechController(settings: SettingsStore(defaults: defaults)), frameName: frameName
+        )
+        controller.showWindow(nil)
+        let window = try XCTUnwrap(controller.window)
+        defer {
+            controller.close()
+            NSWindow.removeFrame(usingName: frameName)
+        }
+        try await Task.sleep(for: .milliseconds(50))
+        let original = window.frame.size
+        window.setContentSize(NSSize(width: original.width + 70, height: original.height + 60))
+        try await Task.sleep(for: .milliseconds(50))
+        let resized = window.frame.size
+        XCTAssertGreaterThan(resized.width, original.width)
+        XCTAssertGreaterThan(resized.height, original.height)
+
+        controller.close()
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertEqual(window.frame.size, resized)
+        controller.showWindow(nil)
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertEqual(window.frame.size, resized)
+    }
+
+    func testHistoryWindowRecoversFromPersistedUndersizedFrame() throws {
+        _ = NSApplication.shared
+        try withHistoryDirectory { directory, defaults in
+            let frameName = UUID().uuidString
+            defer { NSWindow.removeFrame(usingName: frameName) }
+            let savedWindow = NSWindow(
+                contentRect: NSRect(x: 20, y: 20, width: 421, height: 161),
+                styleMask: [.titled, .resizable, .fullSizeContentView], backing: .buffered, defer: false
+            )
+            savedWindow.saveFrame(usingName: frameName)
+            let store = HistoryStore(fileURL: directory.appendingPathComponent("history.json"), defaults: defaults)
+            let controller = HistoryWindowController(
+                store: store, speech: SpeechController(settings: SettingsStore(defaults: defaults)), frameName: frameName
+            )
+            controller.showWindow(nil)
+            defer { controller.close() }
+            let window = try XCTUnwrap(controller.window)
+            let size = window.contentRect(forFrameRect: window.frame).size
+            XCTAssertGreaterThanOrEqual(size.width, window.contentMinSize.width)
+            XCTAssertGreaterThanOrEqual(size.height, window.contentMinSize.height)
+        }
+    }
+
     func testHistoryWindowCloseStopsOnlyHistoryPlayback() throws {
         _ = NSApplication.shared
         try withHistoryDirectory { directory, defaults in

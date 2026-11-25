@@ -211,10 +211,10 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
             iconView.heightAnchor.constraint(equalToConstant: Design.Icon.brand),
             progress.widthAnchor.constraint(equalToConstant: 14),
             progress.heightAnchor.constraint(equalToConstant: 14),
-            speechButton.widthAnchor.constraint(equalToConstant: 26),
-            speechButton.heightAnchor.constraint(equalToConstant: 26),
-            copyButton.widthAnchor.constraint(equalToConstant: 26),
-            copyButton.heightAnchor.constraint(equalToConstant: 26),
+            speechButton.widthAnchor.constraint(equalToConstant: Design.Icon.cardActionSize),
+            speechButton.heightAnchor.constraint(equalToConstant: Design.Icon.cardActionSize),
+            copyButton.widthAnchor.constraint(equalToConstant: Design.Icon.cardActionSize),
+            copyButton.heightAnchor.constraint(equalToConstant: Design.Icon.cardActionSize),
             // 箭头字形很窄，按钮收窄到 16，使其右边缘与朗读、复制图标一致（约 13），与左侧图标的 12 对称。
             chevronButton.widthAnchor.constraint(equalToConstant: 16),
             chevronButton.heightAnchor.constraint(equalToConstant: 26)

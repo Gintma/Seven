@@ -88,8 +88,8 @@ final class AppKitTranslationInputView: LayerBackedView, NSTextViewDelegate, The
         toolsView.addSubview(clearButton)
         for button in [speechButton, copyButton, clearButton] {
             NSLayoutConstraint.activate([
-                button.widthAnchor.constraint(equalToConstant: 26),
-                button.heightAnchor.constraint(equalToConstant: 26)
+                button.widthAnchor.constraint(equalToConstant: Design.Icon.cardActionSize),
+                button.heightAnchor.constraint(equalToConstant: Design.Icon.cardActionSize)
             ])
         }
         NSLayoutConstraint.activate([

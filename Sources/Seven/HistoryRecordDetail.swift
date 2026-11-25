@@ -87,9 +87,6 @@ private struct HistoryTextCard: View {
     let provider: TranslationProviderID?
     let speech: SpeechController
 
-    @State private var copyCount = 0
-    @State private var showsCopied = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Space.s) {
             HStack(spacing: Design.Space.s) {
@@ -102,19 +99,9 @@ private struct HistoryTextCard: View {
                     speech: speech, content: .history(recordID: recordID, provider: provider),
                     text: text, language: language
                 )
-                let copyLabel = L10n.text(provider == nil ? "copySourceText" : "copyTranslation")
-                Button {
-                    NSPasteboard.general.clearContents()
-                    if NSPasteboard.general.setString(text, forType: .string) {
-                        showsCopied = true
-                        copyCount &+= 1
-                    }
-                } label: {
-                    Image(systemName: showsCopied ? "checkmark" : "doc.on.doc")
-                        .foregroundStyle(showsCopied ? ThemeStyle.accentInk : ThemeStyle.nativeSecondary)
-                }
-                .help(copyLabel)
-                .accessibilityLabel(copyLabel)
+                HistoryCopyButton(
+                    text: text, label: L10n.text(provider == nil ? "copySourceText" : "copyTranslation")
+                )
             }
             .buttonStyle(.borderless)
 
@@ -127,12 +114,6 @@ private struct HistoryTextCard: View {
         }
         .padding(Design.Space.m)
         .background(ThemeStyle.blockFill, in: RoundedRectangle(cornerRadius: Design.Radius.block))
-        .task(id: copyCount) {
-            guard showsCopied else { return }
-            do { try await Task.sleep(for: .seconds(Design.Motion.hold)) }
-            catch { return }
-            showsCopied = false
-        }
     }
 }
 
@@ -149,11 +130,16 @@ private struct HistorySpeechButton: View {
         Button {
             speech.toggle(content: content, text: text, declaredLanguage: language)
         } label: {
-            if speech.appearance(for: content) == .loading {
-                ProgressView().controlSize(.mini)
-            } else {
-                Image(systemName: speech.icon(for: content))
+            Group {
+                if speech.appearance(for: content) == .loading {
+                    ProgressView().controlSize(.mini)
+                } else {
+                    Image(systemName: speech.icon(for: content))
+                        .font(.system(size: Design.Icon.action))
+                }
             }
+            .frame(width: Design.Icon.cardActionSize, height: Design.Icon.cardActionSize)
+            .contentShape(Rectangle())
         }
         .foregroundStyle(ThemeStyle.nativeSecondary)
         .disabled(!canSpeak)
