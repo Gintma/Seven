@@ -141,51 +141,19 @@ enum LanguageCatalog {
         return byCode[code]?.name ?? code
     }
 
-    private static let detectionPrefix = 1_000
-
     /// 历史记录里的语言：新记录存代码，旧记录存显示名，统一换成当前显示名。
     static func displayName(stored: String) -> String { name(migrate(stored)) }
 
-    /// 系统识别对短中文常分不清简繁（如“你好”会被认成繁体）。
-    /// 转成简体后有变化，说明含繁体专用字，才算繁体；否则按简体。
-    static func chineseVariant(of text: String) -> String {
-        let simplified = text.applyingTransform(StringTransform("Hant-Hans"), reverse: false) ?? text
-        return simplified == text ? "zh-Hans" : "zh-Hant"
-    }
-
     static func isChinese(_ code: String) -> Bool { code == "zh-Hans" || code == "zh-Hant" }
 
-    // 语言识别对首选和次选语言候选分别加权。
-    static let primaryDetectionBonus = 0.4
-    static let secondaryDetectionBonus = 0.3
-    static let detectionCandidateCount = 5
-
-    /// 只对系统实际返回的候选加分；参数显式传入，不读取用户设置。
-    static func preferredDetectionCandidate(_ candidates: [String: Double], primary: String, secondary: String) -> String? {
-        func matches(_ candidate: String, _ preference: String) -> Bool {
-            // 简繁候选各自获得同一中文偏好加分，不相加概率；最终字形仍由 chineseVariant 决定。
-            candidate == preference || (isChinese(candidate) && isChinese(preference))
-        }
-        return candidates.keys.sorted { lhs, rhs in
-            func score(_ code: String) -> Double {
-                (candidates[code] ?? 0) + (matches(code, primary) ? primaryDetectionBonus : 0) + (matches(code, secondary) ? secondaryDetectionBonus : 0)
-            }
-            if score(lhs) != score(rhs) { return score(lhs) > score(rhs) }
-            if candidates[lhs] != candidates[rhs] { return (candidates[lhs] ?? 0) > (candidates[rhs] ?? 0) }
-            return lhs < rhs
-        }.first
+    static func localDetection(
+        for text: String, primary: String = defaultPrimary, secondary: String = defaultSecondary
+    ) -> LocalLanguageDetection {
+        LocalLanguageDetector.detect(text, primary: primary, secondary: secondary)
     }
 
     static func detectedCode(for text: String, primary: String = defaultPrimary, secondary: String = defaultSecondary) -> String? {
-        // 只看开头一段，保留既有的检测长度上限。
-        let trimmed = text.prefix(detectionPrefix).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        let recognizer = NLLanguageRecognizer()
-        recognizer.processString(trimmed)
-        let candidates = Dictionary(uniqueKeysWithValues: recognizer.languageHypotheses(withMaximum: detectionCandidateCount).map { ($0.key.rawValue, $0.value) })
-        guard let winner = preferredDetectionCandidate(candidates, primary: primary, secondary: secondary) else { return nil }
-        if isChinese(winner) { return chineseVariant(of: trimmed) }
-        return all.first { $0.detection?.rawValue == winner }?.code
+        localDetection(for: text, primary: primary, secondary: secondary).code
     }
 
     /// 旧版本以显示名保存语言（如 "English"、"繁體中文"），读取设置时换成代码。

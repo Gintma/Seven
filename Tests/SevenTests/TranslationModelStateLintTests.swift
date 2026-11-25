@@ -13,7 +13,7 @@ final class TranslationModelStateLintTests: XCTestCase {
         "inputMaximumHeight", "maximumWindowHeightRatio", "panelScreenHeight",
         "expandedProviders", "appleTranslationRequest",
         // 原 private 存储中可变的缓存、识别状态及任务句柄；不包含只读注入依赖和常量。
-        "confirmedDetection", "detectionTask", "detectingText", "isDetectingOnline",
+        "confirmedDetection", "localDetectionCache", "detectionTask", "detectingText", "isDetectingOnline",
         "translateAfterDetection", "retryAfterDetection", "serviceTasks",
         "configurationTestTask", "generation", "primaryResultID", "pendingHistory",
         "historyLanguages", "systemTranslationBridgeAvailable"

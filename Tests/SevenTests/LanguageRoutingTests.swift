@@ -2,6 +2,15 @@ import XCTest
 @testable import Seven
 
 final class LanguageRoutingTests: XCTestCase {
+    func testAutomaticChinesePairUsesOppositeExactVariant() {
+        for (primary, secondary) in [("zh-Hant", "zh-Hans"), ("zh-Hans", "zh-Hant")] {
+            XCTAssertEqual(LanguageRouting.resolvedTarget(for: "", source: primary, target: "auto",
+                                                         primary: primary, secondary: secondary), secondary)
+            XCTAssertEqual(LanguageRouting.resolvedTarget(for: "", source: secondary, target: "auto",
+                                                         primary: primary, secondary: secondary), primary)
+        }
+    }
+
     func testChineseRoutesToSecondaryLanguage() {
         XCTAssertEqual(
             LanguageRouting.resolvedTarget(

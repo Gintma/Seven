@@ -193,7 +193,6 @@ extension TranslationModel {
         return requestTarget
     }
 
-    /// Apple 翻译需要明确的源语言；自动检测时，中文变体跟随第一语言，检测失败则取语言对中的另一端。
     /// 该服务不支持本次源语言或目标语言时的说明（显示为灰色“已跳过”，不发请求）；只在翻译模式下判断。
     private func unsupportedLanguageMessage(
         _ result: TranslationServiceResult,
@@ -214,13 +213,10 @@ extension TranslationModel {
         return .key("translation.unsupportedLanguage", service, .language(code))
     }
 
+    /// Apple 翻译需要明确的源语言；检测失败时取语言对中的另一端。
     private func appleTranslationSource(for text: String, target requestTarget: String) -> String {
         guard requestSource == LanguageCatalog.automatic else { return requestSource }
-        let detected = detectedLanguage(for: text)
-        if let detected, LanguageCatalog.isChinese(detected), LanguageCatalog.isChinese(primaryLanguage) {
-            return primaryLanguage
-        }
-        return detected ?? (requestTarget == primaryLanguage ? secondaryLanguage : primaryLanguage)
+        return detectedLanguage(for: text) ?? (requestTarget == primaryLanguage ? secondaryLanguage : primaryLanguage)
     }
 
     private func makeCompatibleRequest(provider: TranslationProviderID, text: String, target requestTarget: String) throws -> TranslationRequest {

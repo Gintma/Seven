@@ -48,12 +48,19 @@ enum LanguageDetectionPolicy {
     /// 联网识别最多发送的字符数：识别语言用不着全文。
     static let maximumCharacters = 500
 
-    /// 本机对中、英、日、韩识别较可靠；这些语言及用户的第一、第二语言直接采用，不联网。
+    /// 中、英、日、韩以及首选语言在本机有明确证据时直接采用。
     private static let trustedLocalLanguages: Set<String> = ["en", "zh-Hans", "zh-Hant", "ja", "ko"]
 
-    static func needsOnlineCheck(local: String?, primary: String, secondary: String) -> Bool {
-        guard let local else { return true }
-        return !trustedLocalLanguages.contains(local) && local != primary && local != secondary
+    static func needsOnlineCheck(local: LocalLanguageDetection, primary: String, secondary: String) -> Bool {
+        switch local.evidence {
+        case .noLanguageSignal:
+            return false
+        case .confident:
+            guard let code = local.code else { return true }
+            return !trustedLocalLanguages.contains(code) && code != primary && code != secondary
+        case .preference, .constrained, .mixedAmbiguity, .weakModel:
+            return true
+        }
     }
 }
 

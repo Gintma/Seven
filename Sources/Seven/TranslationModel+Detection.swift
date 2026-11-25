@@ -6,6 +6,7 @@ extension TranslationModel {
     /// 原文一变就重新检测，语言栏与交换永远对应当前这段原文。
     /// 原文改变时取消进行中的识别，停止输入 `languageDetectionDelay` 后再识别。
     internal func inputDidChange() {
+        localDetectionCache = nil
         pendingHistory = nil
         translateAfterDetection = false
         retryAfterDetection = []
@@ -25,7 +26,19 @@ extension TranslationModel {
     /// 这段原文的语言：联网确认过则用确认结果，否则用系统离线识别。
     func detectedLanguage(for text: String) -> String? {
         if let confirmedDetection, confirmedDetection.text == text { return confirmedDetection.code }
-        return LanguageCatalog.detectedCode(for: text, primary: primaryLanguage, secondary: secondaryLanguage)
+        return localLanguageDetection(for: text).code
+    }
+
+    private func localLanguageDetection(for text: String) -> LocalLanguageDetection {
+        if let cached = localDetectionCache, cached.text == text,
+           cached.primary == primaryLanguage, cached.secondary == secondaryLanguage {
+            return cached.result
+        }
+        let result = LanguageCatalog.localDetection(for: text, primary: primaryLanguage, secondary: secondaryLanguage)
+        if text == input.trimmingCharacters(in: .whitespacesAndNewlines) {
+            localDetectionCache = (text, primaryLanguage, secondaryLanguage, result)
+        }
+        return result
     }
 
     /// 本次请求用于判断与路由的源语言：手动指定的语言，或自动识别的结果（识别不出时为 auto）。
@@ -41,7 +54,7 @@ extension TranslationModel {
               requestSource == LanguageCatalog.automatic,
               confirmedDetection?.text != text else { return false }
         return LanguageDetectionPolicy.needsOnlineCheck(
-            local: LanguageCatalog.detectedCode(for: text, primary: primaryLanguage, secondary: secondaryLanguage),
+            local: localLanguageDetection(for: text),
             primary: primaryLanguage,
             secondary: secondaryLanguage
         )
@@ -63,6 +76,7 @@ extension TranslationModel {
     /// 用户偏好变化会改变本机候选排序，作废旧缓存和旧任务，避免各入口沿用不同结果。
     internal func preferredDetectionLanguagesDidChange() {
         confirmedDetection = nil
+        localDetectionCache = nil
         detectionTask?.cancel(); detectionTask = nil
         detectingText = nil; isDetectingOnline = false
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -93,7 +107,7 @@ extension TranslationModel {
         guard input.trimmingCharacters(in: .whitespacesAndNewlines) == text else { return }
         if needsOnlineDetection(for: text) {
             isDetectingOnline = true
-            let local = LanguageCatalog.detectedCode(for: text, primary: primaryLanguage, secondary: secondaryLanguage)
+            let local = localLanguageDetection(for: text)
             let order = languageDetectionMode.onlineOrder.compactMap { mode in languageDetectors[mode].map { (mode, $0) } }
             let start = Date()
             var result: (mode: LanguageDetectionMode, code: String?)?
@@ -114,10 +128,11 @@ extension TranslationModel {
                 }
             }
             guard !Task.isCancelled, input.trimmingCharacters(in: .whitespacesAndNewlines) == text else { return }
-            var code = result.map { $0.code ?? local } ?? local
-            // Google 对中文不分简繁，用本地简繁判断补足。
-            if let detected = code, LanguageCatalog.isChinese(detected) {
-                code = LanguageCatalog.chineseVariant(of: text)
+            let code: String?
+            if let detected = result?.code, LanguageCatalog.isChinese(detected) {
+                code = LocalLanguageDetector.chineseVariant(of: text, primary: primaryLanguage, secondary: secondaryLanguage)
+            } else {
+                code = result?.code ?? local.code
             }
             confirmedDetection = (text, code)
             let metadata = [

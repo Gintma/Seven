@@ -83,10 +83,10 @@ private final class UnusedTranslation: TranslationServing {
 final class LanguageDetectionPolicyTests: XCTestCase {
     func testTrustedLocalResultsSkipOnlineCheck() {
         for local in ["en", "zh-Hans", "zh-Hant", "ja", "ko"] {
-            XCTAssertFalse(LanguageDetectionPolicy.needsOnlineCheck(local: local, primary: "zh-Hans", secondary: "en"), local)
+            XCTAssertFalse(LanguageDetectionPolicy.needsOnlineCheck(local: .init(code: local, evidence: .confident), primary: "zh-Hans", secondary: "en"), local)
         }
-        XCTAssertTrue(LanguageDetectionPolicy.needsOnlineCheck(local: "id", primary: "zh-Hans", secondary: "en"))
-        XCTAssertTrue(LanguageDetectionPolicy.needsOnlineCheck(local: nil, primary: "zh-Hans", secondary: "en"))
+        XCTAssertTrue(LanguageDetectionPolicy.needsOnlineCheck(local: .init(code: "id", evidence: .confident), primary: "zh-Hans", secondary: "en"))
+        XCTAssertTrue(LanguageDetectionPolicy.needsOnlineCheck(local: .init(code: nil, evidence: .weakModel), primary: "zh-Hans", secondary: "en"))
     }
 
     func testOnlySelectedServiceIsRequestedAndStoredValuesRemainCompatible() {
@@ -96,8 +96,8 @@ final class LanguageDetectionPolicyTests: XCTestCase {
         XCTAssertEqual(LanguageDetectionMode(rawValue: "system"), .system)
         XCTAssertEqual(LanguageDetectionMode(rawValue: "google"), .google)
         XCTAssertEqual(LanguageDetectionMode(rawValue: "baidu"), .baidu)
-        XCTAssertFalse(LanguageDetectionPolicy.needsOnlineCheck(local: "fr", primary: "fr", secondary: "de"))
-        XCTAssertFalse(LanguageDetectionPolicy.needsOnlineCheck(local: "de", primary: "fr", secondary: "de"))
+        XCTAssertFalse(LanguageDetectionPolicy.needsOnlineCheck(local: .init(code: "fr", evidence: .confident), primary: "fr", secondary: "de"))
+        XCTAssertFalse(LanguageDetectionPolicy.needsOnlineCheck(local: .init(code: "de", evidence: .confident), primary: "fr", secondary: "de"))
     }
 
     func testGoogleCodesMapToCatalog() throws {
@@ -184,13 +184,111 @@ final class LanguageDetectionModelTests: XCTestCase {
         XCTAssertEqual(googleCalls, 0); XCTAssertEqual(baiduCalls, 0)
     }
 
-    func testPreferredCandidateWeightsDoNotInventCandidatesAndUnifyChinesePreference() {
-        XCTAssertEqual(LanguageCatalog.preferredDetectionCandidate(["ja": 0.9], primary: "zh-Hans", secondary: "en"), "ja")
-        XCTAssertNil(LanguageCatalog.preferredDetectionCandidate([:], primary: "zh-Hans", secondary: "en"))
-        XCTAssertEqual(LanguageCatalog.preferredDetectionCandidate(["zh-Hant": 0.4, "ja": 0.5], primary: "zh-Hans", secondary: "en"), "zh-Hant")
-        XCTAssertEqual(LanguageCatalog.preferredDetectionCandidate(["zh-Hans": 0.4, "ja": 0.5], primary: "zh-Hant", secondary: "en"), "zh-Hans")
-        XCTAssertEqual(LanguageCatalog.preferredDetectionCandidate(["en": 0.3, "fr": 0.5], primary: "zh-Hans", secondary: "en"), "en")
-        XCTAssertEqual(LanguageCatalog.detectedCode(for: "這是一段繁體中文。", primary: "zh-Hans", secondary: "en"), "zh-Hant")
+    func testLocalEvidencePreservesStrongWordsAndReviewsPreferenceOrConstraintChanges() {
+        for (text, expected) in [
+            ("Bonjour", "fr"), ("Hola", "es"), ("Guten Morgen", "de"), ("Ciao", "it"),
+            ("Apa kabar?", "id"), ("Merhaba", "tr"), ("macOS", "en")
+        ] {
+            XCTAssertEqual(LanguageCatalog.detectedCode(for: text), expected, text)
+        }
+
+        let unsupported = LanguageCatalog.localDetection(for: "Bună dimineața, unde este gara?")
+        XCTAssertNil(unsupported.code, "有明确的目录外证据时保留未知")
+        for evidence: LocalLanguageDetection.Evidence in [.constrained, .preference, .mixedAmbiguity, .weakModel] {
+            let tentative = LocalLanguageDetection(code: "es", evidence: evidence)
+            XCTAssertTrue(LanguageDetectionPolicy.needsOnlineCheck(local: tentative, primary: "es", secondary: "en"))
+        }
+
+        let preferred = LanguageCatalog.localDetection(for: "Safari", primary: "fr", secondary: "de")
+        XCTAssertEqual(preferred, .init(code: "fr", evidence: .preference))
+        XCTAssertTrue(LanguageDetectionPolicy.needsOnlineCheck(local: preferred, primary: "fr", secondary: "de"))
+        let preferredIndonesian = LanguageCatalog.localDetection(for: "Safari", primary: "id", secondary: "en")
+        XCTAssertEqual(preferredIndonesian, .init(code: "id", evidence: .preference))
+    }
+
+    func testLocalMixedScriptsPreserveSentenceLanguageAndRecoverShortLabels() {
+        for (text, code) in [
+            ("Safari 网页选区", "zh-Hans"), ("Safari 設定", "zh-Hant"),
+            ("Safari 设置", "zh-Hans"), ("botón 網頁選區", "zh-Hant"),
+            ("How to fix 网页选区 in Safari on macOS?", "en"),
+            ("How to fix ошибка in Safari?", "en"),
+            ("What does こんにちは mean?", "en"), ("Say 감사합니다 please", "en")
+        ] {
+            XCTAssertEqual(LanguageCatalog.detectedCode(for: text), code, text)
+        }
+    }
+
+    func testLocalChineseVariantUsesPreferencesForSharedFormsAndScriptEvidenceForDistinctForms() {
+        for (primary, secondary, expected) in [
+            ("zh-Hant", "en", "zh-Hant"), ("en", "zh-Hant", "zh-Hant"),
+            ("zh-Hant", "zh-Hans", "zh-Hant"), ("zh-Hans", "zh-Hant", "zh-Hans"),
+            ("fr", "en", "zh-Hans")
+        ] {
+            for text in ["你好", "中文", "世界", "台北", "皇后", "乾隆", "后"] {
+                XCTAssertEqual(LanguageCatalog.detectedCode(for: text, primary: primary, secondary: secondary),
+                               expected, "\(text) / \(primary) / \(secondary)")
+            }
+        }
+        XCTAssertEqual(LanguageCatalog.detectedCode(for: "今天有台风", primary: "zh-Hant", secondary: "en"), "zh-Hans")
+        XCTAssertEqual(LanguageCatalog.detectedCode(for: "我在網頁上選取文字", primary: "zh-Hans", secondary: "ja"), "zh-Hant")
+    }
+
+    func testLocalHanOnlyJapanesePreservesStrongEvidenceUnderChinesePreferences() {
+        for (primary, secondary) in [("zh-Hans", "en"), ("zh-Hant", "zh-Hans"), ("en", "zh-Hant")] {
+            for text in ["東京大学", "国際連合", "Safari 東京大学"] {
+                XCTAssertEqual(LanguageCatalog.detectedCode(for: text, primary: primary, secondary: secondary), "ja", text)
+            }
+        }
+        XCTAssertEqual(LanguageCatalog.detectedCode(for: "中国", primary: "ja", secondary: "en"), "zh-Hans")
+        XCTAssertEqual(LanguageCatalog.detectedCode(for: "Safari 日本語版", primary: "ja", secondary: "en"), "ja")
+    }
+
+    func testLocalTentativeLatinFallbackStillLetsHybridDetectionCorrectHalo() async {
+        for (text, remote) in [("Halo", "id"), ("Safari", "en"), ("SwiftUI", "en")] {
+            XCTAssertEqual(LanguageCatalog.detectedCode(for: text), "en", text)
+            let google = MockDetector(.success(remote))
+            let model = makeModel(mode: .google, google: google, baidu: MockDetector(.success("en")))
+            model.updateInput(text)
+            XCTAssertTrue(model.isSourceLanguagePending, text)
+            await model.waitForLanguageDetection()
+            XCTAssertEqual(model.detectedSource, remote, text)
+            let requests = await google.calls
+            XCTAssertEqual(requests, 1, text)
+        }
+    }
+
+    func testLocalNonLinguisticTextSkipsHybridDetection() async {
+        let google = MockDetector(.success("en"))
+        let model = makeModel(mode: .google, google: google, baidu: MockDetector(.success("en")))
+        for text in ["729", "2026-11-25", "🤖 42", "3.14159", "Ⅳ"] {
+            model.updateInput(text)
+            XCTAssertFalse(model.isSourceLanguagePending, text)
+            await model.waitForLanguageDetection()
+            XCTAssertNil(model.detectedSource, text)
+        }
+        let requests = await google.calls
+        XCTAssertEqual(requests, 0)
+    }
+
+    func testLocalMixedAmbiguityIsReviewedAndOnlineChineseUsesConfiguredVariant() async throws {
+        let google = MockDetector(.success("zh-Hans"))
+        let model = makeModel(mode: .google, google: google, baidu: MockDetector(.success("en")))
+        try model.saveLanguagePair(primary: "en", secondary: "zh-Hant")
+        model.updateInput("Settings 中文")
+        XCTAssertTrue(model.isSourceLanguagePending)
+        await model.waitForLanguageDetection()
+        XCTAssertEqual(model.detectedSource, "zh-Hant")
+        let requests = await google.calls
+        XCTAssertEqual(requests, 1)
+    }
+
+    func testLocalMixedVariantsAndAmbiguousLabelsStayEligibleForHybridReview() {
+        for text in ["Settings 开发者", "Website 日本語", "网頁选區"] {
+            let local = LanguageCatalog.localDetection(for: text)
+            XCTAssertEqual(local.evidence, .mixedAmbiguity, text)
+            XCTAssertTrue(LanguageDetectionPolicy.needsOnlineCheck(local: local, primary: "zh-Hans", secondary: "en"), text)
+        }
+        XCTAssertEqual(LanguageCatalog.localDetection(for: "729"), .init(code: nil, evidence: .noLanguageSignal))
     }
 
     func testDetectionModeSelectionPersistsImmediately() {
@@ -205,7 +303,7 @@ final class LanguageDetectionModelTests: XCTestCase {
     func testUntrustedSpanishOnlyUsesSelectedDetector() async {
         let text = "Buenos días, ¿cómo estás? Espero que tengas un día maravilloso."
         XCTAssertEqual(LanguageCatalog.detectedCode(for: text), "es")
-        XCTAssertTrue(LanguageDetectionPolicy.needsOnlineCheck(local: "es", primary: "zh-Hans", secondary: "en"))
+        XCTAssertTrue(LanguageDetectionPolicy.needsOnlineCheck(local: LanguageCatalog.localDetection(for: text), primary: "zh-Hans", secondary: "en"))
         for mode in LanguageDetectionMode.allCases {
             let google = MockDetector(.success("es")), baidu = MockDetector(.success("es"))
             let model = makeModel(mode: mode, google: google, baidu: baidu)

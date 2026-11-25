@@ -16,6 +16,9 @@ enum LanguageRouting {
         guard target == automaticTarget else { return target }
         let detected = source == LanguageCatalog.automatic ? detectedLanguage(for: text, primary: primary, secondary: secondary) : source
         guard let detected else { return primary }
+        if LanguageCatalog.isChinese(primary), LanguageCatalog.isChinese(secondary) {
+            return detected == primary ? secondary : primary
+        }
         return sameLanguageFamily(detected, primary) ? secondary : primary
     }
 

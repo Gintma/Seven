@@ -25,6 +25,8 @@ final class TranslationModel: ObservableObject {
     internal let languageDetectors: [LanguageDetectionMode: OnlineLanguageDetecting]
     /// 联网确认过的原文语言，只对同一段原文有效；nil 代码表示联网也未能识别出目录内的语言。
     internal var confirmedDetection: (text: String, code: String?)?
+    /// 复用当前原文和语言偏好的本机结果，供显示、复核和各翻译服务读取。
+    internal var localDetectionCache: (text: String, primary: String, secondary: String, result: LocalLanguageDetection)?
     /// 停止输入约 1 秒后再识别并更新语言栏。
     internal let languageDetectionDelay: Duration
     internal var detectionTask: Task<Void, Never>?

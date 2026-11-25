@@ -687,6 +687,27 @@ final class TranslationModelTests: XCTestCase {
         model.cancel()
     }
 
+    func testAppleTranslationKeepsIdentifiedSourceVariantForChinesePair() async throws {
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        let model = TranslationModel(
+            service: ImmediateService(response: "unused"),
+            dictionaryService: ImmediateDictionaryService(entry: nil),
+            credentials: MemoryCredentials(),
+            settings: SettingsStore(defaults: defaults),
+            appleAvailability: MockAppleAvailability(value: .installed)
+        )
+        try model.saveLanguagePair(primary: "zh-Hans", secondary: "zh-Hant")
+        model.setSystemTranslationBridgeAvailable(true)
+        model.updateInput("這是一段繁體中文。")
+        model.translate()
+        await model.serviceTasks[.appleTranslation]?.value
+
+        XCTAssertEqual(model.displaySource, "zh-Hant")
+        XCTAssertEqual(model.appleTranslationRequest?.sourceIdentifier, "zh-Hant")
+        XCTAssertEqual(model.appleTranslationRequest?.targetIdentifier, "zh-Hans")
+        model.cancel()
+    }
+
     func testMissingApplePacksSkipBridgeAndOnlyPrepareAfterDownloadClick() async throws {
         for missing in [["ja"], ["ja", "zh-Hant"]] {
             let suite = "SevenTests.\(UUID().uuidString)"
