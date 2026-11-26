@@ -908,10 +908,9 @@ struct SettingsExpandableTextRow: View {
 struct SettingsPromptVariables: View {
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     private var variables: [(String, String)] { [
-        ("{{text}}", L10n.text("sourceText")),
-        ("{{source}}", L10n.text("sourceLanguage")),
         ("{{target}}", L10n.text("targetLanguageSelectedInTheWindow")),
-        ("{{firstLanguage}}", L10n.text("firstLanguageInSettings"))
+        ("{{firstLanguage}}", L10n.text("firstLanguageInSettings")),
+        ("{{text}}", L10n.text("service.prompt.optionalSourceText"))
     ] }
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Space.s) {
@@ -927,7 +926,6 @@ struct SettingsPromptVariables: View {
         }
         .font(Design.Text.note.font).foregroundStyle(ThemeStyle.inkSecondary)
         .textSelection(.enabled)
-        .help(L10n.text("ifTheUserPromptOmitsTextSeven"))
     }
 }
 

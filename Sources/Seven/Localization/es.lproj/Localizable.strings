@@ -153,7 +153,6 @@
 "dark" = "Oscuro";
 "dashed" = "Discontinua";
 "defaultShadow" = "Sombra predeterminada";
-"defineTheRoleRulesAndOutputRequirements" = "Define el rol, las reglas y los requisitos de salida.";
 "definitions" = "Definiciones";
 "delete" = "Eliminar";
 "deleteAndItsAPIKey" = "¿Eliminar «%1$@» y su clave de API?";
@@ -210,7 +209,6 @@
 "enterAModelName" = "Introduce un nombre de modelo.";
 "enterAModelSupportedByThisService" = "Introduce un modelo compatible con este servicio.";
 "enterAPIKey" = "Introducir clave de API";
-"enterASystemPromptForCustomMode" = "Introduce una instrucción de sistema para el modo personalizado.";
 "enterAnAPIKey" = "Introduce una clave de API.";
 "enterTextToUseThisService" = "Introduce texto para usar este servicio";
 "enterTextToUseThisService2" = "%1$@. Introduce texto para usar este servicio.";
@@ -282,7 +280,6 @@
 "ifOnDeviceDetectionIsUncertainSeven" = "Si la detección local es incierta, Seven envía hasta 500 caracteres al servicio de detección en línea seleccionado.";
 "ifOnDeviceSpeechIsUnavailableSeven" = "Si la lectura en voz alta local no está disponible, Seven prueba otros servicios en línea.";
 "ifTheSelectedServiceCannotReadThe" = "Si el servicio seleccionado no puede leer el texto, Seven prueba otro disponible. Los servicios en línea reciben el texto que se leerá.";
-"ifTheUserPromptOmitsTextSeven" = "Si la instrucción de usuario no contiene {{text}}, Seven añade el texto original al final.";
 "includeOrAndTryADifferentShortcut" = "Incluye ⌘, ⌥ o ⌃ y prueba con otro atajo.";
 "indonesian" = "Indonesio";
 "inputLocationOrTextChanged" = "Cambió la posición de entrada o el texto";
@@ -490,6 +487,10 @@
 "service.apiUnsupported" = "El servicio no admite la API elegida. Comprueba la dirección y el formato de API.";
 "service.httpError" = "El servicio devolvió HTTP %1$@. Inténtalo más tarde.";
 "service.legacyDefaultName" = "Mi servicio de traducción";
+"service.prompt.optionalSourceText" = "Texto original (opcional)";
+"service.prompt.placement" = "Coloca {{text}} donde quieras insertar el texto original. Si lo omites, Seven enviará el texto original en un mensaje separado después de la instrucción.";
+"service.prompt.required" = "Introduce una instrucción para el modo Personalizado.";
+"service.prompt.title" = "Instrucción";
 "service.reasoningUnsupported" = "El servicio no admite el ajuste de razonamiento seleccionado. Usa el valor predeterminado del modelo.";
 "service.requestTimedOut" = "Se agotó el tiempo de espera de la solicitud a %1$@. Inténtalo más tarde.";
 "service.unreachable" = "No se pudo conectar con %1$@. Comprueba la conexión e inténtalo de nuevo.";
@@ -550,7 +551,6 @@
 "spanish" = "Español";
 "speakingRate" = "Velocidad de lectura";
 "specifiedFolder" = "Carpeta indicada";
-"specifyHowToHandleTheInputYou" = "Indica cómo tratar el texto de entrada. Puedes usar las variables de abajo.";
 "speechIsUnavailableFor" = "La lectura en voz alta no está disponible para %1$@";
 "spotlight" = "Resaltar";
 "spotlightShape" = "Forma del resaltado";
@@ -565,7 +565,6 @@
 "swapLanguages" = "Intercambiar idiomas";
 "swapWithTheTranslationFrom" = "Intercambiar con la traducción de %1$@";
 "swedish" = "Sueco";
-"systemPrompt" = "Instrucción de sistema";
 "systemSpeech" = "Lectura del sistema";
 "systemSpeechUsesOnDeviceVoicesFirst" = "La lectura del sistema da prioridad a las voces locales. Si el servicio seleccionado falla, Seven prueba otros disponibles. El texto puede enviarse a %1$@. Si ninguno está disponible, se detiene la reproducción.";
 "takeNoAction" = "No hacer nada";
@@ -665,7 +664,6 @@
 "useALetterOrNumberWithoutModifiers" = "Usa una letra o un número sin teclas modificadoras.";
 "useThisInAnEditableTextField" = "Usa esta opción en un campo de texto editable";
 "usedForPinnedImagesAndScrollingScreenshots" = "Se usa con imágenes fijadas y capturas con desplazamiento.";
-"userPrompt" = "Instrucción de usuario";
 "usesTheOfficialEndpointByDefaultYou" = "Usa la dirección oficial de forma predeterminada. Puedes introducir la de un proxy.";
 "verify" = "Verificar";
 "verifying" = "Verificando…";
@@ -682,7 +680,6 @@
 "window" = "Ventana";
 "clearTranslationWhenOpeningWindow" = "Borrar el contenido anterior al abrir la ventana";
 "windowPosition" = "Posición de la ventana";
-"youAreALanguageTeacherPreserveThe" = "Eres docente de idiomas. Conserva el tono original y explica las expresiones difíciles de entender.";
 "youCanTranslateUpTo20000" = "Puedes traducir hasta 20.000 caracteres a la vez.";
 "youdao.unavailable" = "El traductor de Youdao no está disponible temporalmente (error %1$@).";
 "youdaoSpeech" = "Lectura en voz alta de Youdao";

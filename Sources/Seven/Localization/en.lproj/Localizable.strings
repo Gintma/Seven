@@ -153,7 +153,6 @@
 "dark" = "Dark";
 "dashed" = "Dashed";
 "defaultShadow" = "Default Shadow";
-"defineTheRoleRulesAndOutputRequirements" = "Define the role, rules, and output requirements.";
 "definitions" = "Definitions";
 "delete" = "Delete";
 "deleteAndItsAPIKey" = "Delete “%1$@” and its API key?";
@@ -210,7 +209,6 @@
 "enterAModelName" = "Enter a model name.";
 "enterAModelSupportedByThisService" = "Enter a model supported by this service.";
 "enterAPIKey" = "Enter API Key";
-"enterASystemPromptForCustomMode" = "Enter a system prompt for Custom mode.";
 "enterAnAPIKey" = "Enter an API key.";
 "enterTextToUseThisService" = "Enter text to use this service";
 "enterTextToUseThisService2" = "%1$@. Enter text to use this service.";
@@ -282,7 +280,6 @@
 "ifOnDeviceDetectionIsUncertainSeven" = "If on-device detection is uncertain, Seven sends up to 500 characters to the selected online detection service.";
 "ifOnDeviceSpeechIsUnavailableSeven" = "If on-device speech is unavailable, Seven tries other online services";
 "ifTheSelectedServiceCannotReadThe" = "If the selected service cannot read the text, Seven tries another available service. Online services receive the text to read.";
-"ifTheUserPromptOmitsTextSeven" = "If the user prompt omits {{text}}, Seven appends the original text.";
 "includeOrAndTryADifferentShortcut" = "Include ⌘, ⌥, or ⌃ and try a different shortcut";
 "indonesian" = "Indonesian";
 "inputLocationOrTextChanged" = "Input Location or Text Changed";
@@ -490,6 +487,10 @@
 "service.apiUnsupported" = "This service does not support the selected API. Check the address and API format.";
 "service.httpError" = "The service returned HTTP %1$@. Try again later.";
 "service.legacyDefaultName" = "My Translation Service";
+"service.prompt.optionalSourceText" = "Original text (optional)";
+"service.prompt.placement" = "Place {{text}} where you want the original text to appear. If omitted, Seven sends the original text separately after the prompt.";
+"service.prompt.required" = "Enter a prompt for Custom mode.";
+"service.prompt.title" = "Prompt";
 "service.reasoningUnsupported" = "This service does not support the selected reasoning setting. Use the model default.";
 "service.requestTimedOut" = "The request to %1$@ timed out. Try again later.";
 "service.unreachable" = "Could not reach %1$@. Check your connection and try again.";
@@ -550,7 +551,6 @@
 "spanish" = "Spanish";
 "speakingRate" = "Speaking Rate";
 "specifiedFolder" = "Specified Folder";
-"specifyHowToHandleTheInputYou" = "Specify how to handle the input. You can use the variables below.";
 "speechIsUnavailableFor" = "Speech is unavailable for %1$@";
 "spotlight" = "Spotlight";
 "spotlightShape" = "Spotlight Shape";
@@ -565,7 +565,6 @@
 "swapLanguages" = "Swap Languages";
 "swapWithTheTranslationFrom" = "Swap with the translation from %1$@";
 "swedish" = "Swedish";
-"systemPrompt" = "System Prompt";
 "systemSpeech" = "System Speech";
 "systemSpeechUsesOnDeviceVoicesFirst" = "System speech uses on-device voices first. If the selected service fails, Seven tries other available services. Text may be sent to %1$@. Playback stops if none are available.";
 "takeNoAction" = "Take No Action";
@@ -665,7 +664,6 @@
 "useALetterOrNumberWithoutModifiers" = "Use a letter or number without modifiers.";
 "useThisInAnEditableTextField" = "Use this in an editable text field";
 "usedForPinnedImagesAndScrollingScreenshots" = "Used for pinned images and scrolling screenshots.";
-"userPrompt" = "User Prompt";
 "usesTheOfficialEndpointByDefaultYou" = "Uses the official endpoint by default. You can enter a proxy endpoint.";
 "verify" = "Verify";
 "verifying" = "Verifying…";
@@ -682,7 +680,6 @@
 "window" = "Window";
 "clearTranslationWhenOpeningWindow" = "Clear previous content when opening the window";
 "windowPosition" = "Window Position";
-"youAreALanguageTeacherPreserveThe" = "You are a language teacher. Preserve the original tone and explain expressions that are difficult to understand.";
 "youCanTranslateUpTo20000" = "You can translate up to 20,000 characters at a time.";
 "youdao.unavailable" = "Youdao Translate is temporarily unavailable (error %1$@).";
 "youdaoSpeech" = "Youdao Speech";

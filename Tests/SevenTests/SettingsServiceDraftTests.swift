@@ -50,8 +50,8 @@ private actor DraftConfigurationTester: ServiceConfigurationTesting {
         editor.value.baseAddress = "https://draft.example/v1"
         editor.value.model = "draft-model"
         editor.value.timeoutSeconds = 120
-        editor.value.systemPrompt = "合成系统提示"
-        editor.value.userPrompt = "合成用户提示 {{text}}"
+        editor.value.mode = .custom
+        editor.value.prompt = "合成提示词 {{text}}"
         editor.value.manualModels = ["manual-model"]
         editor.apiKey = "  draft-key  "
         editor.value.fetchedModels = ["draft-model"]
@@ -65,8 +65,7 @@ private actor DraftConfigurationTester: ServiceConfigurationTesting {
         let saved = try XCTUnwrap(model.instance(original.id))
         XCTAssertEqual(saved.name, "新服务名称")
         XCTAssertEqual(saved.model, "draft-model")
-        XCTAssertEqual(saved.systemPrompt, "合成系统提示")
-        XCTAssertEqual(saved.userPrompt, "合成用户提示 {{text}}")
+        XCTAssertEqual(saved.prompt, "合成提示词 {{text}}")
         XCTAssertEqual(saved.timeoutSeconds, 120)
         XCTAssertEqual(saved.manualModels, ["manual-model"])
         XCTAssertEqual(saved.fetchedModels, ["draft-model"])
@@ -102,6 +101,20 @@ private actor DraftConfigurationTester: ServiceConfigurationTesting {
         XCTAssertFalse(editor.hasChanges)
     }
 
+    func testSavingBlankCustomPromptLeavesConfigurationAndCredentialsUntouched() throws {
+        let (model, settings, keys, editor, _) = try fixture()
+        let original = editor.value
+        editor.value.mode = .custom
+        editor.value.prompt = " \n\t"
+        editor.apiKey = "draft-key"
+
+        XCTAssertThrowsError(try editor.save(using: model))
+        XCTAssertEqual(model.instance(original.id), original)
+        XCTAssertEqual(settings.serviceInstances, [original])
+        XCTAssertEqual(keys.writes, 0)
+        XCTAssertTrue(editor.hasChanges)
+    }
+
     func testSaveFailurePreservesStoredConfigurationAndDraft() throws {
         let (model, settings, keys, editor, _) = try fixture()
         let original = editor.value
@@ -134,13 +147,18 @@ private actor DraftConfigurationTester: ServiceConfigurationTesting {
         XCTAssertEqual(keys.writes, 0)
         editor.value.baseAddress = "https://draft.example/v1"
         editor.value.model = "draft-model"; editor.apiKey = "draft-key"
+        editor.value.mode = .custom
+        editor.value.prompt = "草稿提示词 {{text}}"
         try editor.verify(using: model)
         for _ in 0..<100 where model.isTestingConfiguration { try await Task.sleep(for: .milliseconds(10)) }
         requests = await tester.received
         XCTAssertEqual(requests.last?.0.endpoint, "https://draft.example/v1/responses")
         XCTAssertEqual(requests.last?.0.model, "draft-model")
+        XCTAssertEqual(requests.last?.0.prompt, "草稿提示词 {{text}}")
         XCTAssertEqual(requests.last?.1, "draft-key")
         XCTAssertEqual(model.instance(original.id), original)
+        XCTAssertEqual(settings.serviceInstances, [original])
+        XCTAssertEqual(keys.writes, 0)
     }
 
     func testSuccessfulVerificationLocalizesElapsedTime() async throws {

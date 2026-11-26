@@ -4,7 +4,8 @@ extension TranslationModel {
     // MARK: 翻译请求与结果生命周期
 
     func translate() {
-        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let originalText = input
+        let text = originalText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         guard text.count <= 20_000 else { issue = .key("translationInputTooLong"); return }
         speech.stop()
@@ -39,7 +40,7 @@ extension TranslationModel {
                 result.issue = message
             } else if !result.id.isBuiltIn {
                 do {
-                    compatibleRequests[result.id] = try makeCompatibleRequest(provider: result.id, text: text, target: requestTarget)
+                    compatibleRequests[result.id] = try makeCompatibleRequest(provider: result.id, text: text, originalText: originalText, target: requestTarget)
                     result.phase = .loading
                     startedProviders.insert(result.id)
                 } catch {
@@ -91,7 +92,8 @@ extension TranslationModel {
 
     func retryResult(_ provider: TranslationProviderID) {
         guard let index = resultIndex(provider) else { return }
-        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let originalText = input
+        let text = originalText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, text.count <= 20_000 else { return }
 
         speech.stop()
@@ -156,7 +158,7 @@ extension TranslationModel {
             break
         default:
             do {
-                compatibleRequest = try makeCompatibleRequest(provider: provider, text: text, target: requestTarget)
+                compatibleRequest = try makeCompatibleRequest(provider: provider, text: text, originalText: originalText, target: requestTarget)
             } catch {
                 failResult(provider, error: error, generation: id)
                 return
@@ -228,14 +230,19 @@ extension TranslationModel {
         return detectedLanguage(for: text) ?? (requestTarget == primaryLanguage ? secondaryLanguage : primaryLanguage)
     }
 
-    private func makeCompatibleRequest(provider: TranslationProviderID, text: String, target requestTarget: String) throws -> TranslationRequest {
+    private func makeCompatibleRequest(
+        provider: TranslationProviderID, text: String, originalText: String, target requestTarget: String
+    ) throws -> TranslationRequest {
         guard let configuration = instance(provider)?.configuration else {
             throw TranslationError.configuration("自备密钥服务尚未配置。")
         }
         _ = try configuration.validatedURL()
         let key = try resolvedCredential(for: configuration)
         if instance(provider)?.provider != .custom, key.isEmpty { throw TranslationError.configuration(.key("enterAnAPIKey")) }
-        return TranslationRequest(text: text, source: requestSource, target: requestTarget, configuration: configuration, apiKey: key, firstLanguage: primaryLanguage)
+        return TranslationRequest(
+            text: configuration.mode == .custom ? originalText : text,
+            source: requestSource, target: requestTarget, configuration: configuration, apiKey: key, firstLanguage: primaryLanguage
+        )
     }
 
     /// 启动单个服务。调用方负责事先检查可用性；自备密钥服务需传入已准备好的请求。

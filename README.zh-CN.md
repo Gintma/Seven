@@ -30,7 +30,7 @@
 
 ## 为什么选择 Seven
 
-- **AI 原生，自带主流模型** — 统一流式接入 OpenAI、Claude、Gemini、DeepSeek、MiniMax、智谱、Kimi、千问、豆包、OpenRouter 及自定义兼容接口，支持自定义 Prompt 与「翻译并替换」，同时内置 Apple 翻译与离线英汉词典。
+- **AI 原生，自带主流模型** — 统一流式接入 OpenAI、Claude、Gemini、DeepSeek、MiniMax、智谱、Kimi、千问、豆包、OpenRouter 及自定义兼容接口，支持自定义提示词与「翻译并替换」，同时内置 Apple 翻译与离线英汉词典。
 - **一站式屏幕信息效率工作流** — 将跨应用 AI 翻译、冻结截图标注、长截图、悬浮钉图与本机离线 OCR 整合在一个轻量的菜单栏应用里，打通阅读、写作与信息捕捉。
 - **原生 macOS 应用** — 基于 AppKit、SwiftUI、Apple Vision、Apple Translation 与纯 C 滚动配准内核（`ScrollRegistrationCore`）构建，应用更新由 Sparkle 2 提供。
 - **隐私本地优先** — OCR 全程通过 Apple Vision 在本机完成，自备 API Key 按实例存在本地受限权限文件（`0700`/`0600`），无任何统计上报或后台遥测。
@@ -44,7 +44,8 @@
 
 - **多入口触发** — 支持输入翻译、跨应用划词翻译（`⌥D`）、截图翻译（`⌥S`），以及「翻译并替换」（`⌃⌥T`），写回前会核对目标进程、编辑控件与 UTF-16 选区。
 - **内置 + 自带密钥服务** — 内置 Apple 翻译、离线简明英汉词典（ECDICT）、有道与 Google；自带密钥服务统一流式输出，支持 OpenAI、Claude、Gemini、DeepSeek、MiniMax、智谱、Kimi、千问、豆包、OpenRouter 与自定义兼容接口。
-- **智能语言路由与自定义 Prompt** — 第一/第二语言自动识别与固定目标语言切换，流式输出尊重你的阅读滚动位置；支持自定义 Prompt 变量（`{{text}}`、`{{source}}`、`{{target}}`、`{{firstLanguage}}`）、语音朗读、多服务翻译历史、独立收藏夹和 JSON／Markdown 导出。
+- **智能语言路由与自定义提示词** — 第一/第二语言自动识别与固定目标语言切换，流式输出尊重你的阅读滚动位置，并提供语音朗读、多服务翻译历史、独立收藏夹和 JSON／Markdown 导出。
+  - 自定义模式使用一段提示词。`{{target}}` 代表窗口选定的目标语言，`{{firstLanguage}}` 代表设置中的第一语言。用 `{{text}}` 指定原文出现的位置时，整段提示词会作为一条用户消息发送。省略 `{{text}}` 时，Seven 先发送系统提示词，再把原文作为一条单独的用户消息发送。
 
 ### 截图、长截图与钉图
 

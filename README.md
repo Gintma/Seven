@@ -44,7 +44,8 @@
 
 - **Multiple Entry Points** — Input translation, cross-app selection translation (`⌥D`), screenshot translation (`⌥S`), and in-place **Translate & Replace** (`⌃⌥T`) that safely verifies target focus and UTF-16 selection before writing back.
 - **Built-in & Bring-Your-Own-Key Providers** — Apple Translation, offline English-Chinese dictionary (ECDICT), Youdao, and Google built in; streaming BYOK support for OpenAI, Claude, Gemini, DeepSeek, MiniMax, Zhipu, Kimi, Qwen, Doubao, OpenRouter, and custom compatible endpoints.
-- **Smart Language Routing & Custom Prompts** — Automatic first/second language routing with fixed-target override, streaming responses that respect your reading scroll position, custom prompts (`{{text}}`, `{{source}}`, `{{target}}`, `{{firstLanguage}}`), offline TTS, and searchable multi-service translation history, separate favorites, and JSON/Markdown export.
+- **Smart Language Routing & Custom Prompts** — Automatic first/second language routing with fixed-target override, streaming responses that respect your reading scroll position, offline TTS, and searchable multi-service translation history, separate favorites, and JSON/Markdown export.
+  - Custom mode uses a single prompt. Use `{{target}}` for the selected target language and `{{firstLanguage}}` for your first language in Settings. Place `{{text}}` where the original text should appear to send the whole prompt as one user message. Leave it out to send the prompt as a system message followed by the original text in a separate user message.
 
 ### Screenshots, Scroll Capture & Floating Pins
 

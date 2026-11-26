@@ -63,6 +63,7 @@ import Combine
         guard keyLoaded else {
             throw TranslationError.configuration(.key("couldNotReadTheSavedAPIKey"))
         }
+        try value.configuration.validatePrompt()
         // 凭据写入可失败，必须在配置更新前完成；失败时保持草稿和已保存配置。
         if apiKey != savedKey { try model.saveServiceKey(value.id, key: apiKey) }
         var saved = value

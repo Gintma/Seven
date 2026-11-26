@@ -67,10 +67,19 @@ final class ServiceInstanceTests: XCTestCase {
         settings.languageDetectionMode = .system
         return (d, settings)
     }
-    func testNewServiceDoesNotStorePromptPlaceholders() {
-        let service = ServiceInstance(provider: .custom)
-        XCTAssertTrue(service.systemPrompt.isEmpty)
-        XCTAssertTrue(service.userPrompt.isEmpty)
+    func testSavedInstancesWithoutPromptKeepTheirIdentityAndCredentialAccount() throws {
+        let (defaults, settings) = try store()
+        var item = ServiceInstance(provider: .custom, name: "Configured", enabled: false)
+        item.mode = .custom
+        item.baseAddress = "https://api.example.com/v1"
+        let encoded = try JSONEncoder().encode(item)
+        var fields = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        fields.removeValue(forKey: "prompt")
+        defaults.set(try JSONSerialization.data(withJSONObject: [fields]), forKey: "serviceInstances.v2")
+
+        let restored = try XCTUnwrap(settings.migrateServiceInstances().first)
+        XCTAssertEqual(restored, item)
+        XCTAssertEqual(restored.configuration.credentialAccount, item.configuration.credentialAccount)
     }
 
     func testFreshInstallEnablesBuiltInTranslatorsAndLeavesDictionaryOff() throws {
@@ -139,8 +148,7 @@ final class ServiceInstanceTests: XCTestCase {
         XCTAssertEqual(items.map(\.enabled),[true,false,true,true,false])
         XCTAssertEqual(migrated.id,.compatible)
         XCTAssertEqual(migrated.configuration.endpoint, "https://proxy.example.com/v1/messages")
-        XCTAssertEqual(migrated.systemPrompt, "用户保存的系统提示词")
-        XCTAssertEqual(migrated.userPrompt, "{{text}}")
+        XCTAssertTrue(migrated.prompt.isEmpty)
         XCTAssertNil(keys.values[migrated.configuration.credentialAccount]); XCTAssertEqual(keys.reads,0); XCTAssertEqual(keys.writes,0)
         XCTAssertEqual(keys.values[config.credentialAccount],"old-key")
         XCTAssertFalse(String(decoding:try XCTUnwrap(d.data(forKey:"serviceInstances.v2")),as:UTF8.self).contains("old-key"))
@@ -174,14 +182,6 @@ final class ServiceInstanceTests: XCTestCase {
         XCTAssertEqual(settings.serviceInstances, model.serviceInstances)
         let added = model.addService(.deepSeek)
         XCTAssertNotNil(model.instance(added))
-    }
-    func testPolishConfigurationBecomesEquivalentCustomPrompt() throws {
-        let (d,s)=try store()
-        d.set(Data(#"{"name":"Polish","endpoint":"https://api.example.com/v1/chat/completions","model":"model","mode":"polish","systemPrompt":"ignored","userPrompt":"ignored"}"#.utf8),forKey:"serviceConfiguration.v1")
-        s.configured=true
-        let item=try XCTUnwrap(s.migrateServiceInstances().last)
-        XCTAssertEqual(item.mode,.custom);XCTAssertEqual(item.systemPrompt,ServiceConfiguration.legacyPolishPrompt);XCTAssertEqual(item.userPrompt,"{{text}}")
-        XCTAssertEqual(try JSONDecoder().decode(TranslationMode.self,from:Data("\"polish\"".utf8)),.custom)
     }
     func testEveryStyleNormalizesCompletePathAndBuildsOneSuffix() throws {
         for (style,suffix) in [(ServiceAPIStyle.openAICompatible,"/chat/completions"),(.openAIResponses,"/responses"),(.anthropic,"/messages"),(.gemini,"/models/model:generateContent")] {

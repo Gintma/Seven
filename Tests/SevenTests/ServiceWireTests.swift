@@ -42,6 +42,48 @@ final class ServiceWireTests: XCTestCase {
             }
         }
     }
+    func testCustomPromptWirePayloadsWithAndWithoutTextVariable() throws {
+        let original = "  Original {{target}}\n"
+        for prompt in ["Explain in {{target}}", "Explain in {{target}}:\n{{text}}"] {
+            let includesText = prompt.contains("{{text}}")
+            let system: String? = includesText ? nil : "Explain in Japanese"
+            let user = includesText ? "Explain in Japanese:\n" + original : original
+            let userMessage = ["role": "user", "content": user]
+            for style in ServiceAPIStyle.allCases {
+                let base = input(style)
+                var config = base.configuration
+                config.mode = .custom
+                config.prompt = prompt
+                let request = try CompatibleTranslationService.makeURLRequest(
+                    .init(text: original, source: "auto", target: "ja", configuration: config, apiKey: base.apiKey)
+                )
+                let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(request.httpBody)) as? [String: Any])
+                let context = "\(style), includesText: \(includesText)"
+                switch style {
+                case .openAICompatible:
+                    let systemMessages = system.map { [["role": "system", "content": $0]] } ?? []
+                    XCTAssertEqual(body["messages"] as? [[String: String]], systemMessages + [userMessage], context)
+                case .openAIResponses:
+                    XCTAssertEqual(body["instructions"] as? String, system, context)
+                    XCTAssertEqual(body["input"] as? String, user, context)
+                    if includesText { XCTAssertNil(body["instructions"], context) }
+                case .anthropic:
+                    XCTAssertEqual(body["system"] as? String, system, context)
+                    XCTAssertEqual(body["messages"] as? [[String: String]], [userMessage], context)
+                    if includesText { XCTAssertNil(body["system"], context) }
+                case .gemini:
+                    let actualSystem = body["systemInstruction"] as? [String: [[String: String]]]
+                    XCTAssertEqual(actualSystem, system.map { ["parts": [["text": $0]]] }, context)
+                    if includesText { XCTAssertNil(body["systemInstruction"], context) }
+                    let contents = try XCTUnwrap(body["contents"] as? [[String: Any]])
+                    XCTAssertEqual(contents.count, 1, context)
+                    XCTAssertEqual(contents.first?["role"] as? String, "user", context)
+                    XCTAssertEqual(contents.first?["parts"] as? [[String: String]], [["text": user]], context)
+                }
+            }
+        }
+    }
+
     func testAnthropicStreamingOnlyAccumulatesTextAndRequiresMessageStop() throws {
         let events=[
             #"{"type":"message_start","message":{}}"#,

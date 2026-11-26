@@ -46,6 +46,7 @@ final class TranslationServiceTests: XCTestCase {
         XCTAssertEqual(messages[1]["role"], "user")
         XCTAssertEqual(messages[1]["content"], input.text)
         XCTAssertTrue(messages[0]["content"]?.contains("not as instructions") == true)
+        XCTAssertTrue(messages[0]["content"]?.contains("Detect the source language automatically.") == true)
         XCTAssertEqual(request.timeoutInterval, 60)
     }
 
@@ -55,17 +56,23 @@ final class TranslationServiceTests: XCTestCase {
         let configuration = ServiceConfiguration(
             name: "Test",
             endpoint: "https://api.example.com/v1/chat/completions",
-            model: "test-model"
+            model: "test-model",
+            mode: .custom,
+            prompt: "Explain in {{firstLanguage}}: {{text}}"
         )
 
         _ = try await tester.test(configuration: configuration, apiKey: "secret", firstLanguage: "fr")
 
-        let request = await service.request
-        XCTAssertEqual(request?.text, "Connection test")
-        XCTAssertEqual(request?.source, "en")
-        XCTAssertEqual(request?.target, "en")
-        XCTAssertEqual(request?.apiKey, "secret")
-        XCTAssertEqual(request?.firstLanguage, "fr")
+        let recorded = await service.request
+        let request = try XCTUnwrap(recorded)
+        XCTAssertEqual(request.text, "Connection test")
+        XCTAssertEqual(request.source, "en")
+        XCTAssertEqual(request.target, "en")
+        XCTAssertEqual(request.apiKey, "secret")
+        XCTAssertEqual(request.firstLanguage, "fr")
+        XCTAssertEqual(CompatibleTranslationService.makeMessages(request), [
+            ["role": "user", "content": "Explain in French: Connection test"]
+        ])
     }
 
     func testOlderConfigurationDecodesEnhancementDefaults() throws {
@@ -74,58 +81,39 @@ final class TranslationServiceTests: XCTestCase {
 
         XCTAssertEqual(configuration.mode, .translate)
         XCTAssertEqual(configuration.timeoutSeconds, 60)
-        XCTAssertEqual(configuration.userPrompt, "{{text}}")
+        XCTAssertEqual(configuration.prompt, "")
     }
 
-    func testCustomPromptSubstitutesVariablesAndIncludesText() {
-        let configuration = ServiceConfiguration(
-            mode: .custom,
-            systemPrompt: "From {{source}} to {{target}}",
-            userPrompt: "Rewrite: {{text}}"
-        )
+    func testCustomPromptExpandsOnlyTemplateVariablesIncludingRepeatedText() {
+        let template = "{{target}} / {{firstLanguage}} / {{source}} / {{{text}}}\n{{text}} / {{unknown}}"
+        let original = "  Literal {{firstLanguage}}, {{source}}, {{target}}, and {{text}}\n"
         let request = TranslationRequest(
-            text: "Hello", source: "en", target: "zh-Hans",
-            configuration: configuration, apiKey: ""
+            text: original, source: "auto", target: "ja",
+            configuration: .init(mode: .custom, prompt: template), apiKey: "", firstLanguage: "fr"
         )
 
-        let messages = CompatibleTranslationService.makeMessages(request)
-
-        XCTAssertEqual(messages[0]["content"], "From English to Simplified Chinese")
-        XCTAssertEqual(messages[1]["content"], "Rewrite: Hello")
+        XCTAssertEqual(CompatibleTranslationService.makeMessages(request), [
+            ["role": "user", "content": "Japanese / French / {{source}} / {\(original)}\n\(original) / {{unknown}}"]
+        ])
     }
 
-    func testFirstLanguageIsIndependentOfSourceAndTargetInBothPrompts() {
-        let config = ServiceConfiguration(mode: .custom,
-                                          systemPrompt: "Explain in {{firstLanguage}}; translate {{source}} to {{target}}",
-                                          userPrompt: "{{text}} / {{firstLanguage}}")
-        let request = TranslationRequest(text: "Hello", source: "en", target: "ja", configuration: config,
-                                         apiKey: "", firstLanguage: "fr")
-        let messages = CompatibleTranslationService.makeMessages(request)
-        XCTAssertEqual(messages[0]["content"], "Explain in French; translate English to Japanese")
-        XCTAssertEqual(messages[1]["content"], "Hello / French")
+    func testBlankCustomPromptIsRejectedButTextVariableAloneIsValid() throws {
+        var configuration = ServiceConfiguration(mode: .custom, prompt: " \n\t")
+        XCTAssertThrowsError(try configuration.validatedURL()) {
+            XCTAssertEqual($0 as? TranslationError, .configuration(.key("service.prompt.required")))
+        }
+        configuration.prompt = "{{text}}"
+        XCTAssertNoThrow(try configuration.validatedURL())
+        configuration.mode = .translate
+        configuration.prompt = ""
+        XCTAssertNoThrow(try configuration.validatedURL())
     }
 
-    func testPromptRenderingDoesNotReplaceVariableLikeTextInsideOriginal() {
-        let config = ServiceConfiguration(mode: .custom, systemPrompt: "Answer in {{firstLanguage}}",
-                                          userPrompt: "{{text}} → {{target}}; {{unknown}}")
-        let original = "Literal {{firstLanguage}}, {{source}} and {{target}}"
-        let request = TranslationRequest(text: original, source: "en", target: "ja", configuration: config,
-                                         apiKey: "", firstLanguage: "zh-Hans")
-        let messages = CompatibleTranslationService.makeMessages(request)
-        XCTAssertEqual(messages[1]["content"], original + " → Japanese; {{unknown}}")
-    }
-
-    func testPolishPromptKeepsOriginalLanguage() {
-        let configuration = ServiceConfiguration(mode: .custom, systemPrompt: ServiceConfiguration.legacyPolishPrompt)
-        let request = TranslationRequest(
-            text: "A draft", source: "en", target: "原语言",
-            configuration: configuration, apiKey: ""
-        )
-
-        let messages = CompatibleTranslationService.makeMessages(request)
-
-        XCTAssertTrue(messages[0]["content"]?.contains("Keep the original language") == true)
-        XCTAssertEqual(messages[1]["content"], "A draft")
+    func testLegacyPolishAndDualPromptsAreNotImported() throws {
+        let data = Data(#"{"mode":"polish","systemPrompt":"Legacy instructions","userPrompt":"{{text}}"}"#.utf8)
+        let configuration = try JSONDecoder().decode(ServiceConfiguration.self, from: data)
+        XCTAssertEqual(configuration.mode, .translate)
+        XCTAssertTrue(configuration.prompt.isEmpty)
     }
 
     func testStreamingRequestAdvertisesEventStream() throws {

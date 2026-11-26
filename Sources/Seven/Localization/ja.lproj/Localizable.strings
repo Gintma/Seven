@@ -153,7 +153,6 @@
 "dark" = "ダーク";
 "dashed" = "破線";
 "defaultShadow" = "既定の影";
-"defineTheRoleRulesAndOutputRequirements" = "役割、ルール、出力の要件を指定します。";
 "definitions" = "語義";
 "delete" = "削除";
 "deleteAndItsAPIKey" = "「%1$@」とその API キーを削除しますか？";
@@ -210,7 +209,6 @@
 "enterAModelName" = "モデル名を入力してください。";
 "enterAModelSupportedByThisService" = "このサービスで利用できるモデルを入力してください。";
 "enterAPIKey" = "API キーを入力";
-"enterASystemPromptForCustomMode" = "カスタムモードのシステムプロンプトを入力してください。";
 "enterAnAPIKey" = "API キーを入力してください。";
 "enterTextToUseThisService" = "このサービスを使うには原文を入力";
 "enterTextToUseThisService2" = "%1$@。このサービスを使うには原文を入力してください。";
@@ -282,7 +280,6 @@
 "ifOnDeviceDetectionIsUncertainSeven" = "本体での言語判定が不確かな場合、Seven は選択したオンライン判定サービスに原文を最大 500 文字送信します。";
 "ifOnDeviceSpeechIsUnavailableSeven" = "本体で読み上げられない場合、Seven は別のオンラインサービスを試します。";
 "ifTheSelectedServiceCannotReadThe" = "選んだサービスで読み上げられない場合、Seven は別の利用可能なサービスを試します。オンラインサービスには読み上げるテキストが送信されます。";
-"ifTheUserPromptOmitsTextSeven" = "ユーザープロンプトに {{text}} がない場合、Seven が原文を末尾に追加します。";
 "includeOrAndTryADifferentShortcut" = "⌘、⌥、⌃ のいずれかを含む別の組み合わせを選んでください。";
 "indonesian" = "インドネシア語";
 "inputLocationOrTextChanged" = "入力位置またはテキストが変わりました";
@@ -490,6 +487,10 @@
 "service.apiUnsupported" = "このサービスは選択した API に対応していません。アドレスと API 形式を確認してください。";
 "service.httpError" = "サービスが HTTP %1$@ を返しました。しばらくしてから再試行してください。";
 "service.legacyDefaultName" = "マイ翻訳サービス";
+"service.prompt.optionalSourceText" = "原文（任意）";
+"service.prompt.placement" = "原文を入れたい位置に {{text}} を置きます。省略すると、Seven はプロンプトの後に原文を別のメッセージとして送信します。";
+"service.prompt.required" = "カスタムモードのプロンプトを入力してください。";
+"service.prompt.title" = "プロンプト";
 "service.reasoningUnsupported" = "このサービスは選んだ推論設定に対応していません。モデルの既定値を使ってください。";
 "service.requestTimedOut" = "%1$@ へのリクエストがタイムアウトしました。しばらくしてから再試行してください。";
 "service.unreachable" = "%1$@ に接続できませんでした。接続を確認して再試行してください。";
@@ -550,7 +551,6 @@
 "spanish" = "スペイン語";
 "speakingRate" = "読み上げ速度";
 "specifiedFolder" = "指定フォルダ";
-"specifyHowToHandleTheInputYou" = "入力の扱い方を指定します。以下の変数を使えます。";
 "speechIsUnavailableFor" = "%1$@ は読み上げに対応していません";
 "spotlight" = "強調";
 "spotlightShape" = "強調枠の形";
@@ -565,7 +565,6 @@
 "swapLanguages" = "言語を入れ替える";
 "swapWithTheTranslationFrom" = "%1$@ の訳文と入れ替える";
 "swedish" = "スウェーデン語";
-"systemPrompt" = "システムプロンプト";
 "systemSpeech" = "システム読み上げ";
 "systemSpeechUsesOnDeviceVoicesFirst" = "システム読み上げはデバイス上の音声を優先します。選んだサービスが失敗すると、Seven は別の利用可能なサービスを試します。テキストは %1$@ に送信される場合があります。利用できるサービスがなければ読み上げを停止します。";
 "takeNoAction" = "何もしない";
@@ -665,7 +664,6 @@
 "useALetterOrNumberWithoutModifiers" = "修飾キーなしで英字または数字を使ってください。";
 "useThisInAnEditableTextField" = "編集できる入力欄で使ってください";
 "usedForPinnedImagesAndScrollingScreenshots" = "固定画像とスクロール撮影に使用します。";
-"userPrompt" = "ユーザープロンプト";
 "usesTheOfficialEndpointByDefaultYou" = "既定では公式エンドポイントを使います。中継サーバーのアドレスも指定できます。";
 "verify" = "確認";
 "verifying" = "確認中…";
@@ -682,7 +680,6 @@
 "window" = "ウィンドウ";
 "clearTranslationWhenOpeningWindow" = "ウインドウを開くときに前回の内容を消去";
 "windowPosition" = "ウィンドウの位置";
-"youAreALanguageTeacherPreserveThe" = "あなたは語学教師です。原文の調子を保ち、理解しにくい表現を説明してください。";
 "youCanTranslateUpTo20000" = "一度に 20,000 文字まで翻訳できます。";
 "youdao.unavailable" = "Youdao 翻訳は一時的に利用できません（エラー %1$@）。";
 "youdaoSpeech" = "Youdao 読み上げ";
