@@ -213,7 +213,7 @@ enum Design {
         static var controlTextFont: Font { Font(controlFont) }
         static let logMinimumHeight: CGFloat = 240
         /// 关于页的现有应用图标展示尺寸。
-        static let aboutIconSize: CGFloat = 64
+        static let aboutIconSize: CGFloat = 80
         static let navigationWidth: CGFloat = 180
         static let windowWidth: CGFloat = 820
         static let minimumHeight: CGFloat = 560

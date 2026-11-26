@@ -38,7 +38,7 @@ final class SettingsPageFeedback {
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
-    case translation, service, speech, history, screenshot, pin, toolbar, ocr, general, privacy, about
+    case translation, service, speech, history, screenshot, pin, toolbar, ocr, general, about
 #if DEBUG || SEVEN_DEVELOPMENT
     case diagnostics
 #endif
@@ -55,7 +55,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .toolbar: return L10n.text("toolbar")
         case .ocr: return L10n.text("ocrSettings")
         case .general: return L10n.text("generalSettings")
-        case .privacy: return L10n.text("privacy")
         case .about: return L10n.text("about")
 #if DEBUG || SEVEN_DEVELOPMENT
         case .diagnostics: return L10n.text("diagnostics")
@@ -73,7 +72,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .toolbar: return "slider.horizontal.3"
         case .ocr: return "text.viewfinder"
         case .general: return "gearshape"
-        case .privacy: return "hand.raised"
         case .about: return "info.circle"
 #if DEBUG || SEVEN_DEVELOPMENT
         case .diagnostics: return "stethoscope"
@@ -115,9 +113,9 @@ enum SettingsNavigationGroup: String, CaseIterable, Identifiable {
         case .ocr: return [.ocr]
         case .general:
 #if DEBUG || SEVEN_DEVELOPMENT
-            return [.general, .privacy, .about, .diagnostics]
+            return [.general, .about, .diagnostics]
 #else
-            return [.general, .privacy, .about]
+            return [.general, .about]
 #endif
         }
     }
@@ -376,7 +374,6 @@ struct SettingsView: View {
         case .pin: pinPane
         case .toolbar: toolbarPane
         case .ocr:ocrPane
-        case .privacy: SettingsForm { EmptyView() }
         case .about: aboutPane
         case .service: servicePane
         case .speech: speechPane
