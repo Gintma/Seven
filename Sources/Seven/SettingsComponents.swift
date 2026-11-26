@@ -1055,9 +1055,7 @@ struct SettingsShortcutRow: View {
     let title: String
     @ObservedObject var manager: HotKeyManager
     let allManagers: [HotKeyManager]
-    let feedback: SettingsPageFeedback
     @Binding var isRecording: Bool
-    private var feedbackID: ObjectIdentifier { ObjectIdentifier(manager) }
     var explanation: String? = nil
     var explanationHelp: String? = nil
     var body: some View {
@@ -1065,35 +1063,18 @@ struct SettingsShortcutRow: View {
             VStack(alignment: .leading, spacing: Design.Space.xs) {
                 Text(title).font(Design.Settings.rowFont)
                 if let explanation { SettingsNote(text: explanation, help: explanationHelp) }
-                if let problem = feedback.shortcutResetIssues[feedbackID]?.text ?? manager.problem {
+                if let problem = manager.problem {
                     SettingsStatus(text: problem, isError: true)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
-            HStack(spacing: Design.Space.s) {
-                SettingsShortcutButton(keys:manager.isEnabled ? manager.shortcut.keyLabels:[],title:title) {
-                    feedback.shortcutResetIssues[feedbackID] = nil
-                    isRecording = true
-                }
-                    .popover(isPresented:$isRecording,arrowEdge:.bottom) {
-                        ShortcutCaptureView(action:title,manager:manager,allManagers:allManagers)
-                    }
-                if manager.allowsUnset && manager.isEnabled {
-                    Button {
-                        feedback.shortcutResetIssues[feedbackID] = nil
-                        manager.clear()
-                    } label: {
-                        Image(systemName: manager.defaultShortcutForDisplay == nil ? "arrow.counterclockwise" : "xmark.circle")
-                    }
-                    .buttonStyle(.borderless).modifier(SettingsHoverStyle()).help(L10n.text("clearShortcut"))
-                    .accessibilityLabel(L10n.format("clearShortcutFor", String(describing: title)))
-                }
-                if let defaultShortcut = manager.defaultShortcutForDisplay, !manager.isEnabled || manager.shortcut != defaultShortcut {
-                    Button { feedback.shortcutResetIssues[feedbackID] = manager.reset() } label: { Image(systemName: "arrow.counterclockwise") }
-                        .buttonStyle(.borderless).modifier(SettingsHoverStyle()).help(L10n.format("restoreDefault2", String(describing: defaultShortcut.displayName)))
-                        .accessibilityLabel(L10n.format("restoreDefaultShortcutFor", String(describing: title)))
-                }
-            }.fixedSize().accessibilityElement(children: .contain)
-        }.onChange(of: manager.shortcut) { _, _ in feedback.shortcutResetIssues[feedbackID] = nil }
+            SettingsShortcutButton(keys: manager.isEnabled ? manager.shortcut.keyLabels : [], title: title) {
+                isRecording = true
+            }
+            .fixedSize()
+            .popover(isPresented: $isRecording, arrowEdge: .bottom) {
+                ShortcutCaptureView(action: title, manager: manager, allManagers: allManagers)
+            }
+        }
     }
 }
 
@@ -1739,7 +1720,6 @@ struct SettingsToolbarRow:View {
     @ObservedObject var preferences:ScreenshotToolbarPreferences
     let allManagers:[HotKeyManager]
     @Binding var recordingAction:ScreenshotToolbarAction?
-    let feedback: SettingsPageFeedback
     private var presented:Binding<Bool> {Binding(get:{recordingAction==action},set:{if !$0 {recordingAction=nil}})}
     var body:some View {
         HStack(spacing:Design.Space.m) {
@@ -1747,7 +1727,6 @@ struct SettingsToolbarRow:View {
             VStack(alignment:.leading,spacing:Design.Space.xs) {
                 Text(action.title).font(Design.Settings.rowFont)
                 if action == .edit {SettingsNote(text:L10n.text("usedForPinnedImagesAndScrollingScreenshots"))}
-                if feedback.toolbarResetFailures.contains(action) { SettingsStatus(text: L10n.text("anotherActionUsesTheDefaultKeyChange"), isError: true) }
             }
             Spacer()
                 Toggle(L10n.text("show2"),isOn:Binding(get:{preferences.item(action).visible},set:{preferences.setVisible($0,for:action)}))
@@ -1758,21 +1737,13 @@ struct SettingsToolbarRow:View {
             HStack(spacing:Design.Space.s) {
                 if action.acceptsKey {
                     SettingsShortcutButton(keys:[preferences.hint(action)],title:action.title) {
-                        feedback.toolbarResetFailures.remove(action)
                         recordingAction = action
                     }
                         .popover(isPresented:presented,arrowEdge:.bottom) {ShortcutCaptureView(action:action.title,target:.tool(action,preferences),allManagers:allManagers)}
-                    if preferences.item(action).key != action.defaultKey {
-                        Button {
-                            if preferences.resetKey(action) { feedback.toolbarResetFailures.remove(action) }
-                            else { feedback.toolbarResetFailures.insert(action) }
-                        } label:{Image(systemName:"arrow.counterclockwise")}
-                            .buttonStyle(.borderless).modifier(SettingsHoverStyle()).help(L10n.format("restoreDefault2", String(describing: action.defaultKey?.uppercased() ?? ""))).accessibilityLabel(L10n.format("resetShortcutFor", String(describing: action.title)))
-                    }
                 } else if let labels=action.fixedKeyLabels {KeycapRow(keys:labels,style:.fixed)}
                 else {Text(action == .drag ? L10n.text("dragWithMouse"):"—").font(Design.Text.note.font).foregroundStyle(ThemeStyle.inkSecondary)}
             }.frame(width:Design.Settings.toolbarKeyWidth,alignment:.trailing)
-        }.onChange(of:preferences.item(action).key) { _, _ in feedback.toolbarResetFailures.remove(action) }
+        }
     }
 }
 struct SettingsShadowColorRow:View {

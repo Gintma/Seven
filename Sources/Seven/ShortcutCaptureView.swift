@@ -5,7 +5,15 @@ import CoreGraphics
 
 enum ShortcutCaptureAttempt:Equatable {
     case saved([String])
+    case cleared
     case failed(String)
+
+    var isComplete: Bool {
+        switch self {
+        case .saved, .cleared: return true
+        case .failed: return false
+        }
+    }
 }
 
 /// 两类录入共用展示和事件监听，仅校验/保存策略不同。
@@ -19,9 +27,42 @@ enum ShortcutCaptureAttempt:Equatable {
         }
     }
     var isCombination:Bool {if case .combination=self {return true};return false}
+
+    var canClear: Bool {
+        guard case .combination(let manager) = self else { return false }
+        return manager.allowsUnset && manager.isEnabled
+    }
+
+    var canRestore: Bool {
+        switch self {
+        case .combination(let manager):
+            guard let shortcut = manager.defaultShortcutForDisplay else { return false }
+            return !manager.isEnabled || manager.shortcut != shortcut
+        case .tool(let action, let preferences):
+            return action.acceptsKey && preferences.item(action).key != action.defaultKey
+        }
+    }
+
+    func restore() -> ShortcutCaptureAttempt {
+        switch self {
+        case .combination(let manager):
+            if let issue = manager.reset() { return .failed(issue.text) }
+        case .tool(let action, let preferences):
+            guard preferences.resetKey(action) else {
+                return .failed(L10n.text("anotherActionUsesTheDefaultKeyChange"))
+            }
+        }
+        return .saved(currentKeys)
+    }
+
     func record(_ event:NSEvent)->ShortcutCaptureAttempt {
         switch self {
         case .combination(let manager):
+            if event.keyCode == UInt16(kVK_Delete), canClear,
+               event.modifierFlags.intersection([.command, .option, .control, .shift, .function]).isEmpty {
+                manager.clear()
+                return .cleared
+            }
             guard let shortcut=KeyboardShortcut(event:event) else{return .failed(L10n.text("includeOrAndTryADifferentShortcut"))}
             return manager.update(shortcut) ? .saved(shortcut.keyLabels):.failed(manager.statusMessage)
         case .tool(let action,let preferences):
@@ -82,16 +123,22 @@ struct ShortcutCaptureView: View {
                     .foregroundStyle(statusIsError ? ThemeStyle.error : ThemeStyle.inkSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
+                if target.canRestore, result?.isComplete != true {
+                    Button(L10n.text("restoreDefault")) { finish(target.restore()) }
+                        .buttonStyle(.borderless)
+                }
             }
             .padding(.horizontal, Design.Space.xl)
             .padding(.top, Design.Space.l)
             .padding(.bottom, Design.Space.m)
             ThemedDivider()
             HStack(spacing: Design.Space.s) {
-                Text(action).font(Design.Text.bodyDigits.font)
+                Text(action).font(Design.Text.bodyDigits.font).lineLimit(1)
                 Spacer()
-                Text(L10n.text("cancel")).font(Design.Text.body.font).foregroundStyle(ThemeStyle.inkSecondary)
-                Keycap(label: "Esc", style: .normal, text: .note)
+                if target.canClear, result?.isComplete != true {
+                    keyHint("delete", key: "⌫")
+                }
+                keyHint("close", key: "Esc")
             }
             .padding(.horizontal, Design.Space.m)
             .padding(.vertical, Design.Space.s)
@@ -101,12 +148,19 @@ struct ShortcutCaptureView: View {
         .onDisappear(perform: end)
     }
 
+    private func keyHint(_ titleKey: String, key: String) -> some View {
+        HStack(spacing: Design.Space.xs) {
+            Text(L10n.text(titleKey)).font(Design.Text.note.font).foregroundStyle(ThemeStyle.inkSecondary)
+            Keycap(label: key, style: .normal, text: .note)
+        }.fixedSize().accessibilityElement(children: .combine)
+    }
+
     @ViewBuilder
     private var keycaps: some View {
         switch result {
         case .saved(let keys):
             KeycapRow(keys: keys, style: .accent, text: .content)
-        case .failed, nil:
+        case .cleared, .failed, nil:
             if heldModifiers.isEmpty {
                 HStack(spacing: Design.Space.s) {
                     Text(L10n.text("current")).font(Design.Text.body.font).foregroundStyle(ThemeStyle.inkSecondary)
@@ -124,6 +178,7 @@ struct ShortcutCaptureView: View {
     private var statusLine: String {
         switch result {
         case .saved: return L10n.text("saved")
+        case .cleared: return L10n.text("notSet")
         case .failed(let message): return message
         case nil:
             return showsInterceptedHint
@@ -140,6 +195,7 @@ struct ShortcutCaptureView: View {
     private var accessibilityText: String {
         switch result {
         case .saved(let keys): return L10n.format("setTo", String(describing: keys.joined()))
+        case .cleared: return L10n.text("notSet")
         case .failed(let message): return message
         case nil:
             return heldModifiers.isEmpty
@@ -155,10 +211,26 @@ struct ShortcutCaptureView: View {
         withAnimation(.linear(duration: Design.Motion.standard)) { shakes += 1 }
     }
 
+    private func finish(_ attempt: ShortcutCaptureAttempt) {
+        switch attempt {
+        case .cleared:
+            result = attempt
+            dismiss()
+        case .saved:
+            result = attempt
+            closeTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(Self.closeDelay))
+                if !Task.isCancelled { dismiss() }
+            }
+        case .failed(let message):
+            fail(message)
+        }
+    }
+
     private func begin() {
         allManagers.forEach { $0.suspend() }
         flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
-            if case .saved = result { return event }
+            if result?.isComplete == true { return event }
             let wasHolding = !heldModifiers.isEmpty
             heldModifiers = Self.modifierKeys(for: event.modifierFlags)
             if !wasHolding, !heldModifiers.isEmpty {
@@ -176,22 +248,14 @@ struct ShortcutCaptureView: View {
             return event
         }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            if case .saved = result { return nil }
+            if result?.isComplete == true { return nil }
             // 忽略Seven自己模拟的按键（例如划词时模拟的 ⌘C），只录制用户真实按下的组合。
             if SelectionReader.isSynthetic(event) { return nil }
             if event.keyCode == UInt16(kVK_Escape) { dismiss(); return nil }
             interceptWatch?.cancel()
             interceptWatch = nil
             showsInterceptedHint = false
-            switch target.record(event) {
-            case .saved(let keys):
-                result = .saved(keys)
-                closeTask=Task { @MainActor in
-                    try? await Task.sleep(for:.seconds(Self.closeDelay))
-                    if !Task.isCancelled {dismiss()}
-                }
-            case .failed(let message):fail(message)
-            }
+            finish(target.record(event))
             return nil
         }
     }

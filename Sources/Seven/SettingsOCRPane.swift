@@ -14,12 +14,12 @@ extension SettingsView {
             }
             SettingsGroup(L10n.text("keyboardShortcuts")) {
                 ForEach(OCRMode.allCases){mode in
-                    SettingsShortcutRow(title:mode.title,manager:ocrShortcuts.manager(mode),allManagers:allHotKeyManagers, feedback: pageFeedback,
+                    SettingsShortcutRow(title:mode.title,manager:ocrShortcuts.manager(mode),allManagers:allHotKeyManagers,
                         isRecording:Binding(get:{recordingOCRMode==mode},set:{recordingOCRMode=$0 ? mode:nil}),explanation:mode.explanation)
                 }
-                SettingsShortcutRow(title: L10n.text("clipboardOCR"), manager: ocrShortcuts.clipboard, allManagers: allHotKeyManagers, feedback: pageFeedback, isRecording: $recordingClipboardOCRShortcut)
-                SettingsShortcutRow(title: L10n.text("localImageOCR"), manager: ocrShortcuts.file, allManagers: allHotKeyManagers, feedback: pageFeedback, isRecording: $recordingFileOCRShortcut)
-                SettingsShortcutRow(title: L10n.text("openOCRWindow"), manager: ocrShortcuts.openWindow, allManagers: allHotKeyManagers, feedback: pageFeedback, isRecording: $recordingOpenOCRShortcut)
+                SettingsShortcutRow(title: L10n.text("clipboardOCR"), manager: ocrShortcuts.clipboard, allManagers: allHotKeyManagers, isRecording: $recordingClipboardOCRShortcut)
+                SettingsShortcutRow(title: L10n.text("localImageOCR"), manager: ocrShortcuts.file, allManagers: allHotKeyManagers, isRecording: $recordingFileOCRShortcut)
+                SettingsShortcutRow(title: L10n.text("openOCRWindow"), manager: ocrShortcuts.openWindow, allManagers: allHotKeyManagers, isRecording: $recordingOpenOCRShortcut)
             }
         }
     }

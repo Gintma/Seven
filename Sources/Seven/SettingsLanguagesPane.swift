@@ -5,12 +5,12 @@ extension SettingsView {
     var translationPane: some View {
         SettingsForm {
             SettingsGroup(L10n.text("keyboardShortcuts")) {
-                SettingsShortcutRow(title: L10n.text("translateAndReplace"), manager: replacementHotKeyManager, allManagers: allHotKeyManagers, feedback: pageFeedback, isRecording: $recordingReplacementShortcut,
+                SettingsShortcutRow(title: L10n.text("translateAndReplace"), manager: replacementHotKeyManager, allManagers: allHotKeyManagers, isRecording: $recordingReplacementShortcut,
                                     explanation: L10n.text("replaceTextWithItsTranslationInsideAnother"),
                                     explanationHelp: L10n.text("sevenReplacesSelectedTextOrTheEntire"))
-                SettingsShortcutRow(title: L10n.text("translateTypedText"), manager: inputHotKeyManager, allManagers: allHotKeyManagers, feedback: pageFeedback, isRecording: $recordingInputShortcut)
-                SettingsShortcutRow(title: L10n.text("translateSelection"), manager: hotKeyManager, allManagers: allHotKeyManagers, feedback: pageFeedback, isRecording: $recordingShortcut)
-                SettingsShortcutRow(title: L10n.text("translateScreenshot"), manager: screenshotHotKeyManager, allManagers: allHotKeyManagers, feedback: pageFeedback, isRecording: $recordingScreenshotShortcut)
+                SettingsShortcutRow(title: L10n.text("translateTypedText"), manager: inputHotKeyManager, allManagers: allHotKeyManagers, isRecording: $recordingInputShortcut)
+                SettingsShortcutRow(title: L10n.text("translateSelection"), manager: hotKeyManager, allManagers: allHotKeyManagers, isRecording: $recordingShortcut)
+                SettingsShortcutRow(title: L10n.text("translateScreenshot"), manager: screenshotHotKeyManager, allManagers: allHotKeyManagers, isRecording: $recordingScreenshotShortcut)
             }
             SettingsGroup(L10n.text("automaticTargetLanguage"), description: L10n.text("whenTheTargetIsSetToChoose")) {
                 SettingsLanguagePickerRow(title: L10n.text("firstLanguage"), model: model, selection: Binding(get: { model.primaryLanguage }, set: model.setPrimaryLanguage))

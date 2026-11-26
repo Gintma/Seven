@@ -24,14 +24,10 @@ final class SettingsPageFeedback {
         }
     }
 
-    var shortcutResetIssues: [ObjectIdentifier: LocalizedMessage] = [:]
-    var toolbarResetFailures: Set<ScreenshotToolbarAction> = []
     var serviceOperation: ServiceOperation?
     var keyIsRevealed = false
 
     func clear() {
-        shortcutResetIssues.removeAll()
-        toolbarResetFailures.removeAll()
         serviceOperation = nil
         keyIsRevealed = false
     }

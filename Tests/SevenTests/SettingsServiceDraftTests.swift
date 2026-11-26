@@ -319,7 +319,6 @@ extension SettingsServiceDraftTests {
         XCTAssertTrue(hotKey.update(.inputDefault))
         feedback.keyIsRevealed = true
         feedback.serviceOperation = .saved
-        feedback.shortcutResetIssues[ObjectIdentifier(hotKey)] = .key("couldNotRestoreTheDefault")
 
         let permitsClose = window.permitsClose
         window.permitsClose = { false }
@@ -333,7 +332,6 @@ extension SettingsServiceDraftTests {
         XCTAssertFalse(window.isVisible)
         XCTAssertFalse(feedback.keyIsRevealed)
         XCTAssertNil(feedback.serviceOperation)
-        XCTAssertTrue(feedback.shortcutResetIssues.isEmpty)
         XCTAssertEqual(hotKey.shortcut, .inputDefault)
     }
 

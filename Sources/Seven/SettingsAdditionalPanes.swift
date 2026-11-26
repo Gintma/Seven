@@ -5,12 +5,12 @@ extension SettingsView {
     var screenshotPane: some View {
         SettingsForm {
             SettingsGroup(L10n.text("keyboardShortcuts")) {
-                SettingsShortcutRow(title:L10n.text("screenshot"),manager:regionCaptureHotKeyManager,allManagers:allHotKeyManagers, feedback: pageFeedback,isRecording:$recordingRegionCaptureShortcut)
-                SettingsShortcutRow(title:L10n.text("captureFullScreen"),manager:fullCaptureHotKeyManager,allManagers:allHotKeyManagers, feedback: pageFeedback,isRecording:$recordingFullCaptureShortcut)
-                SettingsShortcutRow(title:L10n.text("capture.previousArea"),manager:previousCaptureHotKeyManager,allManagers:allHotKeyManagers, feedback: pageFeedback,isRecording:$recordingPreviousCaptureShortcut)
-                SettingsShortcutRow(title:L10n.text("scrollingScreenshot"),manager:imageEntryShortcuts.scroll,allManagers:allHotKeyManagers, feedback: pageFeedback,isRecording:$recordingLongCaptureShortcut)
-                SettingsShortcutRow(title:L10n.text("openLocalImage2"),manager:imageEntryShortcuts.file,allManagers:allHotKeyManagers, feedback: pageFeedback,isRecording:$recordingLocalImageShortcut)
-                SettingsShortcutRow(title:L10n.text("openClipboardImage"),manager:imageEntryShortcuts.clipboard,allManagers:allHotKeyManagers, feedback: pageFeedback,isRecording:$recordingClipboardImageShortcut)
+                SettingsShortcutRow(title:L10n.text("screenshot"),manager:regionCaptureHotKeyManager,allManagers:allHotKeyManagers,isRecording:$recordingRegionCaptureShortcut)
+                SettingsShortcutRow(title:L10n.text("captureFullScreen"),manager:fullCaptureHotKeyManager,allManagers:allHotKeyManagers,isRecording:$recordingFullCaptureShortcut)
+                SettingsShortcutRow(title:L10n.text("capture.previousArea"),manager:previousCaptureHotKeyManager,allManagers:allHotKeyManagers,isRecording:$recordingPreviousCaptureShortcut)
+                SettingsShortcutRow(title:L10n.text("scrollingScreenshot"),manager:imageEntryShortcuts.scroll,allManagers:allHotKeyManagers,isRecording:$recordingLongCaptureShortcut)
+                SettingsShortcutRow(title:L10n.text("openLocalImage2"),manager:imageEntryShortcuts.file,allManagers:allHotKeyManagers,isRecording:$recordingLocalImageShortcut)
+                SettingsShortcutRow(title:L10n.text("openClipboardImage"),manager:imageEntryShortcuts.clipboard,allManagers:allHotKeyManagers,isRecording:$recordingClipboardImageShortcut)
             }
             SettingsGroup(L10n.text("save")) {
                 SettingsPickerRow(L10n.text("saveLocation"),selection:$screenshotSaveLocation) {ForEach(ScreenshotSaveLocation.allCases){Text($0.title).tag($0)}}
@@ -50,11 +50,11 @@ extension SettingsView {
     }
     var toolbarPane:some View {
         SettingsForm {
-            SettingsGroup(L10n.text("annotationTools")) {ForEach(ScreenshotToolbarAction.tools){action in SettingsToolbarRow(action:action,preferences:toolbarPreferences,allManagers:allHotKeyManagers,recordingAction:$recordingToolbarAction,feedback:pageFeedback)}}
-            SettingsGroup(L10n.text("actions")) {ForEach(ScreenshotToolbarAction.editableOperations){action in SettingsToolbarRow(action:action,preferences:toolbarPreferences,allManagers:allHotKeyManagers,recordingAction:$recordingToolbarAction,feedback:pageFeedback)}}
+            SettingsGroup(L10n.text("annotationTools")) {ForEach(ScreenshotToolbarAction.tools){action in SettingsToolbarRow(action:action,preferences:toolbarPreferences,allManagers:allHotKeyManagers,recordingAction:$recordingToolbarAction)}}
+            SettingsGroup(L10n.text("actions")) {ForEach(ScreenshotToolbarAction.editableOperations){action in SettingsToolbarRow(action:action,preferences:toolbarPreferences,allManagers:allHotKeyManagers,recordingAction:$recordingToolbarAction)}}
             SettingsGroup(L10n.text("builtInActions")) {
-                ForEach(ScreenshotToolbarAction.builtInOperations){action in SettingsToolbarRow(action:action,preferences:toolbarPreferences,allManagers:allHotKeyManagers,recordingAction:$recordingToolbarAction,feedback:pageFeedback)}
-                SettingsToolbarRow(action:.drag,preferences:toolbarPreferences,allManagers:allHotKeyManagers,recordingAction:$recordingToolbarAction,feedback:pageFeedback)
+                ForEach(ScreenshotToolbarAction.builtInOperations){action in SettingsToolbarRow(action:action,preferences:toolbarPreferences,allManagers:allHotKeyManagers,recordingAction:$recordingToolbarAction)}
+                SettingsToolbarRow(action:.drag,preferences:toolbarPreferences,allManagers:allHotKeyManagers,recordingAction:$recordingToolbarAction)
             }
         }
     }
@@ -69,16 +69,16 @@ extension SettingsView {
                 }
             }
             SettingsGroup(L10n.text("actions")) {
-                SettingsShortcutRow(title:L10n.text("closePin"),manager:closePinHotKeyManager,allManagers:allHotKeyManagers, feedback: pageFeedback,isRecording:$recordingClosePinShortcut)
-                SettingsShortcutRow(title:L10n.text("closeAllPins"),manager:closeAllPinsHotKeyManager,allManagers:allHotKeyManagers, feedback: pageFeedback,isRecording:$recordingCloseAllPinsShortcut)
-                SettingsShortcutRow(title: L10n.text("showOrHideAllPins"), manager: pinVisibilityHotKeyManager, allManagers: allHotKeyManagers, feedback: pageFeedback, isRecording: $recordingPinVisibilityShortcut)
+                SettingsShortcutRow(title:L10n.text("closePin"),manager:closePinHotKeyManager,allManagers:allHotKeyManagers,isRecording:$recordingClosePinShortcut)
+                SettingsShortcutRow(title:L10n.text("closeAllPins"),manager:closeAllPinsHotKeyManager,allManagers:allHotKeyManagers,isRecording:$recordingCloseAllPinsShortcut)
+                SettingsShortcutRow(title: L10n.text("showOrHideAllPins"), manager: pinVisibilityHotKeyManager, allManagers: allHotKeyManagers, isRecording: $recordingPinVisibilityShortcut)
                 SettingsPickerRow(L10n.text("zoom"), selection: $pinZoomWheel) {
                     ForEach(ScreenshotPinWheel.available(excluding: pinOpacityWheel)) { choice in Text(choice.title).tag(choice) }
                 }
                 SettingsPickerRow(L10n.text("opacity"), selection: $pinOpacityWheel) {
                     ForEach(ScreenshotPinWheel.available(excluding: pinZoomWheel)) { choice in Text(choice.title).tag(choice) }
                 }
-                SettingsShortcutRow(title: L10n.text("pinFromClipboard"), manager: clipboardPinHotKeyManager, allManagers: allHotKeyManagers, feedback: pageFeedback, isRecording: $recordingClipboardPinShortcut, explanation: L10n.text("supportsImagesAndTextImagesTakePriority"))
+                SettingsShortcutRow(title: L10n.text("pinFromClipboard"), manager: clipboardPinHotKeyManager, allManagers: allHotKeyManagers, isRecording: $recordingClipboardPinShortcut, explanation: L10n.text("supportsImagesAndTextImagesTakePriority"))
             }
         }
     }

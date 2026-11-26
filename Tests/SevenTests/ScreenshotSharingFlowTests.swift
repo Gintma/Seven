@@ -85,6 +85,27 @@ import XCTest
         size.makeKey();XCTAssertTrue(size.makeFirstResponder(field))
         XCTAssertTrue(size.firstResponder is NSTextView)
     }
+    func testRecorderBareDeleteClearsOptionalBindingAndModifiedDeleteRecords() throws {
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        let manager = HotKeyManager.regionCapture(defaults: defaults, scope: .local)
+        let target = ShortcutCaptureTarget.combination(manager)
+
+        XCTAssertEqual(target.record(try key("\u{7f}", code: UInt16(kVK_Delete))), .cleared)
+        XCTAssertFalse(manager.isEnabled)
+        XCTAssertFalse(HotKeyManager.regionCapture(defaults: defaults, scope: .local).isEnabled)
+
+        let recorded = target.record(try key("\u{7f}", code: UInt16(kVK_Delete), flags: .option))
+        XCTAssertEqual(recorded, .saved(["⌥", "⌫"]))
+        XCTAssertTrue(manager.isEnabled)
+        XCTAssertEqual(target.restore(), .saved(["⌃", "⌥", "S"]))
+
+        let required = HotKeyManager(defaults: nil, scope: .local)
+        let requiredTarget = ShortcutCaptureTarget.combination(required)
+        XCTAssertEqual(requiredTarget.record(try key("\u{7f}", code: UInt16(kVK_Delete))),
+                       .failed(L10n.text("includeOrAndTryADifferentShortcut")))
+        XCTAssertTrue(required.isEnabled)
+    }
+
     func testUnifiedRecorderChecksBothPoliciesAndReservedResetKey() throws {
         func assertRejected(_ attempt: ShortcutCaptureAttempt, line: UInt = #line) {
             guard case let .failed(reason) = attempt else {
@@ -105,6 +126,9 @@ import XCTest
         assertRejected(single.record(try key("!")))
         XCTAssertEqual(single.record(try key("q")),.saved(["Q"]))
         XCTAssertEqual(preferences.item(.share).key,"q")
+        assertRejected(single.record(try key("\u{7f}", code: UInt16(kVK_Delete))))
+        XCTAssertEqual(preferences.item(.share).key, "q")
+        XCTAssertEqual(single.restore(), .saved([preferences.hint(.share)]))
         XCTAssertFalse(preferences.setKey("r",for:.ocr))
         XCTAssertTrue(preferences.setKey("r",for:.rectangle),"只在长图采集场景保留R，其他场景仍可复用")
         XCTAssertEqual(preferences.hint(.reset),"R");XCTAssertFalse(preferences.setKey("t",for:.reset))
