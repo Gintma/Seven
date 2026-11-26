@@ -89,7 +89,7 @@ open Seven.app
 
 ### 应用更新与发布打包
 
-在「设置 → 关于」可以手动检查更新、打开当前版本的发布页，或分别配置自动检查更新与自动下载并安装。默认开启自动检查，自动下载并安装由用户主动开启。Sparkle 可以在 Seven 退出时安装已下载的更新。发现新版本后，更新入口会出现在菜单栏下拉菜单和设置侧栏。具备 Developer ID 签名并配置更新源和公钥的正式发布包才启用 Sparkle。
+Seven 会在后台按计划检查更新。在「设置 → 关于」可以手动检查、打开当前版本的发布页，或开启自动下载并安装。Sparkle 可以在 Seven 退出时安装已下载的更新。发现新版本后，更新入口会出现在菜单栏下拉菜单和设置侧栏。具备 Developer ID 签名并配置更新源和公钥的正式发布包才启用 Sparkle。
 
 1. 安装 Developer ID Application 证书及其私钥。运行 `swift package resolve`，再运行 `.build/artifacts/sparkle/Sparkle/bin/generate_keys --account seven`。将公开密钥填入 `Info.plist` 的 `SUPublicEDKey`，私钥保留在钥匙串。
 2. 运行 `xcrun notarytool store-credentials <配置名>`，将 `SEVEN_NOTARY_PROFILE` 设置为该配置名。

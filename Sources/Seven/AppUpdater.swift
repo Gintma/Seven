@@ -75,25 +75,17 @@ final class AppUpdater: ObservableObject {
     private let defaults: UserDefaults
     private var backend: (any AppUpdateBackend)?
     private static let legacyAutomaticKey = "updates.automatic.v1"
-    private static let automaticChecksKey = "updates.automaticChecks.v1"
     private static let automaticDownloadsKey = "updates.automaticDownloads.v1"
     private static let shortcutKey = "updates.showShortcut.v1"
 
     @Published private(set) var availability: AppUpdateConfiguration.Availability
     @Published private(set) var canCheckForUpdates = false
     @Published private(set) var updateAvailable = false
-    @Published var automaticChecksEnabled: Bool {
-        didSet {
-            guard automaticChecksEnabled != oldValue else { return }
-            defaults.set(automaticChecksEnabled, forKey: Self.automaticChecksKey)
-            syncAutomaticPreferences()
-        }
-    }
     @Published var automaticDownloadsEnabled: Bool {
         didSet {
             guard automaticDownloadsEnabled != oldValue else { return }
             defaults.set(automaticDownloadsEnabled, forKey: Self.automaticDownloadsKey)
-            syncAutomaticPreferences()
+            syncAutomaticDownloads()
         }
     }
     @Published var updateButtonEnabled: Bool {
@@ -109,20 +101,20 @@ final class AppUpdater: ObservableObject {
         availability = configuration.availability
         releaseNotesURL = configuration.releaseNotesURL
         let legacyAutomatic = defaults.object(forKey: Self.legacyAutomaticKey) as? Bool
-        let storedChecks = defaults.object(forKey: Self.automaticChecksKey) as? Bool
         let storedDownloads = defaults.object(forKey: Self.automaticDownloadsKey) as? Bool
-        automaticChecksEnabled = storedChecks ?? legacyAutomatic ?? true
         automaticDownloadsEnabled = storedDownloads ?? legacyAutomatic ?? false
         updateButtonEnabled = defaults.object(forKey: Self.shortcutKey) as? Bool ?? true
-        if let legacyAutomatic {
-            if storedChecks == nil { defaults.set(legacyAutomatic, forKey: Self.automaticChecksKey) }
-            if storedDownloads == nil { defaults.set(legacyAutomatic, forKey: Self.automaticDownloadsKey) }
+        if storedDownloads == nil, let legacyAutomatic {
+            defaults.set(legacyAutomatic, forKey: Self.automaticDownloadsKey)
         }
 
         guard configuration.availability == .supported else { return }
         let backend = makeBackend()
         self.backend = backend
-        syncAutomaticPreferences()
+        if !backend.automaticallyChecksForUpdates {
+            backend.automaticallyChecksForUpdates = true
+        }
+        syncAutomaticDownloads()
         do {
             try backend.start()
         } catch {
@@ -160,14 +152,9 @@ final class AppUpdater: ObservableObject {
         }
     }
 
-    private func syncAutomaticPreferences() {
-        guard let backend else { return }
-        if backend.automaticallyChecksForUpdates != automaticChecksEnabled {
-            backend.automaticallyChecksForUpdates = automaticChecksEnabled
-        }
-        if backend.automaticallyDownloadsUpdates != automaticDownloadsEnabled {
-            backend.automaticallyDownloadsUpdates = automaticDownloadsEnabled
-        }
+    private func syncAutomaticDownloads() {
+        guard let backend, backend.automaticallyDownloadsUpdates != automaticDownloadsEnabled else { return }
+        backend.automaticallyDownloadsUpdates = automaticDownloadsEnabled
     }
 }
 

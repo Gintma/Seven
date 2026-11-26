@@ -31,7 +31,6 @@ final class AppUpdaterTests: XCTestCase {
                     XCTFail("Ineligible builds must not create Sparkle")
                     return MockUpdateBackend()
                 }
-                updater.automaticChecksEnabled = false
                 updater.automaticDownloadsEnabled = true
                 updater.checkForUpdates()
                 XCTAssertEqual(updater.availability, expected)
@@ -65,7 +64,7 @@ final class AppUpdaterTests: XCTestCase {
         }
     }
 
-    func testAutomaticPreferencesPersistAndSynchronizeIndependently() throws {
+    func testAutomaticDownloadPreferencePersistsWithoutChangingChecks() throws {
         try withDefaults { defaults in
             let backend = MockUpdateBackend()
             let updater = AppUpdater(defaults: defaults, configuration: configuration()) { backend }
@@ -86,40 +85,34 @@ final class AppUpdaterTests: XCTestCase {
             nextBackend.automaticallyDownloadsUpdates = false
             nextBackend.onChange?(.automaticDownloadsChanged(false))
             XCTAssertFalse(reopened.automaticDownloadsEnabled)
-            XCTAssertTrue(reopened.automaticChecksEnabled)
             XCTAssertTrue(nextBackend.automaticallyChecksForUpdates)
             XCTAssertFalse(nextBackend.automaticallyDownloadsUpdates)
 
-            reopened.automaticDownloadsEnabled = true
-            reopened.automaticChecksEnabled = false
-            XCTAssertFalse(nextBackend.automaticallyChecksForUpdates)
-            XCTAssertTrue(nextBackend.automaticallyDownloadsUpdates)
             reopened.checkForUpdates()
             XCTAssertEqual(nextBackend.checks, 1)
 
             let finalBackend = MockUpdateBackend()
             let finalUpdater = AppUpdater(defaults: defaults, configuration: configuration()) { finalBackend }
-            XCTAssertFalse(finalUpdater.automaticChecksEnabled)
-            XCTAssertTrue(finalUpdater.automaticDownloadsEnabled)
-            XCTAssertFalse(finalBackend.checksEnabledAtStart)
-            XCTAssertTrue(finalBackend.downloadsEnabledAtStart)
+            XCTAssertFalse(finalUpdater.automaticDownloadsEnabled)
+            XCTAssertTrue(finalBackend.checksEnabledAtStart)
+            XCTAssertFalse(finalBackend.downloadsEnabledAtStart)
         }
     }
 
-    func testLegacyAutomaticPreferenceMigratesOnceToBothSettings() throws {
+    func testLegacyAutomaticPreferencePreservesDownloadsAndAlwaysChecks() throws {
         let legacyKey = "updates.automatic.v1"
         for enabled in [false, true] {
             try withDefaults { defaults in
                 defaults.set(enabled, forKey: legacyKey)
                 let backend = MockUpdateBackend()
                 _ = AppUpdater(defaults: defaults, configuration: configuration()) { backend }
-                XCTAssertEqual(backend.checksEnabledAtStart, enabled)
+                XCTAssertTrue(backend.checksEnabledAtStart)
                 XCTAssertEqual(backend.downloadsEnabledAtStart, enabled)
 
                 defaults.set(!enabled, forKey: legacyKey)
                 let nextBackend = MockUpdateBackend()
                 _ = AppUpdater(defaults: defaults, configuration: configuration()) { nextBackend }
-                XCTAssertEqual(nextBackend.checksEnabledAtStart, enabled)
+                XCTAssertTrue(nextBackend.checksEnabledAtStart)
                 XCTAssertEqual(nextBackend.downloadsEnabledAtStart, enabled)
             }
         }

@@ -1,6 +1,5 @@
 // Seven interface strings
 "about" = "Acerca de";
-"about.automaticChecks" = "Buscar actualizaciones automáticamente";
 "about.automaticDownloads" = "Descargar e instalar automáticamente";
 "about.checkForUpdates" = "Buscar actualizaciones";
 "about.checkingForUpdates" = "Buscando actualizaciones…";

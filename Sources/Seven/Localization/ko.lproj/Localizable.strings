@@ -1,6 +1,5 @@
 // Seven interface strings
 "about" = "앱 정보";
-"about.automaticChecks" = "자동으로 업데이트 확인";
 "about.automaticDownloads" = "자동으로 다운로드 및 설치";
 "about.checkForUpdates" = "업데이트 확인";
 "about.checkingForUpdates" = "업데이트 확인 중…";

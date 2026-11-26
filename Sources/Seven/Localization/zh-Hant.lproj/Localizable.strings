@@ -1,6 +1,5 @@
 // Seven interface strings
 "about" = "關於";
-"about.automaticChecks" = "自動檢查更新";
 "about.automaticDownloads" = "自動下載並安裝";
 "about.checkForUpdates" = "檢查";
 "about.checkingForUpdates" = "正在檢查更新…";
