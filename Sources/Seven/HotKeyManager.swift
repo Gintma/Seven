@@ -26,6 +26,12 @@ struct KeyboardShortcut: Codable, Equatable, Sendable {
         carbonModifiers: UInt32(optionKey),
         keyLabel: "S"
     )
+    static let regionCaptureDefault = KeyboardShortcut(
+        keyCode: UInt32(kVK_ANSI_S), carbonModifiers: UInt32(controlKey | optionKey), keyLabel: "S"
+    )
+    static let ocrCaptureDefault = KeyboardShortcut(
+        keyCode: UInt32(kVK_ANSI_O), carbonModifiers: UInt32(controlKey | optionKey), keyLabel: "O"
+    )
 
     /// 按显示顺序拆成单独的键，用于绘制键帽，例如 ["⌥", "D"]。
     var keyLabels: [String] {
@@ -132,6 +138,13 @@ private let sevenHotKeyHandler: EventHandlerUPP = { _, event, userData in
 
 @MainActor
 final class HotKeyManager: ObservableObject {
+    static let regionCaptureStorageKey = "regionCaptureHotKey.v1"
+
+    static func regionCapture(defaults: UserDefaults? = .standard, scope: Scope = .global) -> HotKeyManager {
+        HotKeyManager(defaults: defaults, storageKey: regionCaptureStorageKey, defaultShortcut: .regionCaptureDefault,
+                      identifierID: 7, actionLabel: "截图", allowsUnset: true, scope: scope)
+    }
+
     @Published private(set) var shortcut: KeyboardShortcut
     @Published private var status = LocalizedMessage.verbatim("")
     var statusMessage: String { status.text }
@@ -140,6 +153,7 @@ final class HotKeyManager: ObservableObject {
     var problem: String? { problemMessage?.text }
     @Published private(set) var isRegistered = false
     @Published private(set) var isEnabled = true
+    var reservesShortcut: Bool { isEnabled && (!usesImplicitDefault || problemMessage == nil) }
     let allowsUnset: Bool
     var onHotKey: (() -> Void)?
     /// 保留冲突操作的本地化消息，设置行在渲染错误时解析显示名。
@@ -149,7 +163,8 @@ final class HotKeyManager: ObservableObject {
     private let scope:Scope
     private let defaults: UserDefaults?
     private let storageKey: String
-    private let defaultShortcut: KeyboardShortcut
+    let defaultShortcutForDisplay: KeyboardShortcut?
+    private var usesImplicitDefault = false
     fileprivate let identifierID: UInt32
     private let actionLabel: String
     private var hotKeyRef: EventHotKeyRef?
@@ -159,7 +174,7 @@ final class HotKeyManager: ObservableObject {
     init(
         defaults: UserDefaults? = .standard,
         storageKey: String = "selectionHotKey.v1",
-        defaultShortcut: KeyboardShortcut = .selectionDefault,
+        defaultShortcut: KeyboardShortcut? = nil,
         identifierID: UInt32 = 1,
         actionLabel: String = "划词翻译",
         allowsUnset: Bool = false,
@@ -168,7 +183,8 @@ final class HotKeyManager: ObservableObject {
         self.scope=scope
         self.defaults = defaults
         self.storageKey = storageKey
-        self.defaultShortcut = defaultShortcut
+        let defaultShortcut = defaultShortcut ?? (allowsUnset ? nil : .selectionDefault)
+        self.defaultShortcutForDisplay = defaultShortcut
         self.identifierID = identifierID
         self.actionLabel = actionLabel
         self.allowsUnset = allowsUnset
@@ -177,9 +193,13 @@ final class HotKeyManager: ObservableObject {
            !saved.conflictsWithSystemShortcut, saved.hasPrimaryModifier {
             shortcut = saved
         } else {
-            shortcut = defaultShortcut
-            if allowsUnset { isEnabled = false }
-            else if let data = try? JSONEncoder().encode(defaultShortcut) {
+            shortcut = defaultShortcut ?? .selectionDefault
+            if allowsUnset {
+                // 缺失表示首次使用；显式清空的 false 必须在重启后继续生效。
+                let explicitlyCleared = defaults?.object(forKey: storageKey) as? Bool == false
+                isEnabled = defaultShortcut != nil && !explicitlyCleared
+                usesImplicitDefault = isEnabled
+            } else if let data = try? JSONEncoder().encode(shortcut) {
                 defaults?.set(data, forKey: storageKey)
             }
         }
@@ -197,7 +217,7 @@ final class HotKeyManager: ObservableObject {
             status = .verbatim("无法安装全局快捷键监听（\(handlerStatus)）")
             return
         }
-        if isEnabled, !register(shortcut) { problemMessage = status }
+        if isEnabled, !registerCurrentShortcut() { problemMessage = status }
     }
 
     func stop() {
@@ -223,18 +243,19 @@ final class HotKeyManager: ObservableObject {
             status = .key("thisShortcutIsAlreadyUsedForChoose", .message(other))
             return false
         }
-        let previous = shortcut, wasEnabled = isEnabled
+        let wasEnabled = isEnabled
         if let hotKeyRef { UnregisterEventHotKey(hotKeyRef) }
         hotKeyRef = nil
         isRegistered = false
         if register(candidate) {
             shortcut = candidate; isEnabled = true
+            usesImplicitDefault = false
             if let data = try? JSONEncoder().encode(candidate) { defaults?.set(data, forKey: storageKey) }
             status = "快捷键已保存"
             return true
         }
         let failure = status
-        if wasEnabled, !register(previous) { problemMessage = status }
+        if wasEnabled, !registerCurrentShortcut() { problemMessage = status }
         status = failure
         return false
     }
@@ -243,15 +264,19 @@ final class HotKeyManager: ObservableObject {
         guard allowsUnset else { return }
         if let hotKeyRef { UnregisterEventHotKey(hotKeyRef) }
         hotKeyRef = nil; isRegistered = false; isEnabled = false
-        defaults?.removeObject(forKey: storageKey); status = "未设置"; problemMessage = nil
+        usesImplicitDefault = false
+        if defaultShortcutForDisplay != nil {
+            defaults?.set(false, forKey: storageKey)
+        } else {
+            defaults?.removeObject(forKey: storageKey)
+        }
+        status = "未设置"; problemMessage = nil
     }
     @discardableResult
     func reset() -> LocalizedMessage? {
-        if allowsUnset { clear(); return nil }
+        guard let defaultShortcut = defaultShortcutForDisplay else { clear(); return nil }
         return update(defaultShortcut) ? nil : .key("couldNotRestoreTheDefault", .message(status))
     }
-
-    var defaultShortcutForDisplay: KeyboardShortcut { defaultShortcut }
 
     /// 录制快捷键期间暂停注册，使按键能到达录制窗口，而不是触发Seven自己的操作。
     func suspend() {
@@ -266,7 +291,7 @@ final class HotKeyManager: ObservableObject {
     func resume() {
         guard isSuspended else { return }
         isSuspended = false
-        if isEnabled, hotKeyRef == nil, !register(shortcut) { problemMessage = status }
+        if isEnabled, hotKeyRef == nil, !registerCurrentShortcut() { problemMessage = status }
     }
 
     /// 录制快捷键期间（包括录制中刚注册的新组合）不触发任何操作。
@@ -278,6 +303,15 @@ final class HotKeyManager: ObservableObject {
     func matches(_ event:NSEvent)->Bool {
         guard isEnabled,!isSuspended,let value=KeyboardShortcut(event:event) else{return false}
         return value.keyCode == shortcut.keyCode && value.carbonModifiers == shortcut.carbonModifiers
+    }
+
+    private func registerCurrentShortcut() -> Bool {
+        // 新引入的默认键不能抢占其他操作已保存的绑定。
+        if usesImplicitDefault, let other = conflictingAction?(shortcut) {
+            status = .key("thisShortcutIsAlreadyUsedForChoose", .message(other))
+            return false
+        }
+        return register(shortcut)
     }
 
     @discardableResult

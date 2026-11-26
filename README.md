@@ -96,6 +96,8 @@ Seven checks for updates in the background. In **Settings → About**, check man
 3. Set the release version and increase `CFBundleVersion` in `Info.plist`. Quit Seven and run `./Tools/release.sh` (add `--dmg` for a signed, notarized disk image).
 4. Upload the assets from `dist/v<version>/` to GitHub Release `v<version>`, then publish the updated `appcast.xml` on `main`.
 
+To preview the installer layout, run `./Tools/build-dmg.sh Seven.app dist/preview/Seven-preview.dmg` from a macOS desktop session. The preview DMG is unsigned and does not require notarization credentials.
+
 On the first launch under `com.crissun.seven`, Seven copies existing settings if the new preference domain is empty. macOS may ask you to grant Accessibility and Screen Recording access for the new app identity.
 
 ---
@@ -105,9 +107,12 @@ On the first launch under `com.crissun.seven`, Seven copies existing settings if
 | Action | Default Shortcut |
 |---|---|
 | Selection Translate | `⌥D` |
+| Input Translate | `⌥A` |
 | Screenshot Translate | `⌥S` |
 | Translate & Replace | `⌃⌥T` |
-| Input Translate / Screenshot / Scroll Capture / OCR / Pins | Configurable in Settings |
+| Region Screenshot | `⌃⌥S` |
+| Region OCR | `⌃⌥O` |
+| Other capture, image, OCR, and pin actions | Unassigned by default |
 
 - **Accessibility** — Required only for cross-app selection reading, Translate & Replace write-back, and optional smart element selection.
 - **Screen Recording** — Required for screenshot capture, scroll capture, screenshot translation, and screen OCR.

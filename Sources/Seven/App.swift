@@ -29,7 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         identifierID: 2,
         actionLabel: "截图翻译"
     )
-    internal let regionCaptureHotKeyManager = HotKeyManager(storageKey:"regionCaptureHotKey.v1",identifierID:7,actionLabel:"截图",allowsUnset:true)
+    internal let regionCaptureHotKeyManager = HotKeyManager.regionCapture()
     internal let fullCaptureHotKeyManager = HotKeyManager(storageKey:"fullCaptureHotKey.v1",identifierID:8,actionLabel:"全屏截图",allowsUnset:true)
     internal let previousCaptureHotKeyManager = HotKeyManager(storageKey:"previousCaptureHotKey.v1",identifierID:9,actionLabel:"截图上次区域",allowsUnset:true)
     internal let pinVisibilityHotKeyManager = HotKeyManager(storageKey: "pinVisibilityHotKey.v1", identifierID: 5, actionLabel: "隐藏／显示钉图", allowsUnset: true)

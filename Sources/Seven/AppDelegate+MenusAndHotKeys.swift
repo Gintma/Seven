@@ -16,7 +16,7 @@ extension AppDelegate {
         @discardableResult func add(_ title:String,_ action:Selector,_ manager:HotKeyManager? = nil)->NSMenuItem {
             let row=NSMenuItem(title:title,action:action,keyEquivalent:"")
             row.target=self;row.representedObject=manager
-            StatusMenuShortcut.apply(manager?.isEnabled == true ? manager?.shortcut:nil,to:row)
+            StatusMenuShortcut.apply(manager?.isRegistered == true ? manager?.shortcut:nil,to:row)
             return row
         }
         selectionMenuItem=add(L10n.text("translateSelection"),#selector(selectionTranslate),hotKeyManager)
@@ -94,7 +94,7 @@ extension AppDelegate {
             manager.conflictingAction = { [weak self, weak manager] candidate in
                 self?.shortcutConflictNames.first {
                     let other = $0.manager
-                    return other !== manager && other.isEnabled
+                    return other !== manager && other.reservesShortcut
                         && other.shortcut.keyCode == candidate.keyCode
                         && other.shortcut.carbonModifiers == candidate.carbonModifiers
                 }?.name
@@ -176,7 +176,7 @@ extension AppDelegate {
         AppStatusMenu.refreshUpdateShortcut(in: menu, updater: updater)
         for row in menu.items {
             if let manager=row.representedObject as? HotKeyManager {
-                StatusMenuShortcut.apply(manager.isEnabled ? manager.shortcut:nil,to:row)
+                StatusMenuShortcut.apply(manager.isRegistered ? manager.shortcut:nil,to:row)
             }
         }
     }

@@ -90,11 +90,8 @@ xcrun stapler validate "$app"
 ditto -c -k --keepParent "$app" "$zip"
 
 if [[ "$make_dmg" == true ]]; then
-  mkdir "$stage_dir/disk"
-  ditto "$app" "$stage_dir/disk/Seven.app"
-  ln -s /Applications "$stage_dir/disk/Applications"
   dmg="$stage_dir/output/Seven-$version.dmg"
-  hdiutil create -volname Seven -srcfolder "$stage_dir/disk" -format UDZO "$dmg"
+  ./Tools/build-dmg.sh "$app" "$dmg"
   codesign --sign "$signing_identity" --timestamp "$dmg"
   notarize "$dmg"
   xcrun stapler staple "$dmg"

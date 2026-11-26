@@ -56,13 +56,14 @@ enum OCRFailure:LocalizedError,Equatable {
 }
 
 @MainActor final class OCRShortcuts {
+    static let captureStorageKey = "ocr.captureHotKey.v1"
     let standard:HotKeyManager
     let silent:HotKeyManager
     let openWindow:HotKeyManager
     let clipboard:HotKeyManager
     let file:HotKeyManager
     init(defaults:UserDefaults? = .standard) {
-        standard=HotKeyManager(defaults:defaults,storageKey:"ocr.captureHotKey.v1",identifierID:12,actionLabel:"OCR",allowsUnset:true)
+        standard=HotKeyManager(defaults:defaults,storageKey:Self.captureStorageKey,defaultShortcut:.ocrCaptureDefault,identifierID:12,actionLabel:"OCR",allowsUnset:true)
         silent=HotKeyManager(defaults:defaults,storageKey:"ocr.silentCaptureHotKey.v1",identifierID:13,actionLabel:"静默 OCR",allowsUnset:true)
         openWindow=HotKeyManager(defaults:defaults,storageKey:"ocr.openWindowHotKey.v1",identifierID:14,actionLabel:"打开 OCR 窗口",allowsUnset:true)
         clipboard=HotKeyManager(defaults:defaults,storageKey:"ocr.clipboardHotKey.v1",identifierID:18,actionLabel:"剪贴板 OCR",allowsUnset:true)

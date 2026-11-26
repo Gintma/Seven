@@ -62,7 +62,7 @@ import XCTest
         let suite = "ImageEntryShortcuts.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite)); defer { defaults.removePersistentDomain(forName: suite) }
         let shortcuts = ImageEntryShortcuts(defaults: defaults), ocr = OCRShortcuts(defaults: defaults)
-        XCTAssertTrue((shortcuts.managers + ocr.managers).allSatisfy { !$0.isEnabled && !$0.isRegistered })
+        XCTAssertTrue((shortcuts.managers + [ocr.clipboard, ocr.file]).allSatisfy { !$0.isEnabled && !$0.isRegistered })
         let key = KeyboardShortcut(keyCode: UInt32(kVK_ANSI_9), carbonModifiers: UInt32(controlKey | optionKey), keyLabel: "9")
         for storage in ["scrollCaptureHotKey.v1", "openImageHotKey.v1", "openClipboardImageHotKey.v1", "ocr.clipboardHotKey.v1", "ocr.fileHotKey.v1"] {
             defaults.set(try JSONEncoder().encode(key), forKey: storage)

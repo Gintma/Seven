@@ -70,6 +70,58 @@ final class HotKeyAndSelectionTests: XCTestCase {
     }
 
     @MainActor
+    func testDefaultRegionCaptureCanBeClearedRestoredAndRecordedAfterRestart() throws {
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        let storageKey = HotKeyManager.regionCaptureStorageKey
+        let initial = HotKeyManager.regionCapture(defaults: defaults, scope: .local)
+
+        XCTAssertTrue(initial.allowsUnset)
+        XCTAssertTrue(initial.isEnabled)
+        XCTAssertEqual(initial.shortcut.displayName, "⌃⌥S")
+        XCTAssertNil(defaults.object(forKey: storageKey))
+
+        initial.clear()
+        XCTAssertFalse(initial.isEnabled)
+        let cleared = HotKeyManager.regionCapture(defaults: defaults, scope: .local)
+        XCTAssertFalse(cleared.isEnabled)
+
+        XCTAssertNil(cleared.reset())
+        let restored = HotKeyManager.regionCapture(defaults: defaults, scope: .local)
+        XCTAssertTrue(restored.isEnabled)
+        XCTAssertEqual(restored.shortcut, .regionCaptureDefault)
+
+        restored.clear()
+        let recording = HotKeyManager.regionCapture(defaults: defaults, scope: .local)
+        let alternate = KeyboardShortcut(keyCode: UInt32(kVK_ANSI_8), carbonModifiers: UInt32(controlKey | optionKey), keyLabel: "8")
+        XCTAssertTrue(recording.update(alternate))
+        let reopened = HotKeyManager.regionCapture(defaults: defaults, scope: .local)
+        XCTAssertTrue(reopened.isEnabled)
+        XCTAssertEqual(reopened.shortcut, alternate)
+    }
+
+    @MainActor
+    func testImplicitShortcutLeavesConflictingSavedBindingAvailable() throws {
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        let shortcut = KeyboardShortcut(keyCode: UInt32(kVK_F19), carbonModifiers: UInt32(controlKey | optionKey), keyLabel: "F19")
+        let existing = HotKeyManager(defaults: defaults, storageKey: "test.existing", identifierID: 912)
+        XCTAssertTrue(existing.update(shortcut))
+        defer { existing.stop() }
+        let new = HotKeyManager(defaults: defaults, storageKey: "test.new", defaultShortcut: shortcut,
+                                identifierID: 913, allowsUnset: true)
+        defer { new.stop() }
+        let existingAction = LocalizedMessage.key("captureFullScreen")
+        new.conflictingAction = { $0 == existing.shortcut ? existingAction : nil }
+
+        new.start()
+        XCTAssertTrue(existing.isRegistered)
+        XCTAssertFalse(new.isRegistered)
+        XCTAssertFalse(new.reservesShortcut)
+        XCTAssertTrue(existing.reservesShortcut)
+        XCTAssertEqual(new.problem, LocalizedMessage.key("thisShortcutIsAlreadyUsedForChoose", .message(existingAction)).text)
+        XCTAssertNil(defaults.object(forKey: "test.new"))
+    }
+
+    @MainActor
     func testShortcutAlreadyUsedByAnotherSevenActionIsRejected() throws {
         let suite = "SevenTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))

@@ -23,7 +23,7 @@ private struct ThemeSidebarRow: ViewModifier {
                     .padding(.horizontal, Design.Space.xs)
                 : nil
         )
-        .listItemTint(theme.isSystem ? nil : .fixed(theme.swiftUI.ink))
+        .listItemTint(theme.isSystem ? .monochrome : .fixed(theme.swiftUI.ink))
     }
 }
 

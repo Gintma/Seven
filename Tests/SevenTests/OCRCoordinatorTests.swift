@@ -92,11 +92,18 @@ private actor OCRHeldRecognizer:TextRecognizing {
         translate.performClick(nil)
         XCTAssertEqual(translated,"编辑后的结果")
     }
-    func testOCRCaptureImportAndOpenShortcutsDefaultUnsetAndRoundTrip() throws {
+    func testOCRCaptureDefaultsOnWhileOtherOCRShortcutsStayUnset() throws {
         let name="OCRShortcuts.\(UUID().uuidString)",defaults=try XCTUnwrap(UserDefaults(suiteName:name));defer{defaults.removePersistentDomain(forName:name)}
         let fresh=OCRShortcuts(defaults:defaults)
-        XCTAssertTrue([fresh.standard, fresh.silent, fresh.openWindow, fresh.clipboard, fresh.file]
+        XCTAssertTrue(fresh.standard.isEnabled)
+        XCTAssertTrue(fresh.standard.allowsUnset)
+        XCTAssertEqual(fresh.standard.shortcut.keyCode, UInt32(kVK_ANSI_O))
+        XCTAssertEqual(fresh.standard.shortcut.carbonModifiers, UInt32(controlKey | optionKey))
+        XCTAssertTrue([fresh.silent, fresh.openWindow, fresh.clipboard, fresh.file]
             .allSatisfy { !$0.isEnabled && !$0.isRegistered })
+        XCTAssertNil(defaults.object(forKey: OCRShortcuts.captureStorageKey))
+        fresh.standard.clear()
+        XCTAssertFalse(OCRShortcuts(defaults: defaults).standard.isEnabled)
         let first=KeyboardShortcut(keyCode:UInt32(kVK_ANSI_7),carbonModifiers:UInt32(controlKey|optionKey),keyLabel:"7")
         let second=KeyboardShortcut(keyCode:UInt32(kVK_ANSI_8),carbonModifiers:UInt32(controlKey|optionKey),keyLabel:"8")
         defaults.set(try JSONEncoder().encode(first),forKey:"ocr.captureHotKey.v1")

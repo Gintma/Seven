@@ -1078,10 +1078,18 @@ struct SettingsShortcutRow: View {
                         ShortcutCaptureView(action:title,manager:manager,allManagers:allManagers)
                     }
                 if manager.allowsUnset && manager.isEnabled {
-                    Button { manager.clear() } label: { Image(systemName:"arrow.counterclockwise") }.buttonStyle(.borderless).modifier(SettingsHoverStyle()).help(L10n.text("clearShortcut")).accessibilityLabel(L10n.format("clearShortcutFor", String(describing: title)))
-                } else if !manager.allowsUnset && manager.shortcut != manager.defaultShortcutForDisplay {
+                    Button {
+                        feedback.shortcutResetIssues[feedbackID] = nil
+                        manager.clear()
+                    } label: {
+                        Image(systemName: manager.defaultShortcutForDisplay == nil ? "arrow.counterclockwise" : "xmark.circle")
+                    }
+                    .buttonStyle(.borderless).modifier(SettingsHoverStyle()).help(L10n.text("clearShortcut"))
+                    .accessibilityLabel(L10n.format("clearShortcutFor", String(describing: title)))
+                }
+                if let defaultShortcut = manager.defaultShortcutForDisplay, !manager.isEnabled || manager.shortcut != defaultShortcut {
                     Button { feedback.shortcutResetIssues[feedbackID] = manager.reset() } label: { Image(systemName: "arrow.counterclockwise") }
-                        .buttonStyle(.borderless).modifier(SettingsHoverStyle()).help(L10n.format("restoreDefault2", String(describing: manager.defaultShortcutForDisplay.displayName)))
+                        .buttonStyle(.borderless).modifier(SettingsHoverStyle()).help(L10n.format("restoreDefault2", String(describing: defaultShortcut.displayName)))
                         .accessibilityLabel(L10n.format("restoreDefaultShortcutFor", String(describing: title)))
                 }
             }.fixedSize().accessibilityElement(children: .contain)

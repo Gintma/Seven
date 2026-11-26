@@ -48,7 +48,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 hotKeyManager: hotKeyManager,
                 screenshotHotKeyManager: screenshotHotKeyManager,
                 pinVisibilityHotKeyManager: pinVisibilityHotKeyManager, clipboardPinHotKeyManager: clipboardPinHotKeyManager,
-                regionCaptureHotKeyManager:regionCaptureHotKeyManager ?? HotKeyManager(storageKey:"regionCaptureHotKey.v1",identifierID:7,allowsUnset:true),
+                regionCaptureHotKeyManager:regionCaptureHotKeyManager ?? .regionCapture(),
                 fullCaptureHotKeyManager:fullCaptureHotKeyManager ?? HotKeyManager(storageKey:"fullCaptureHotKey.v1",identifierID:8,allowsUnset:true),
                 previousCaptureHotKeyManager:previousCaptureHotKeyManager ?? HotKeyManager(storageKey:"previousCaptureHotKey.v1",identifierID:9,allowsUnset:true),
                 closePinHotKeyManager:closePinHotKeyManager ?? ScreenshotPinShortcuts.closeCurrent(),

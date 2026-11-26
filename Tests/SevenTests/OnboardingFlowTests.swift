@@ -33,6 +33,22 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertEqual(settings.migrateServiceInstances().filter(\.enabled).map(\.provider), [.apple])
     }
 
+    @MainActor func testCaptureDefaultsDoNotCreateUsageButExplicitClearsDo() throws {
+        for capture in [
+            { (defaults: UserDefaults) in HotKeyManager.regionCapture(defaults: defaults, scope: .local) },
+            { (defaults: UserDefaults) in OCRShortcuts(defaults: defaults).standard }
+        ] {
+            let fixture = try Fixture(test: self)
+            let manager = capture(fixture.defaults)
+            XCTAssertTrue(manager.isEnabled)
+            XCTAssertTrue(fixture.makeFlow().shouldShow(hasPendingImages: false))
+
+            fixture.defaults.removeObject(forKey: OnboardingFlow.storageKey)
+            manager.clear()
+            XCTAssertFalse(fixture.makeFlow().shouldShow(hasPendingImages: false))
+        }
+    }
+
     @MainActor func testClearedServiceListStillCountsAsExistingUsage() throws {
         let fixture = try Fixture(test: self)
         SettingsStore(defaults: fixture.defaults).serviceInstances = []

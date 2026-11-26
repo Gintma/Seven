@@ -90,6 +90,7 @@ struct OnboardingFlow {
             "serviceInstances.v2", "serviceConfiguration.v1", "configured",
             "appleTranslationEnabled", "ecdictEnabled", "youdaoEnabled", "googleEnabled", "customServiceEnabled",
             "selectionHotKey.v1", "screenshotHotKey.v1", "inputHotKey.v1", "replacementHotKey.v1",
+            HotKeyManager.regionCaptureStorageKey, OCRShortcuts.captureStorageKey,
             "primaryLanguage", "secondaryLanguage", "sourceLanguage.v1", "targetLanguage.v1",
             "historyEnabled", HistoryStore.retentionKey, "pinned", PanelPlacementMode.storageKey,
             InterfaceLanguage.preferenceKey, AppearanceMode.storageKey, ThemeManager.lightThemeKey, ThemeManager.darkThemeKey,

@@ -10,6 +10,7 @@
 
 - [ThemeManager](../Sources/Seven/ThemeManager.swift) 分别管理浅色与深色主题，系统默认主题跟随 macOS 的语义色和强调色。SwiftUI 根视图注入主题，AppKit 视图响应主题刷新；写入 CALayer 的颜色按当前有效外观解析并在外观切换时更新。
 - 内容表面、浮窗、工具条、文本、分隔线及焦点色取自 [ThemePalette](../Sources/Seven/ThemePalette.swift)。设置与历史侧栏、权限引导沿用系统材质。服务品牌色、截图遮罩、像素网格、标注输出和 JPEG 白底保留各自的识别或像素含义。
+- 设置侧栏使用单色图标。系统默认主题由 macOS 提供选中态，自定义主题沿用主题文字色和侧栏选中底色。
 - 设置表单与标准行复用 [SettingsComponents](../Sources/Seven/SettingsComponents.swift)，选择控件优先使用共用的原生菜单或紧凑分段。图标按钮复用现有组件，符号变更与无障碍名称同步。
 - 截图工具条的滑杆轨道使用主题色，滑块沿用当前系统外观。共用分段控件通过底色区分选中项。
 
