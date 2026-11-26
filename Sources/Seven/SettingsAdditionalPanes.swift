@@ -110,6 +110,10 @@ extension SettingsView {
                 SettingsToggleRow(L10n.text("about.updateButton"), isOn: $updater.updateButtonEnabled)
                 SettingsToggleRow(L10n.text("about.automaticUpdates"), isOn: $updater.automaticUpdatesEnabled)
             }
+            SettingsGroup {
+                SettingsLinkRow(title: "GitHub", text: AppUpdateConfiguration.repositoryName,
+                                destination: AppUpdateConfiguration.repositoryURL)
+            }
         }
     }
 

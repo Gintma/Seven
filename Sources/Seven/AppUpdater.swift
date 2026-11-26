@@ -3,6 +3,9 @@ import Foundation
 import Sparkle
 
 struct AppUpdateConfiguration {
+    static let repositoryName = "Gintma/Seven"
+    static let repositoryURL = URL(string: "https://github.com/\(repositoryName)")!
+
     enum Availability: Equatable {
         case supported
         case development
@@ -13,7 +16,7 @@ struct AppUpdateConfiguration {
     let releaseNotesURL: URL
 
     init(bundleIdentifier: String?, isDevelopmentBuild: Bool, version: String?, feed: String?, publicKey: String?) {
-        let releases = URL(string: "https://github.com/Gintma/Seven/releases")!
+        let releases = Self.repositoryURL.appendingPathComponent("releases")
         // 只有正式主包可以进入 Sparkle，任何其他包均使用发布列表。
         let development = isDevelopmentBuild || bundleIdentifier != AppDataPaths.bundleIdentifier
         let releaseURL: URL
