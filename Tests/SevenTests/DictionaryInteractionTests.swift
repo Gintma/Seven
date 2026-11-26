@@ -33,6 +33,8 @@ private struct InteractionAudio: SpeechAudioFetching {
     private func makeModel(voice: InteractionVoice? = nil, service: InteractionTranslation = InteractionTranslation()) throws -> TranslationModel {
         let defaults = try XCTUnwrap(isolatedDefaults())
         let settings = SettingsStore(defaults: defaults)
+        settings.speechEngine = .system
+        settings.languageDetectionMode = .system
         settings.serviceInstances = [.init(provider: .youdao)]
         let speech = SpeechController(settings: settings, fetcher: InteractionAudio(), systemBackend: voice ?? InteractionVoice(),
                                       systemVoiceLanguages: { ["en-US", "en-GB"] })

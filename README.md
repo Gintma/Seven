@@ -121,9 +121,9 @@ On the first launch under `com.crissun.seven`, Seven copies existing settings if
 
 ## Privacy & Local Data
 
-- **Zero Telemetry** — Seven does not collect usage analytics or upload anything in the background.
+- **Zero Telemetry** — Seven does not collect usage analytics.
 - **Local Credentials** — BYOK API keys are stored per service instance in `~/Library/Application Support/Seven/credentials.json` (`0700` directory, `0600` file permissions) and are never included in exports or logs.
-- **On-Device OCR** — Screen and image OCR runs locally via Apple Vision; text is sent to a translation provider only when you explicitly trigger translation.
+- **On-Device OCR** — Screen and image OCR runs locally via Apple Vision. When local language detection is uncertain, Seven sends up to 500 characters of text entered for translation to the selected online detector (Youdao by default). Choose on-device detection to keep that step local. Speech synthesis uses Youdao by default and requests audio only when you start playback.
 - **Diagnostic Logs** — Hidden in release builds; when enabled in development builds, logs record only technical events and metrics (timings, counts, dimensions, error types) and strictly exclude user text, clipboard/OCR content, images, window titles, and credentials.
 
 ---

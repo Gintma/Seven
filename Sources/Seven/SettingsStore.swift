@@ -187,9 +187,9 @@ final class SettingsStore {
         get { validLanguage(defaults.string(forKey: "targetLanguage.v1")) }
         set { defaults.set(newValue, forKey: "targetLanguage.v1") }
     }
-    /// 原文语言的识别方式（仅本机 / 百度优化 / Google 优化），见 `LanguageDetectionMode`。
+    /// 原文语言的识别方式，见 `LanguageDetectionMode`。
     var languageDetectionMode: LanguageDetectionMode {
-        get { defaults.string(forKey: LanguageDetectionMode.storageKey).flatMap(LanguageDetectionMode.init(rawValue:)) ?? .system }
+        get { defaults.string(forKey: LanguageDetectionMode.storageKey).flatMap(LanguageDetectionMode.init(rawValue:)) ?? .youdao }
         set { defaults.set(newValue.rawValue, forKey: LanguageDetectionMode.storageKey) }
     }
     /// 语言栏菜单直接列出的常用语言，按语言目录顺序；未设置或全部无效时用默认值。
@@ -214,7 +214,7 @@ final class SettingsStore {
         set { defaults.set(newValue, forKey: "secondaryLanguage") }
     }
     var speechEngine: SpeechEngineID {
-        get { defaults.string(forKey: "speechEngine.v1").flatMap(SpeechEngineID.init(rawValue:)) ?? .system }
+        get { defaults.string(forKey: "speechEngine.v1").flatMap(SpeechEngineID.init(rawValue:)) ?? .youdao }
         set { defaults.set(newValue.rawValue, forKey: "speechEngine.v1") }
     }
     func speechEnglishAccent(for engine: SpeechEngineID) -> SpeechEnglishAccent {

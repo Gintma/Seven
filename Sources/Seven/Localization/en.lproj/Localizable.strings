@@ -206,6 +206,7 @@
 "englishChineseDictionary" = "English–Chinese Dictionary";
 "enhanceWithBaidu" = "Enhance with Baidu";
 "enhanceWithGoogle" = "Enhance with Google";
+"enhanceWithYoudao" = "Enhance with Youdao";
 "enterAModelName" = "Enter a model name.";
 "enterAModelSupportedByThisService" = "Enter a model supported by this service.";
 "enterAPIKey" = "Enter API Key";
@@ -278,7 +279,7 @@
 "holdToCaptureASquareArea" = "Hold to capture a square area";
 "holdToCaptureMultipleWindows" = "Hold to capture multiple windows";
 "holding" = "Holding %1$@";
-"ifOnDeviceDetectionIsUncertainSeven" = "If on-device detection is uncertain, Seven sends the source text to Google or Baidu when that service is selected.";
+"ifOnDeviceDetectionIsUncertainSeven" = "If on-device detection is uncertain, Seven sends up to 500 characters to the selected online detection service.";
 "ifOnDeviceSpeechIsUnavailableSeven" = "If on-device speech is unavailable, Seven tries other online services";
 "ifTheSelectedServiceCannotReadThe" = "If the selected service cannot read the text, Seven tries another available service. Online services receive the text to read.";
 "ifTheUserPromptOmitsTextSeven" = "If the user prompt omits {{text}}, Seven appends the original text.";

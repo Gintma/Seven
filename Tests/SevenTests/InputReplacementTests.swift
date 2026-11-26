@@ -91,6 +91,7 @@ final class InputReplacementTests: XCTestCase {
         let suite = "ReplacementTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
         let settings = SettingsStore(defaults: defaults)
+        settings.languageDetectionMode = .system
         settings.serviceInstances = [
             .init(provider: .dictionary, enabled: false),
             .init(provider: .apple, enabled: false),

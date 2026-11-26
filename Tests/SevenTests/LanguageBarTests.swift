@@ -110,6 +110,7 @@ final class LanguageBarModelTests: XCTestCase {
     override func setUp() async throws {
         suiteName = "SevenTests.\(UUID().uuidString)"
         defaults = try XCTUnwrap(isolatedDefaults(suiteName: suiteName))
+        SettingsStore(defaults: defaults).languageDetectionMode = .system
         defaults.set(false, forKey: "appleTranslationEnabled")
         defaults.set(false, forKey: "customServiceEnabled")
         defaults.set(true, forKey: "youdaoEnabled")

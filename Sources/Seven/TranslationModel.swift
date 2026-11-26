@@ -111,13 +111,19 @@ final class TranslationModel: ObservableObject {
          logger: DiagnosticLogging = NoopDiagnosticLogger(),
          history: HistoryStore? = nil,
          speech: SpeechController? = nil,
-         languageDetectors: [LanguageDetectionMode: OnlineLanguageDetecting] = [
-            .google: GoogleLanguageDetector(), .baidu: BaiduLanguageDetector()
-         ],
+         languageDetectors: [LanguageDetectionMode: OnlineLanguageDetecting]? = nil,
          appleAvailability: AppleTranslationAvailabilityChecking = SystemAppleTranslationAvailability(),
          languageDetectionDelay: Duration = .seconds(1)) {
         self.appleAvailability = appleAvailability
-        self.languageDetectors = languageDetectors
+        if let languageDetectors {
+            self.languageDetectors = languageDetectors
+        } else {
+            var detectors: [LanguageDetectionMode: OnlineLanguageDetecting] = [
+                .google: GoogleLanguageDetector(), .baidu: BaiduLanguageDetector()
+            ]
+            detectors[.youdao] = youdaoService as? OnlineLanguageDetecting
+            self.languageDetectors = detectors
+        }
         self.languageDetectionDelay = languageDetectionDelay
         self.languageDetectionMode = settings.languageDetectionMode
         self.service = service

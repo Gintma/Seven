@@ -138,7 +138,7 @@ final class GoogleTranslationService: OnlineTranslationServing, @unchecked Senda
     }
 }
 
-final class YoudaoTranslationService: OnlineTranslationServing, @unchecked Sendable {
+final class YoudaoTranslationService: OnlineTranslationServing, OnlineLanguageDetecting, @unchecked Sendable {
     struct KeyMaterial: Codable, Equatable, Sendable {
         let secretKey: String
         let aesKey: String
@@ -157,6 +157,11 @@ final class YoudaoTranslationService: OnlineTranslationServing, @unchecked Senda
 
         let translateResult: [[Item]]?
         let code: Int
+    }
+
+    private struct DetectionEnvelope: Decodable {
+        let code: Int
+        let type: String?
     }
 
     private struct DictionaryEnvelope: Decodable {
@@ -285,33 +290,52 @@ final class YoudaoTranslationService: OnlineTranslationServing, @unchecked Senda
 
     func translate(_ input: OnlineTranslationRequest) async throws -> OnlineTranslationOutput {
         async let dictionaryEntry = dictionaryEntry(for: input.text)
-        let text = try await translateText(input)
+        let text = try Self.parseTranslation(await translationResponse(input))
         return OnlineTranslationOutput(
             text: text,
             dictionaryEntry: try? await dictionaryEntry
         )
     }
 
-    private func translateText(_ input: OnlineTranslationRequest) async throws -> String {
+    func detect(_ text: String) async throws -> String? {
+        let input = OnlineTranslationRequest(
+            text: String(text.prefix(LanguageDetectionPolicy.maximumCharacters)),
+            source: LanguageCatalog.automatic, target: "zh-Hans"
+        )
+        return try Self.parseDetectedSource(await translationResponse(input, timeout: 5))
+    }
+
+    static func parseDetectedSource(_ data: Data) throws -> String? {
+        guard let envelope = try? JSONDecoder().decode(DetectionEnvelope.self, from: data),
+              envelope.code == 0 else { throw TranslationError.malformed }
+        guard let pair = envelope.type?.split(separator: "2"), pair.count == 2 else { return nil }
+        let source = String(pair[0]).lowercased()
+        return LanguageCatalog.all.first {
+            $0.youdaoCode?.lowercased() == source || $0.code.lowercased() == source
+        }?.code
+    }
+
+    private func translationResponse(_ input: OnlineTranslationRequest, timeout: TimeInterval? = nil) async throws -> Data {
         do {
             let keyTimestamp = Self.timestamp()
-            let keyRequest = try Self.makeKeyRequest(timestamp: keyTimestamp, cookie: cookie)
+            var keyRequest = try Self.makeKeyRequest(timestamp: keyTimestamp, cookie: cookie)
+            if let timeout { keyRequest.timeoutInterval = timeout }
             let (keyData, keyResponse) = try await session.data(for: keyRequest)
             try Task.checkCancellation()
             let key = try Self.parseKey(keyData, response: keyResponse)
 
             let translationTimestamp = Self.timestamp()
-            let request = try Self.makeTranslationRequest(
+            var request = try Self.makeTranslationRequest(
                 input,
                 key: key,
                 timestamp: translationTimestamp,
                 cookie: cookie
             )
+            if let timeout { request.timeoutInterval = timeout }
             let (data, response) = try await session.data(for: request)
             try Task.checkCancellation()
             try validateHTTPResponse(response)
-            let decrypted = try Self.decrypt(data, aesKey: key.aesKey, aesIV: key.aesIv)
-            return try Self.parseTranslation(decrypted)
+            return try Self.decrypt(data, aesKey: key.aesKey, aesIV: key.aesIv)
         } catch {
             throw mapNetworkError(error, serviceName: .key("youdaoTranslate"))
         }

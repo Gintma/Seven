@@ -80,13 +80,13 @@ final class SpeechControllerTests: XCTestCase {
     }
 
     @MainActor
-    func testSpeechSettingsDefaultToSystemAndPersistPerEngine() throws {
+    func testSpeechSettingsDefaultToYoudaoAndPersistPerEngine() throws {
         let suite = "SevenTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let controller = SpeechController(settings: SettingsStore(defaults: defaults))
 
-        XCTAssertEqual(controller.engineID, .system)
+        XCTAssertEqual(controller.engineID.rawValue, "youdao")
         let unaffectedAccent = controller.englishAccent(for: .google)
         let unaffectedRate = controller.rate(for: .system)
 
