@@ -21,6 +21,15 @@ private actor ControlledService: TranslationServing {
     func finish(_ value: String) { continuation?.resume(returning: value); continuation = nil }
 }
 
+private actor PromptRequestRecorder: TranslationServing {
+    private(set) var requests: [TranslationRequest] = []
+
+    func translateStream(_ request: TranslationRequest, onUpdate: @escaping @Sendable (String) async -> Void) async throws -> String {
+        requests.append(request)
+        return "Result"
+    }
+}
+
 private final class ImmediateService: TranslationServing {
     let response: String
     init(response: String) { self.response = response }
@@ -550,7 +559,7 @@ final class TranslationModelTests: XCTestCase {
         )
         let custom = try installService(on: model, configuration: ServiceConfiguration(
             name: "Custom prompt", endpoint: "https://api.example.com/v1/chat/completions", model: "model",
-            mode: .custom, systemPrompt: "Return the revised text."
+            mode: .custom, prompt: "Return the revised text."
         ), key: "test-key")
         _ = model.addService(.google)
         for provider in model.serviceInstances {
@@ -696,6 +705,42 @@ final class TranslationModelTests: XCTestCase {
         XCTAssertEqual(history.records[0].sourceText, "Hello")
         XCTAssertEqual(history.records.first?.results.first?.translatedText, "你好")
         XCTAssertEqual(history.records[0].targetLanguage, "zh-Hans")
+    }
+
+    func testCustomPromptUsesRawInputAndResolvesTargetOnTranslateAndRetry() async throws {
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices())
+        let service = PromptRequestRecorder()
+        let settings = SettingsStore(defaults: defaults)
+        settings.serviceInstances = []
+        let model = TranslationModel(service: service, credentials: MemoryCredentials(), settings: settings)
+        let id = try installService(on: model, configuration: .init(
+            mode: .custom, prompt: "Use {{firstLanguage}} and {{target}}"
+        ), key: "")
+        try model.saveLanguagePair(primary: "zh-Hans", secondary: "en")
+        model.setSource(LanguageCatalog.automatic)
+
+        for (selection, expectedTarget) in [("ja", "Japanese"), (TranslationModel.automaticTarget, "Simplified Chinese")] {
+            model.updateInput("")
+            model.setTarget(selection)
+            let original = " \tThis English sentence contains {{text}}.\n "
+            model.updateInput(original)
+            model.translate()
+            try await waitUntilIdle(model)
+            model.retryResult(id)
+            try await waitUntilIdle(model)
+
+            let requests = await service.requests.suffix(2)
+            XCTAssertEqual(requests.count, 2)
+            for request in requests {
+                XCTAssertEqual(request.text, original)
+                XCTAssertEqual(CompatibleTranslationService.makeMessages(request), [
+                    ["role": "system", "content": "Use Simplified Chinese and \(expectedTarget)"],
+                    ["role": "user", "content": original]
+                ])
+            }
+        }
+        let count = await service.requests.count
+        XCTAssertEqual(count, 4)
     }
 
     func testStreamingTranslationPublishesAndCompletes() async throws {

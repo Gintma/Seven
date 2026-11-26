@@ -61,10 +61,9 @@ extension SettingsView {
                                        options: TranslationMode.allCases.map { ($0, $0 == .custom ? L10n.text("custom") : $0.title) })
                 if serviceEditor.value.mode == .custom {
                     SettingsGroup() {
-                        SettingsTextRow(title: L10n.text("systemPrompt"), text: $serviceEditor.value.systemPrompt, placeholder: L10n.text("youAreALanguageTeacherPreserveThe"),
-                                        explanation: L10n.text("defineTheRoleRulesAndOutputRequirements"))
-                        SettingsTextRow(title: L10n.text("userPrompt"), text: $serviceEditor.value.userPrompt, placeholder: L10n.text("translateTheFollowingTextIntoTargetPreserve"),
-                                        explanation: L10n.text("specifyHowToHandleTheInputYou"))
+                        SettingsTextRow(title: L10n.text("service.prompt.title"), text: $serviceEditor.value.prompt,
+                                        placeholder: L10n.text("service.prompt.example"),
+                                        explanation: L10n.text("service.prompt.help"))
                     } footer: {
                         SettingsPromptVariables()
                     }

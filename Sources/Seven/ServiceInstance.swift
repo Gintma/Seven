@@ -90,8 +90,7 @@ struct ServiceInstance: Identifiable, Codable, Equatable, Sendable {
     var apiStyle: ServiceAPIStyle
     var model: String
     var mode: TranslationMode
-    var systemPrompt: String
-    var userPrompt: String
+    var prompt: String
     var timeoutSeconds: Int
     var reasoningEffort: ReasoningEffort?
     var detectedAPIStyle: ServiceAPIStyle?
@@ -115,13 +114,31 @@ struct ServiceInstance: Identifiable, Codable, Equatable, Sendable {
         self.id = id ?? provider.builtInID ?? TranslationProviderID(rawValue: "instance-" + UUID().uuidString)
         self.provider = provider; self.name = name ?? provider.title; self.enabled = enabled
         baseAddress = provider.baseAddress; apiStyle = provider.apiStyle; model = provider.defaultModel
-        mode = .translate; systemPrompt = ""; userPrompt = ""; timeoutSeconds = 60
+        mode = .translate; prompt = ""; timeoutSeconds = 60
     }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(TranslationProviderID.self, forKey: .id)
+        provider = try values.decode(ServiceProvider.self, forKey: .provider)
+        name = try values.decode(String.self, forKey: .name)
+        enabled = try values.decode(Bool.self, forKey: .enabled)
+        baseAddress = try values.decode(String.self, forKey: .baseAddress)
+        apiStyle = try values.decode(ServiceAPIStyle.self, forKey: .apiStyle)
+        model = try values.decode(String.self, forKey: .model)
+        mode = try values.decode(TranslationMode.self, forKey: .mode)
+        prompt = try values.decodeIfPresent(String.self, forKey: .prompt) ?? ""
+        timeoutSeconds = try values.decode(Int.self, forKey: .timeoutSeconds)
+        reasoningEffort = try values.decodeIfPresent(ReasoningEffort.self, forKey: .reasoningEffort)
+        detectedAPIStyle = try values.decodeIfPresent(ServiceAPIStyle.self, forKey: .detectedAPIStyle)
+        addedModels = try values.decodeIfPresent([String].self, forKey: .addedModels)
+        cachedModels = try values.decodeIfPresent([String].self, forKey: .cachedModels)
+    }
+
     var displayName: String { provider.isBuiltIn ? provider.title : name }
     var brandName: String { provider == .custom ? name : provider.title }
     var configuration: ServiceConfiguration {
         let style = provider == .openAI ? (detectedAPIStyle ?? apiStyle) : apiStyle
-        var config = ServiceConfiguration(name: name, endpoint: ServiceEndpoint.requestAddress(base: baseAddress, style: style, model: model), model: model, mode: mode, systemPrompt: systemPrompt, userPrompt: userPrompt, timeoutSeconds: timeoutSeconds, apiStyle: style)
+        var config = ServiceConfiguration(name: name, endpoint: ServiceEndpoint.requestAddress(base: baseAddress, style: style, model: model), model: model, mode: mode, prompt: prompt, timeoutSeconds: timeoutSeconds, apiStyle: style)
         config.reasoningEffort = reasoningEffort
         config.reasoningProvider = provider
         config.instanceID = id.rawValue
@@ -131,7 +148,7 @@ struct ServiceInstance: Identifiable, Codable, Equatable, Sendable {
         name = config.name; baseAddress = ServiceEndpoint.normalizedBase(config.endpoint)
         let standardOpenAI = provider == .openAI && [ServiceAPIStyle.openAIResponses, .openAICompatible].contains(config.apiStyle)
         apiStyle = provider == .custom || standardOpenAI ? config.apiStyle : provider.apiStyle
-        model = config.model; mode = config.mode; systemPrompt = config.systemPrompt; userPrompt = config.userPrompt
+        model = config.model; mode = config.mode; prompt = config.prompt
         timeoutSeconds = config.timeoutSeconds
         reasoningEffort = config.reasoningEffort
     }

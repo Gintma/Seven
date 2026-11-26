@@ -48,7 +48,6 @@
 "automaticTargetLanguage" = "Automatic Target Language";
 "availableAsAFallback" = "Available as a Fallback";
 "availableOfflineEntries" = "Available Offline · %1$@ entries · %2$@";
-"availableVariables" = "Available Variables";
 "backgroundColor" = "Background Color";
 "baiduSpeech" = "Baidu Speech";
 "baseURL" = "Base URL";
@@ -153,7 +152,6 @@
 "dark" = "Dark";
 "dashed" = "Dashed";
 "defaultShadow" = "Default Shadow";
-"defineTheRoleRulesAndOutputRequirements" = "Define the role, rules, and output requirements.";
 "definitions" = "Definitions";
 "delete" = "Delete";
 "deleteAndItsAPIKey" = "Delete “%1$@” and its API key?";
@@ -210,7 +208,6 @@
 "enterAModelName" = "Enter a model name.";
 "enterAModelSupportedByThisService" = "Enter a model supported by this service.";
 "enterAPIKey" = "Enter API Key";
-"enterASystemPromptForCustomMode" = "Enter a system prompt for Custom mode.";
 "enterAnAPIKey" = "Enter an API key.";
 "enterTextToUseThisService" = "Enter text to use this service";
 "enterTextToUseThisService2" = "%1$@. Enter text to use this service.";
@@ -282,7 +279,6 @@
 "ifOnDeviceDetectionIsUncertainSeven" = "If on-device detection is uncertain, Seven sends up to 500 characters to the selected online detection service.";
 "ifOnDeviceSpeechIsUnavailableSeven" = "If on-device speech is unavailable, Seven tries other online services";
 "ifTheSelectedServiceCannotReadThe" = "If the selected service cannot read the text, Seven tries another available service. Online services receive the text to read.";
-"ifTheUserPromptOmitsTextSeven" = "If the user prompt omits {{text}}, Seven appends the original text.";
 "includeOrAndTryADifferentShortcut" = "Include ⌘, ⌥, or ⌃ and try a different shortcut";
 "indonesian" = "Indonesian";
 "inputLocationOrTextChanged" = "Input Location or Text Changed";
@@ -490,6 +486,12 @@
 "service.apiUnsupported" = "This service does not support the selected API. Check the address and API format.";
 "service.httpError" = "The service returned HTTP %1$@. Try again later.";
 "service.legacyDefaultName" = "My Translation Service";
+"service.prompt.example" = "Polish this text so it sounds more natural.";
+"service.prompt.help" = "Tell the AI what to do. Seven includes the original text automatically.";
+"service.prompt.insertableVariables" = "Variables you can insert";
+"service.prompt.originalText" = "Original text";
+"service.prompt.required" = "Enter a prompt for Custom mode.";
+"service.prompt.title" = "Prompt";
 "service.reasoningUnsupported" = "This service does not support the selected reasoning setting. Use the model default.";
 "service.requestTimedOut" = "The request to %1$@ timed out. Try again later.";
 "service.unreachable" = "Could not reach %1$@. Check your connection and try again.";
@@ -550,7 +552,6 @@
 "spanish" = "Spanish";
 "speakingRate" = "Speaking Rate";
 "specifiedFolder" = "Specified Folder";
-"specifyHowToHandleTheInputYou" = "Specify how to handle the input. You can use the variables below.";
 "speechIsUnavailableFor" = "Speech is unavailable for %1$@";
 "spotlight" = "Spotlight";
 "spotlightShape" = "Spotlight Shape";
@@ -565,7 +566,6 @@
 "swapLanguages" = "Swap Languages";
 "swapWithTheTranslationFrom" = "Swap with the translation from %1$@";
 "swedish" = "Swedish";
-"systemPrompt" = "System Prompt";
 "systemSpeech" = "System Speech";
 "systemSpeechUsesOnDeviceVoicesFirst" = "System speech uses on-device voices first. If the selected service fails, Seven tries other available services. Text may be sent to %1$@. Playback stops if none are available.";
 "takeNoAction" = "Take No Action";
@@ -629,7 +629,6 @@
 "translateScreenshot" = "Translate Screenshot";
 "translateSelection" = "Translate Selection";
 "translateTextWithoutAnAPIKey" = "Translate text without an API key";
-"translateTheFollowingTextIntoTargetPreserve" = "Translate the following text into {{target}}. Preserve its tone and explain difficult expressions:\n{{text}}";
 "translateTypedText" = "Translate Typed Text";
 "translating" = "Translating";
 "translatingWith" = "Translating with %1$@";
@@ -665,7 +664,6 @@
 "useALetterOrNumberWithoutModifiers" = "Use a letter or number without modifiers.";
 "useThisInAnEditableTextField" = "Use this in an editable text field";
 "usedForPinnedImagesAndScrollingScreenshots" = "Used for pinned images and scrolling screenshots.";
-"userPrompt" = "User Prompt";
 "usesTheOfficialEndpointByDefaultYou" = "Uses the official endpoint by default. You can enter a proxy endpoint.";
 "verify" = "Verify";
 "verifying" = "Verifying…";
@@ -682,7 +680,6 @@
 "window" = "Window";
 "clearTranslationWhenOpeningWindow" = "Clear previous content when opening the window";
 "windowPosition" = "Window Position";
-"youAreALanguageTeacherPreserveThe" = "You are a language teacher. Preserve the original tone and explain expressions that are difficult to understand.";
 "youCanTranslateUpTo20000" = "You can translate up to 20,000 characters at a time.";
 "youdao.unavailable" = "Youdao Translate is temporarily unavailable (error %1$@).";
 "youdaoSpeech" = "Youdao Speech";

@@ -871,7 +871,10 @@ struct SettingsTextRow: View {
                     .frame(height: Design.Settings.promptEditorHeight)
                     .settingsSmartTarget("AXTextArea")
             }
-            if let explanation { SettingsNote(text: explanation) }
+            if let explanation {
+                SettingsNote(text: explanation, multiline: true)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }
@@ -908,14 +911,13 @@ struct SettingsExpandableTextRow: View {
 struct SettingsPromptVariables: View {
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     private var variables: [(String, String)] { [
-        ("{{text}}", L10n.text("sourceText")),
-        ("{{source}}", L10n.text("sourceLanguage")),
         ("{{target}}", L10n.text("targetLanguageSelectedInTheWindow")),
-        ("{{firstLanguage}}", L10n.text("firstLanguageInSettings"))
+        ("{{firstLanguage}}", L10n.text("firstLanguageInSettings")),
+        ("{{text}}", L10n.text("service.prompt.originalText"))
     ] }
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Space.s) {
-            Text(L10n.text("availableVariables"))
+            Text(L10n.text("service.prompt.insertableVariables"))
             Grid(alignment: .leading, horizontalSpacing: Design.Space.l, verticalSpacing: Design.Space.xs) {
                 ForEach(variables, id: \.0) { token, meaning in
                     GridRow {
@@ -927,7 +929,6 @@ struct SettingsPromptVariables: View {
         }
         .font(Design.Text.note.font).foregroundStyle(ThemeStyle.inkSecondary)
         .textSelection(.enabled)
-        .help(L10n.text("ifTheUserPromptOmitsTextSeven"))
     }
 }
 

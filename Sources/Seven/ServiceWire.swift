@@ -20,22 +20,26 @@ enum ServiceWire {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         let messages = CompatibleTranslationService.makeMessages(input)
-        let system = messages.first?["content"] ?? "", user = messages.last?["content"] ?? input.text
+        let system = messages.first { $0["role"] == "system" }?["content"]
+        let user = messages.first { $0["role"] == "user" }?["content"] ?? input.text
         var body: [String: Any]
         switch style {
         case .anthropic:
             guard !key.isEmpty else { throw TranslationError.configuration(.key("enterAnAPIKey")) }
             request.setValue(key, forHTTPHeaderField: "x-api-key")
             request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-            body = ["model": input.configuration.requestModel, "system": system,
+            body = ["model": input.configuration.requestModel,
                     "messages": [["role": "user", "content": user]], "max_tokens": 8192, "stream": true]
+            if let system { body["system"] = system }
         case .openAIResponses:
             if !key.isEmpty { request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization") }
-            body = ["model": input.configuration.requestModel, "instructions": system, "input": user, "stream": true, "store": false]
+            body = ["model": input.configuration.requestModel, "input": user, "stream": true, "store": false]
+            if let system { body["instructions"] = system }
         case .gemini:
             guard !key.isEmpty else { throw TranslationError.configuration(.key("enterAnAPIKey")) }
             request.setValue(key, forHTTPHeaderField: "x-goog-api-key")
-            body = ["systemInstruction": ["parts": [["text": system]]], "contents": [["role": "user", "parts": [["text": user]]]]]
+            body = ["contents": [["role": "user", "parts": [["text": user]]]]]
+            if let system { body["systemInstruction"] = ["parts": [["text": system]]] }
         case .openAICompatible: throw TranslationError.malformed
         }
         ServiceReasoning.apply(to: &body, configuration: input.configuration)

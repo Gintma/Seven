@@ -48,7 +48,6 @@
 "automaticTargetLanguage" = "自動目標語言";
 "availableAsAFallback" = "可作為備選";
 "availableOfflineEntries" = "離線可用 · %1$@ 詞條 · %2$@";
-"availableVariables" = "可用變數";
 "backgroundColor" = "背景色";
 "baiduSpeech" = "百度朗讀";
 "baseURL" = "API 位址";
@@ -153,7 +152,6 @@
 "dark" = "深色";
 "dashed" = "虛線";
 "defaultShadow" = "預設陰影";
-"defineTheRoleRulesAndOutputRequirements" = "設定角色、規則和輸出要求。";
 "definitions" = "詞典釋義";
 "delete" = "刪除";
 "deleteAndItsAPIKey" = "刪除「%1$@」及其 API Key？";
@@ -210,7 +208,6 @@
 "enterAModelName" = "請填寫模型名稱。";
 "enterAModelSupportedByThisService" = "輸入目前服務支援的模型名稱。";
 "enterAPIKey" = "輸入 API Key";
-"enterASystemPromptForCustomMode" = "自訂模式需要填寫系統提示詞。";
 "enterAnAPIKey" = "請填寫 API Key。";
 "enterTextToUseThisService" = "輸入原文後可操作服務";
 "enterTextToUseThisService2" = "%1$@，輸入原文後可操作";
@@ -282,7 +279,6 @@
 "ifOnDeviceDetectionIsUncertainSeven" = "本機辨識不確定時，Seven 會將最多 500 個字元傳送給所選的線上辨識服務。";
 "ifOnDeviceSpeechIsUnavailableSeven" = "本機無法朗讀時，將網路連線使用其他朗讀服務";
 "ifTheSelectedServiceCannotReadThe" = "所選服務無法朗讀時，會嘗試其他可用的朗讀服務。使用線上服務時，朗讀文字會傳送給該服務。";
-"ifTheUserPromptOmitsTextSeven" = "使用者提示詞未包含 {{text}} 時，Seven 會在末尾附上原文。";
 "includeOrAndTryADifferentShortcut" = "需包含 ⌘、⌥ 或 ⌃，請換一個組合";
 "indonesian" = "印尼語";
 "inputLocationOrTextChanged" = "輸入位置或內容已變化";
@@ -490,6 +486,12 @@
 "service.apiUnsupported" = "服務不支援目前介面。請確認位址與API 格式。";
 "service.httpError" = "服務傳回 HTTP %1$@，請稍後重試。";
 "service.legacyDefaultName" = "我的翻譯服務";
+"service.prompt.example" = "幫我潤飾這段話，讓表達更自然。";
+"service.prompt.help" = "直接寫下你想讓 AI 做什麼，Seven 會自動附上原文。";
+"service.prompt.insertableVariables" = "可插入的變數";
+"service.prompt.originalText" = "原文內容";
+"service.prompt.required" = "自訂模式需要填寫提示詞。";
+"service.prompt.title" = "提示詞";
 "service.reasoningUnsupported" = "服務不支援目前思考設定，請改為模型預設。";
 "service.requestTimedOut" = "%1$@請求超時，請稍後重試。";
 "service.unreachable" = "無法連線%1$@，請檢查網路後重試。";
@@ -550,7 +552,6 @@
 "spanish" = "西班牙語";
 "speakingRate" = "語速";
 "specifiedFolder" = "指定資料夾";
-"specifyHowToHandleTheInputYou" = "指定如何處理原文，可使用下方變數。";
 "speechIsUnavailableFor" = "暫不支援朗讀%1$@";
 "spotlight" = "聚焦";
 "spotlightShape" = "聚焦形狀";
@@ -565,7 +566,6 @@
 "swapLanguages" = "交換語言";
 "swapWithTheTranslationFrom" = "用%1$@的譯文交換";
 "swedish" = "瑞典語";
-"systemPrompt" = "系統提示詞";
 "systemSpeech" = "系統朗讀";
 "systemSpeechUsesOnDeviceVoicesFirst" = "系統朗讀優先在本機處理。所選服務無法朗讀時會自動換用其他可用服務，文字可能傳送到 %1$@。全部不可用時停止朗讀。";
 "takeNoAction" = "不執行";
@@ -629,7 +629,6 @@
 "translateScreenshot" = "截圖翻譯";
 "translateSelection" = "劃詞翻譯";
 "translateTextWithoutAnAPIKey" = "無需 API Key，可直接翻譯文字";
-"translateTheFollowingTextIntoTargetPreserve" = "將以下原文翻譯成 {{target}}，保留原文語氣，並解釋難懂的表達：\n{{text}}";
 "translateTypedText" = "輸入翻譯";
 "translating" = "翻譯中";
 "translatingWith" = "使用%1$@翻譯";
@@ -665,7 +664,6 @@
 "useALetterOrNumberWithoutModifiers" = "只使用數字或字母，不帶修飾鍵。";
 "useThisInAnEditableTextField" = "請在可編輯的輸入欄中使用";
 "usedForPinnedImagesAndScrollingScreenshots" = "用於釘圖和長截圖。";
-"userPrompt" = "使用者提示詞";
 "usesTheOfficialEndpointByDefaultYou" = "預設使用官方位址，也可填寫中轉服務位址。";
 "verify" = "驗證";
 "verifying" = "正在驗證…";
@@ -682,7 +680,6 @@
 "window" = "視窗";
 "clearTranslationWhenOpeningWindow" = "開啟視窗時清空上次內容";
 "windowPosition" = "彈出位置";
-"youAreALanguageTeacherPreserveThe" = "你是一位語言老師。翻譯時保留原文語氣，並解釋難懂的表達。";
 "youCanTranslateUpTo20000" = "單次最多翻譯 20,000 個字元。";
 "youdao.unavailable" = "有道翻譯暫時不可用（錯誤碼 %1$@）。";
 "youdaoSpeech" = "有道朗讀";
