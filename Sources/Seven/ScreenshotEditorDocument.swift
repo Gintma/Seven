@@ -438,12 +438,7 @@ enum ScreenshotEditorGeometry {
         let level=max(1,min(10,level)),key=level+(blurred ? 10 : 0)
         if let image=cached[key]{return image}
         guard let reduced else{return nil}
-        let input:CIImage
-        if blurred {input=CIImage(cgImage:reduced)} else {
-            let image=NSImage(cgImage:reduced,size:NSSize(width:reduced.width,height:reduced.height))
-            guard let data=image.tiffRepresentation,let ci=CIImage(data:data) else{return nil}
-            input=ci
-        }
+        let input = CIImage(cgImage: reduced)
         var output=input
         if blurred,level>1 {
             guard let clamp=CIFilter(name:"CIAffineClamp"),let blur=CIFilter(name:"CIGaussianBlur") else{return nil}

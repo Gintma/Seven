@@ -32,7 +32,7 @@ enum OCRFailure:LocalizedError,Equatable {
     }
     func start(image:NSImage,mode:OCRMode,completed:@escaping(RecognizedOCRText?)->Void,failed:@escaping(OCRFailure)->Void) {
         cancel()
-        guard let cg=ScreenshotSaving.bitmap(image)?.cgImage else{failed(.imageUnavailable);return}
+        guard let cg=ScreenshotSaving.cgImage(image) else{failed(.imageUnavailable);return}
         let token=generation,recognizer=recognizer
         task=Task { [weak self] in
             do {
