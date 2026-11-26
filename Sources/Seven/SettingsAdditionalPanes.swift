@@ -100,12 +100,9 @@ extension SettingsView {
     var aboutPane: some View {
         SettingsForm(header: { SettingsAboutSummary() }) {
             SettingsGroup {
-                SettingsButtonRow(L10n.format("version", SettingsAboutSummary.version)) {
+                SettingsButtonRow(L10n.format("version", SettingsAboutSummary.version), explanation: updateStatus) {
                     Button(L10n.text("about.checkForUpdates"), action: updater.checkForUpdates)
                         .disabled(!updater.canCheckForUpdates)
-                }
-                if let status = updateStatus {
-                    SettingsNote(text: status, multiline: true)
                 }
                 SettingsButtonRow(L10n.text("about.whatsNew")) {
                     Button(L10n.text("open")) { NSWorkspace.shared.open(updater.releaseNotesURL) }

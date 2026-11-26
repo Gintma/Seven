@@ -792,10 +792,27 @@ struct SettingsLanguageAdditionList: NSViewRepresentable {
 
 struct SettingsButtonRow<Actions: View>: View {
     let title: String
+    let explanation: String?
     let actions: Actions
-    init(_ title: String, @ViewBuilder actions: () -> Actions) { self.title=title; self.actions=actions() }
+
+    init(_ title: String, explanation: String? = nil, @ViewBuilder actions: () -> Actions) {
+        self.title = title
+        self.explanation = explanation
+        self.actions = actions()
+    }
+
     var body: some View {
-        LabeledContent { actions.buttonStyle(.bordered).settingsSmartTarget("AXButton") } label: { Text(title).font(Design.Settings.rowFont) }
+        VStack(alignment: .leading, spacing: Design.Space.xs) {
+            LabeledContent {
+                actions.buttonStyle(.bordered).settingsSmartTarget("AXButton")
+            } label: {
+                Text(title).font(Design.Settings.rowFont)
+            }
+            if let explanation {
+                SettingsNote(text: explanation, multiline: true)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }
 
@@ -1670,7 +1687,7 @@ struct SettingsAboutSummary: View {
     }
     var body: some View {
         VStack(spacing: Design.Space.m) {
-            Image(nsImage: NSImage(named: "AppIcon") ?? NSApplication.shared.applicationIconImage)
+            Image(nsImage: NSImage(named: "SevenLogo") ?? NSImage(named: "AppIcon") ?? NSApplication.shared.applicationIconImage)
                 .resizable().scaledToFit()
                 .frame(width: Design.Settings.aboutIconSize, height: Design.Settings.aboutIconSize)
                 .accessibilityLabel(L10n.text("sevenAppIcon"))
