@@ -35,7 +35,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             )
             window.title = L10n.text("sevenSettings")
             window.titleVisibility = .hidden
-            // 在 macOS 26 保留标题栏绘制，由 AppKit 提供原生滚动边缘效果。
             if #unavailable(macOS 26) {
                 window.titlebarAppearsTransparent = true
             }
@@ -64,7 +63,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 dictionaryManager: dictionaryManager,
                 diagnostics: diagnostics,
                 updater: updater,
-                sectionRequests: sectionRequests
+                sectionRequests: sectionRequests,
+                didSelectSection: { [weak window] section in
+                    if #available(macOS 26, *) {
+                        // 关于页的摘要固定在滚动表单上方，其他页面使用原生标题栏遮挡滚动内容。
+                        window?.titlebarAppearsTransparent = section == .about
+                    }
+                }
             ))
             window.center()
             return window

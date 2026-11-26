@@ -6,8 +6,6 @@
 "about.developmentUpdatesUnavailable" = "Update checks and automatic updates are unavailable in development builds.";
 "about.updatesUnconfigured" = "Updates are not configured for this build.";
 "about.installUpdate" = "Install Update";
-"about.likeSeven" = "Enjoying Seven?";
-"about.starOnGitHub" = "Star on GitHub";
 "about.updateButton" = "Update Button";
 "about.whatsNew" = "What's New";
 "aboutSeven" = "About Seven";

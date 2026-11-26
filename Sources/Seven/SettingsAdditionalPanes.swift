@@ -109,12 +109,9 @@ extension SettingsView {
                 }
                 SettingsToggleRow(L10n.text("about.updateButton"), isOn: $updater.updateButtonEnabled)
                 SettingsToggleRow(L10n.text("about.automaticUpdates"), isOn: $updater.automaticUpdatesEnabled)
-                SettingsButtonRow(L10n.text("about.likeSeven")) {
+                SettingsButtonRow("GitHub") {
                     Link(destination: AppUpdateConfiguration.repositoryURL) {
-                        HStack(spacing: Design.Space.xs) {
-                            Text(L10n.text("about.starOnGitHub"))
-                            Image(systemName: "arrow.up.right").accessibilityHidden(true)
-                        }
+                        Label("Star", systemImage: "star")
                     }
                 }
             }

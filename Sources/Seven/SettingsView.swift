@@ -145,6 +145,7 @@ struct SettingsView: View {
     let diagnostics: DiagnosticLogging
     @ObservedObject var updater: AppUpdater
     let sectionRequests: CurrentValueSubject<SettingsSection?, Never>
+    let didSelectSection: (SettingsSection) -> Void
 
     @ObservedObject var interfaceLanguage = InterfaceLanguageState.shared
     @State private var selection: SettingsSection = .translation
@@ -225,6 +226,7 @@ struct SettingsView: View {
                 sectionRequests.send(nil)
                 sidebarSelection.wrappedValue = section
             }
+            .onChange(of: selection, initial: true) { didSelectSection(selection) }
             .alert(L10n.text("saveChangesToThisService"), isPresented: $serviceEditor.confirmsDeparture) {
                 Button(L10n.text("save")) { saveServiceAndDepart() }
                 Button(L10n.text("donTSave"), role: .destructive) { serviceEditor.discardAndDepart() }

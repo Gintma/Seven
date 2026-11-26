@@ -6,8 +6,6 @@
 "about.developmentUpdatesUnavailable" = "開発ビルドではアップデートの確認や自動更新は利用できません。";
 "about.updatesUnconfigured" = "このビルドにはアップデートの配信元が設定されていません。";
 "about.installUpdate" = "アップデートをインストール";
-"about.likeSeven" = "Seven を気に入りましたか？";
-"about.starOnGitHub" = "GitHub でスターを付ける";
 "about.updateButton" = "更新ボタン";
 "about.whatsNew" = "新機能";
 "aboutSeven" = "Seven について";
