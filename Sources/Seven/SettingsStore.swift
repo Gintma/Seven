@@ -61,6 +61,12 @@ final class SettingsStore {
     init(defaults: UserDefaults = .standard) { self.defaults = defaults }
 
     var hasServiceInstancesData: Bool { defaults.object(forKey: "serviceInstances.v2") != nil }
+    var hasLegacyServicePreferences: Bool {
+        [configurationKey, "configured", "appleTranslationEnabled", "ecdictEnabled",
+         "youdaoEnabled", "googleEnabled", "customServiceEnabled"]
+            .contains { defaults.object(forKey: $0) != nil }
+    }
+
     var serviceInstances: [ServiceInstance]? {
         get {
             guard let data = defaults.data(forKey: "serviceInstances.v2") else { return nil }

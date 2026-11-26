@@ -71,6 +71,43 @@ final class ServiceInstanceTests: XCTestCase {
         XCTAssertTrue(service.userPrompt.isEmpty)
     }
 
+    func testFreshInstallEnablesBuiltInTranslatorsAndLeavesDictionaryOff() throws {
+        let (_, settings) = try store()
+        XCTAssertNil(settings.serviceInstances)
+
+        let services = settings.migrateServiceInstances()
+
+        XCTAssertEqual(services.map(\.provider), [.dictionary, .apple, .youdao, .google])
+        XCTAssertEqual(services.filter(\.enabled).map(\.provider), [.apple, .youdao, .google])
+        XCTAssertEqual(settings.serviceInstances, services)
+    }
+
+    func testSavedServiceListPreservesDisabledOnlineProvidersAndOrder() throws {
+        let (_, settings) = try store()
+        let saved: [ServiceInstance] = [
+            .init(provider: .google, enabled: false),
+            .init(provider: .apple, enabled: true),
+            .init(provider: .youdao, enabled: false)
+        ]
+        settings.serviceInstances = saved
+        settings.googleEnabled = true
+        settings.youdaoEnabled = true
+
+        XCTAssertEqual(settings.migrateServiceInstances(), saved)
+        XCTAssertEqual(settings.serviceInstances, saved)
+    }
+
+    func testPartialLegacyPreferencesRetainOriginalServiceDefaults() throws {
+        let (_, settings) = try store()
+        settings.youdaoEnabled = true
+        settings.appleTranslationEnabled = false
+
+        let services = settings.migrateServiceInstances()
+
+        XCTAssertEqual(services.filter(\.enabled).map(\.provider), [.youdao])
+        XCTAssertEqual(settings.serviceInstances, services)
+    }
+
     @MainActor func testConfigurationMigrationPreservesSettingsWithoutAccessingKeys() throws {
         let (d, s) = try store(); let keys = InstanceCredentials()
         s.appleTranslationEnabled=false; s.youdaoEnabled=true; s.googleEnabled=true; s.ecdictEnabled=true
@@ -112,6 +149,7 @@ final class ServiceInstanceTests: XCTestCase {
         XCTAssertEqual(s.migrateServiceInstances(),first)
         s.serviceInstances=[];s.configured=true
         XCTAssertTrue(s.migrateServiceInstances().isEmpty)
+        XCTAssertEqual(s.serviceInstances, [])
     }
     func testCorruptOrDuplicateV2IsRepaired() throws {
         let (d,s)=try store()
@@ -204,6 +242,7 @@ final class ServiceInstanceTests: XCTestCase {
     }
     @MainActor func testOrderedInstancesDispatchIndependentlyAndReorderCards() async throws {
         let (_,s)=try store();let keys=InstanceCredentials();let service=InstanceService()
+        s.serviceInstances = []
         s.primaryLanguage = "fr"
         let m=TranslationModel(service:service,credentials:keys,settings:s)
         let a=m.addService(.deepSeek),b=m.addService(.deepSeek)
@@ -218,6 +257,7 @@ final class ServiceInstanceTests: XCTestCase {
     }
     @MainActor func testPresetWithoutKeyDoesNotSendNetworkRequest() async throws {
         let (_,s)=try store();let service=InstanceService()
+        s.serviceInstances = []
         let m=TranslationModel(service:service,credentials:InstanceCredentials(),settings:s)
         let id=m.addService(.deepSeek);m.updateInput("hello");m.translate()
         for _ in 0..<100 where m.isLoading { try await Task.sleep(for:.milliseconds(10)) }
@@ -226,6 +266,7 @@ final class ServiceInstanceTests: XCTestCase {
     }
     @MainActor func testServiceLogsDoNotIncludeServerEchoOrPromptOrKey() async throws {
         let (_,s)=try store();let logger=InstanceLogger()
+        s.serviceInstances = []
         let m=TranslationModel(service:EchoingFailureService(),credentials:InstanceCredentials(),settings:s,logger:logger)
         let id=m.addService(.deepSeek);try m.saveServiceKey(id,key:"PRIVATE-KEY")
         m.updateInput("PRIVATE-SOURCE");m.translate()
@@ -240,6 +281,7 @@ final class ServiceInstanceTests: XCTestCase {
     }
     @MainActor func testVerifiedEndpointIsSavedUsedAndInvalidatedOnlyByConnectionChanges() async throws {
         let (_, settings) = try store(); let service = InstanceService()
+        settings.serviceInstances = []
         let model = TranslationModel(service: service, credentials: InstanceCredentials(), settings: settings, configurationTester: ChatEndpointTester())
         let id = model.addService(.openAI); try model.saveServiceKey(id, key: "mock-key")
         let initial = try XCTUnwrap(model.instance(id))

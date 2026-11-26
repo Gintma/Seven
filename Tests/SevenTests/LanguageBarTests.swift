@@ -113,6 +113,7 @@ final class LanguageBarModelTests: XCTestCase {
         defaults.set(false, forKey: "appleTranslationEnabled")
         defaults.set(false, forKey: "customServiceEnabled")
         defaults.set(true, forKey: "youdaoEnabled")
+        defaults.set(false, forKey: "googleEnabled")
     }
 
     override func tearDown() async throws {

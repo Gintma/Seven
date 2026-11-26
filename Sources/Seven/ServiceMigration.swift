@@ -19,11 +19,12 @@ extension SettingsStore {
             serviceInstances = repaired
             return repaired
         }
+        let hasLegacyPreferences = hasLegacyServicePreferences
         var instances = [
             ServiceInstance(provider: .dictionary, enabled: ecdictEnabled),
             ServiceInstance(provider: .apple, enabled: appleTranslationEnabled),
-            ServiceInstance(provider: .youdao, enabled: youdaoEnabled),
-            ServiceInstance(provider: .google, enabled: googleEnabled)
+            ServiceInstance(provider: .youdao, enabled: !hasLegacyPreferences || youdaoEnabled),
+            ServiceInstance(provider: .google, enabled: !hasLegacyPreferences || googleEnabled)
         ]
         if configured {
             let legacy = configuration

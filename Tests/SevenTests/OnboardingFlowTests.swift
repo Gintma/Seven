@@ -6,12 +6,17 @@ import XCTest
 final class OnboardingFlowTests: XCTestCase {
     @MainActor func testFreshInstallShowsOnboarding() throws {
         let fixture = try Fixture(test: self)
-        fixture.defaults.register(defaults: ["configured": false])
         try FileManager.default.createDirectory(
             at: fixture.dataDirectory.appendingPathComponent("BuildSigning"), withIntermediateDirectories: false
         )
 
+        let registrationDomain = UserDefaults.registrationDomain
+        let registered = fixture.defaults.volatileDomain(forName: registrationDomain)
+        fixture.defaults.register(defaults: ["configured": false])
         let flow = fixture.makeFlow()
+        // 注册域在测试进程内共享，读取引导状态后恢复。
+        fixture.defaults.removeVolatileDomain(forName: registrationDomain)
+        fixture.defaults.setVolatileDomain(registered, forName: registrationDomain)
         _ = SettingsStore(defaults: fixture.defaults).migrateServiceInstances()
 
         XCTAssertTrue(flow.shouldShow(hasPendingImages: false))
@@ -20,7 +25,17 @@ final class OnboardingFlowTests: XCTestCase {
 
     @MainActor func testExistingConfigurationIsSilentlyMarkedComplete() throws {
         let fixture = try Fixture(test: self)
-        SettingsStore(defaults: fixture.defaults).configured = false
+        let settings = SettingsStore(defaults: fixture.defaults)
+        settings.configured = false
+
+        XCTAssertFalse(fixture.makeFlow().shouldShow(hasPendingImages: false))
+        XCTAssertEqual(fixture.status, "completed")
+        XCTAssertEqual(settings.migrateServiceInstances().filter(\.enabled).map(\.provider), [.apple])
+    }
+
+    @MainActor func testClearedServiceListStillCountsAsExistingUsage() throws {
+        let fixture = try Fixture(test: self)
+        SettingsStore(defaults: fixture.defaults).serviceInstances = []
 
         XCTAssertFalse(fixture.makeFlow().shouldShow(hasPendingImages: false))
         XCTAssertEqual(fixture.status, "completed")

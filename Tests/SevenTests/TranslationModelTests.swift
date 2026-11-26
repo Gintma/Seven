@@ -145,6 +145,14 @@ private actor GatedStreamingService: TranslationServing {
 
 @MainActor
 final class TranslationModelTests: XCTestCase {
+    private func modelDefaultsWithoutOnlineServices(suiteName: String = "SevenTests." + UUID().uuidString) -> UserDefaults? {
+        guard let defaults = isolatedDefaults(suiteName: suiteName) else { return nil }
+        let settings = SettingsStore(defaults: defaults)
+        settings.youdaoEnabled = false
+        settings.googleEnabled = false
+        return defaults
+    }
+
     private func waitUntilIdle(_ model: TranslationModel) async throws {
         for _ in 0..<100 where model.isLoading {
             try await Task.sleep(for: .milliseconds(10))
@@ -286,7 +294,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testOlderResultCannotOverwriteNewerState() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let service = ControlledService()
         let model = TranslationModel(service: service, credentials: MemoryCredentials(), settings: SettingsStore(defaults: defaults))
@@ -305,7 +313,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testRetryAfterNetworkFailureStartsFreshRequestAndClearsError() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let service = RetryService()
         let model = TranslationModel(
@@ -340,7 +348,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testClosingPanelCancelsRequestAndRejectsLateResponse() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let service = ControlledService()
         let model = TranslationModel(
@@ -647,7 +655,7 @@ final class TranslationModelTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("SevenTests.\(UUID().uuidString)", isDirectory: true)
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer {
             try? FileManager.default.removeItem(at: directory)
             defaults.removePersistentDomain(forName: suite)
@@ -686,7 +694,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testStreamingTranslationPublishesAndCompletes() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let model = TranslationModel(
             service: ImmediateStreamingService(),
@@ -714,7 +722,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testStreamingTranslationPublishesBeforeRequestCompletes() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let service = GatedStreamingService()
         let model = TranslationModel(
@@ -750,7 +758,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testCancellingStreamingTranslationKeepsPublishedText() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let service = GatedStreamingService()
         let model = TranslationModel(
@@ -783,7 +791,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testBuiltInDictionaryAndCustomServicePublishIndependentResults() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let entry = ECDictionaryEntryParser.parse(ECDictionaryRecord(
             word: "refine", phonetic: "ri'fain", definition: "v. improve",
@@ -819,7 +827,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testAppleTranslationResultCompletesThroughViewBridgeContract() async {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = isolatedDefaults(suiteName: suite)!
+        let defaults = modelDefaultsWithoutOnlineServices(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(false, forKey: "ecdictEnabled")
         defaults.set(false, forKey: "customServiceEnabled")
@@ -849,7 +857,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testAmbiguousChineseUsesConfiguredPrimaryVariantForAppleTranslation() async {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = isolatedDefaults(suiteName: suite)!
+        let defaults = modelDefaultsWithoutOnlineServices(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(false, forKey: "ecdictEnabled")
         defaults.set(false, forKey: "customServiceEnabled")
@@ -871,7 +879,7 @@ final class TranslationModelTests: XCTestCase {
     }
 
     func testAppleTranslationKeepsIdentifiedSourceVariantForChinesePair() async throws {
-        let defaults = try XCTUnwrap(isolatedDefaults())
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices())
         let model = TranslationModel(
             service: ImmediateService(response: "unused"),
             dictionaryService: ImmediateDictionaryService(entry: nil),
@@ -991,7 +999,7 @@ final class TranslationModelTests: XCTestCase {
         logger: DiagnosticLogging = NoopDiagnosticLogger()
     ) throws -> (TranslationModel, UserDefaults, String) {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defaults.set(true, forKey: "ecdictEnabled")
         defaults.set(false, forKey: "customServiceEnabled")
         let model = TranslationModel(
@@ -1052,7 +1060,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testECDICTRemainsVisibleWhenInputIsNotAWord() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = isolatedDefaults(suiteName: suite)!
+        let defaults = modelDefaultsWithoutOnlineServices(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let entry = ECDictionaryEntryParser.parse(ECDictionaryRecord(
             word: "refine", phonetic: "", definition: "",
@@ -1085,7 +1093,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testServiceTogglesPersistImmediately() {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = isolatedDefaults(suiteName: suite)!
+        let defaults = modelDefaultsWithoutOnlineServices(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let settings = SettingsStore(defaults: defaults)
         let model = TranslationModel(
@@ -1124,7 +1132,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testClickingDictionaryTermStartsANewTranslation() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(false, forKey: "appleTranslationEnabled")
         defaults.set(true, forKey: "youdaoEnabled")
@@ -1148,7 +1156,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testTwoKeyServiceInstancesRunIndependently() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let model = TranslationModel(
             service: ImmediateService(response: "译文"),
@@ -1239,7 +1247,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testClearTransitionRetainsResultsUntilAnimationFinishes() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(false, forKey: "appleTranslationEnabled")
         defaults.set(false, forKey: "customServiceEnabled")
@@ -1299,7 +1307,7 @@ final class TranslationModelTests: XCTestCase {
 
     func testCollapseFinishesCurrentRequestButSkipsFutureRequestsUntilExpanded() async throws {
         let suite = "SevenTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(false, forKey: "appleTranslationEnabled")
         defaults.set(false, forKey: "customServiceEnabled")

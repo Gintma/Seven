@@ -90,12 +90,15 @@ final class InputReplacementTests: XCTestCase {
     private func fixtures(service: ReplacementService, second: ReplacementService = ReplacementService()) throws -> (TranslationModel, UserDefaults, String) {
         let suite = "ReplacementTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(isolatedDefaults(suiteName: suite))
-        defaults.set(false, forKey: "customServiceEnabled")
-        defaults.set(false, forKey: "appleTranslationEnabled")
-        defaults.set(true, forKey: "googleEnabled")
-        defaults.set(false, forKey: "youdaoEnabled")
+        let settings = SettingsStore(defaults: defaults)
+        settings.serviceInstances = [
+            .init(provider: .dictionary, enabled: false),
+            .init(provider: .apple, enabled: false),
+            .init(provider: .youdao, enabled: false),
+            .init(provider: .google, enabled: true)
+        ]
         return (TranslationModel(dictionaryService: ReplacementDictionary(), youdaoService: second, googleService: service, credentials: ReplacementCredentials(),
-                                 settings: SettingsStore(defaults: defaults)), defaults, suite)
+                                 settings: settings), defaults, suite)
     }
 
     private func settle(_ predicate: () -> Bool) async throws {
