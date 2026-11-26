@@ -27,6 +27,12 @@ case "${1:-}" in
 esac
 
 cd "$project_dir"
+mkdir -p "$project_dir/.build"
+zmodload zsh/system
+release_lock="$project_dir/.build/seven-release.lock"
+: >> "$release_lock"
+zsystem flock -t 0 "$release_lock" || fail "已有发布任务在此 worktree 运行。"
+
 identity_record="$(find_signing_identity "${SEVEN_SIGN_IDENTITY:-}" true)"
 [[ -n "$identity_record" ]] || fail "缺少可用的 Developer ID Application 签名身份。请安装证书与私钥，或检查 SEVEN_SIGN_IDENTITY。"
 IFS=$'\t' read -r signing_identity _ <<< "$identity_record"
@@ -75,8 +81,7 @@ notarize() {
     fail "Apple 公证状态为 $submission_status。请使用 xcrun notarytool log $submission_id 查看详情。"
 }
 
-SEVEN_SIGN_IDENTITY="$signing_identity" ./build-app.sh release --universal
-ditto Seven.app "$app"
+SEVEN_BUILD_OUTPUT_DIR="$stage_dir" SEVEN_SIGN_IDENTITY="$signing_identity" ./build-app.sh release --universal
 # Apple 可接收 ZIP，但票据贴在 app 上。最终 ZIP 用粘贴票据后的 app 重打。
 ditto -c -k --keepParent "$app" "$stage_dir/notarization.zip"
 notarize "$stage_dir/notarization.zip"
@@ -125,7 +130,7 @@ if any(int(previous) >= int(build) for previous in existing_builds):
 if any(item.findtext(f"{{{sparkle}}}shortVersionString") == version for item in channel.findall("item")):
     raise SystemExit("该版本已在 appcast.xml 中发布。请设置新的 CFBundleShortVersionString。")
 
-release_url = f"https://github.com/Gintma/Seven/releases"
+release_url = "https://github.com/Gintma/Seven/releases"
 item = ET.SubElement(channel, "item")
 ET.SubElement(item, "title").text = f"Seven {version}"
 ET.SubElement(item, "link").text = f"{release_url}/tag/v{version}"

@@ -32,6 +32,21 @@ while (( $# > 0 )); do
 done
 
 cd "$project_dir"
+mkdir -p "$project_dir/.build"
+zmodload zsh/system
+build_lock="$project_dir/.build/seven-build.lock"
+: >> "$build_lock"
+if ! zsystem flock -t 0 "$build_lock"; then
+  print -u2 "已有打包任务在此 worktree 运行。"
+  exit 1
+fi
+
+output_dir="${SEVEN_BUILD_OUTPUT_DIR:-$project_dir}"
+if [[ ! -d "$output_dir" ]]; then
+  print -u2 "打包输出目录不存在。"
+  exit 1
+fi
+output_dir="${output_dir:A}"
 app_name="Seven"
 bundle_identifier="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' Info.plist)"
 if [[ -n "$variant" ]]; then
@@ -79,11 +94,20 @@ else
 fi
 signing_arguments+=(--sign "$signing_identity")
 
-mkdir -p "$project_dir/.build"
 tmp_dir="$(mktemp -d "$project_dir/.build/seven-app.XXXXXX")"
-trap 'rm -rf "$tmp_dir"' EXIT
 app="$tmp_dir/$app_name.app"
-output_app="$project_dir/$app_name.app"
+output_app="$output_dir/$app_name.app"
+cleanup_build() {
+  if [[ -e "$tmp_dir/previous.app" || -L "$tmp_dir/previous.app" ]] &&
+     [[ ! -e "$output_app" && ! -L "$output_app" ]]; then
+    if ! mv "$tmp_dir/previous.app" "$output_app"; then
+      print -u2 "无法恢复上一个包，已保留在 $tmp_dir/previous.app。"
+      return
+    fi
+  fi
+  rm -rf "$tmp_dir"
+}
+trap cleanup_build EXIT
 build_arguments=(-c "$configuration")
 if [[ -n "$variant" ]]; then
   build_arguments+=(-Xswiftc -DSEVEN_DEVELOPMENT)
@@ -181,10 +205,5 @@ codesign --verify --deep --strict --verbose=2 "$app"
 if [[ -e "$output_app" || -L "$output_app" ]]; then
   mv "$output_app" "$tmp_dir/previous.app"
 fi
-if ! mv "$app" "$output_app"; then
-  if [[ -e "$tmp_dir/previous.app" || -L "$tmp_dir/previous.app" ]]; then
-    mv "$tmp_dir/previous.app" "$output_app"
-  fi
-  exit 1
-fi
+mv "$app" "$output_app"
 print "$output_app"
