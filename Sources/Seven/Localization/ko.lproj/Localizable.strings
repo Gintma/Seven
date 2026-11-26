@@ -488,8 +488,8 @@
 "service.legacyDefaultName" = "내 번역 서비스";
 "service.prompt.example" = "이 글을 더 자연스럽게 다듬어 주세요.";
 "service.prompt.help" = "AI에게 원하는 작업을 적으세요. Seven이 원문을 자동으로 첨부합니다.";
-"service.prompt.insertableContent" = "삽입할 수 있는 내용";
-"service.prompt.optionalSourceText" = "여기에 원문 넣기(선택 사항)";
+"service.prompt.insertableVariables" = "삽입할 수 있는 변수";
+"service.prompt.originalTextReplacement" = "보낼 때 번역 창의 원문으로 바뀝니다";
 "service.prompt.required" = "사용자 지정 모드의 프롬프트를 입력하세요.";
 "service.prompt.title" = "프롬프트";
 "service.reasoningUnsupported" = "이 서비스는 선택한 추론 설정을 지원하지 않습니다. 모델 기본값을 사용하세요.";

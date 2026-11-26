@@ -488,8 +488,8 @@
 "service.legacyDefaultName" = "我的翻译服务";
 "service.prompt.example" = "帮我润色这段话，让表达更自然。";
 "service.prompt.help" = "直接写你想让 AI 做什么，Seven 会自动附上原文。";
-"service.prompt.insertableContent" = "可插入的内容";
-"service.prompt.optionalSourceText" = "把原文放在这里（可选）";
+"service.prompt.insertableVariables" = "可插入的变量";
+"service.prompt.originalTextReplacement" = "发送时替换成翻译窗口里的原文";
 "service.prompt.required" = "自定义模式需要填写提示词。";
 "service.prompt.title" = "提示词";
 "service.reasoningUnsupported" = "服务不支持当前思考设置，请改为模型默认。";

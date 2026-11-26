@@ -913,11 +913,11 @@ struct SettingsPromptVariables: View {
     private var variables: [(String, String)] { [
         ("{{target}}", L10n.text("targetLanguageSelectedInTheWindow")),
         ("{{firstLanguage}}", L10n.text("firstLanguageInSettings")),
-        ("{{text}}", L10n.text("service.prompt.optionalSourceText"))
+        ("{{text}}", L10n.text("service.prompt.originalTextReplacement"))
     ] }
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Space.s) {
-            Text(L10n.text("service.prompt.insertableContent"))
+            Text(L10n.text("service.prompt.insertableVariables"))
             Grid(alignment: .leading, horizontalSpacing: Design.Space.l, verticalSpacing: Design.Space.xs) {
                 ForEach(variables, id: \.0) { token, meaning in
                     GridRow {

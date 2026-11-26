@@ -488,8 +488,8 @@
 "service.legacyDefaultName" = "マイ翻訳サービス";
 "service.prompt.example" = "この文章をより自然な表現に整えてください。";
 "service.prompt.help" = "AI にしてほしいことを書いてください。Seven が原文を自動で添えます。";
-"service.prompt.insertableContent" = "挿入できる内容";
-"service.prompt.optionalSourceText" = "ここに原文を挿入する（任意）";
+"service.prompt.insertableVariables" = "挿入できる変数";
+"service.prompt.originalTextReplacement" = "送信時に翻訳ウインドウの原文に置き換わります";
 "service.prompt.required" = "カスタムモードのプロンプトを入力してください。";
 "service.prompt.title" = "プロンプト";
 "service.reasoningUnsupported" = "このサービスは選んだ推論設定に対応していません。モデルの既定値を使ってください。";
