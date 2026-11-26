@@ -1,9 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+<?xml version='1.0' encoding='utf-8'?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
     <title>Seven</title>
     <link>https://github.com/crismakes/Seven/releases</link>
     <description>Seven for macOS releases</description>
     <!-- Tools/release.sh adds the signed enclosure for each release. -->
+    <item>
+      <title>Seven 0.16.6</title>
+      <link>https://github.com/crismakes/Seven/releases/tag/v0.16.6</link>
+      <pubDate>Thu, 26 Nov 2026 05:50:09 GMT</pubDate>
+      <sparkle:version>71</sparkle:version>
+      <sparkle:shortVersionString>0.16.6</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/crismakes/Seven/releases/download/v0.16.6/Seven-0.16.6.zip" sparkle:edSignature="EeB8PeQ4Qs/skEpZV+woWhuB3anYFRgxCXykBfCcHRgCqdZ4oZoBLaub1RIhD4fpPYb9QzNuDjmO2A77L4QeAw==" length="10338281" type="application/octet-stream" />
+    </item>
   </channel>
 </rss>
