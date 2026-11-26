@@ -25,7 +25,7 @@
     <key>SUFeedURL</key><string>https://raw.githubusercontent.com/crismakes/Seven/main/appcast.xml</string>
     <!-- Replace with the public key printed by Sparkle's generate_keys before publishing. -->
     <key>SUPublicEDKey</key><string>ml/8QUAGsrwBHSbal4SqbCcO0YV5rqCBoQz5UYhqdnc=</string>
-    <key>SUEnableAutomaticChecks</key><false/>
+    <key>SUEnableAutomaticChecks</key><true/>
     <key>SUAutomaticallyUpdate</key><false/>
     <key>SUAllowsAutomaticUpdates</key><true/>
     <key>LSMinimumSystemVersion</key><string>14.0</string>

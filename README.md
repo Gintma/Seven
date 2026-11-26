@@ -89,7 +89,7 @@ Build with Xcode 26 or later. SwiftPM downloads the locked Sparkle dependency on
 
 ### Updates and Release Packaging
 
-In **Settings → About**, check for updates, open the current version’s release page, or enable automatic checks and downloads. Sparkle can install a downloaded update when Seven quits. The update shortcut appears in the menu bar menu and the Settings sidebar when a new version is available. Only a Developer ID-signed release build with a configured feed and public key enables Sparkle.
+In **Settings → About**, check for updates manually, open the current version’s release page, or configure automatic checking and installation. Automatic checks are on by default. Automatic downloading and installation are opt-in, and Sparkle can install a downloaded update when Seven quits. The update shortcut appears in the menu bar menu and Settings sidebar when a new version is available. Only a Developer ID-signed release build with a configured feed and public key enables Sparkle.
 
 1. Install a Developer ID Application certificate and its private key. Run `swift package resolve`, then `.build/artifacts/sparkle/Sparkle/bin/generate_keys --account seven`. Copy the public key into `SUPublicEDKey` in `Info.plist`. Keep the private key in the Keychain.
 2. Run `xcrun notarytool store-credentials <profile-name>`, then set `SEVEN_NOTARY_PROFILE` to that profile name.

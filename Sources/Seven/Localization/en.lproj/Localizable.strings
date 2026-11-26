@@ -1,6 +1,7 @@
 // Seven interface strings
 "about" = "About";
-"about.automaticUpdates" = "Automatic Updates";
+"about.automaticChecks" = "Automatically Check for Updates";
+"about.automaticDownloads" = "Automatically Download and Install";
 "about.checkForUpdates" = "Check for Updates";
 "about.checkingForUpdates" = "Checking for Updates…";
 "about.developmentUpdatesUnavailable" = "Update checks and automatic updates are unavailable in development builds.";

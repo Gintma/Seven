@@ -108,7 +108,8 @@ extension SettingsView {
                     Button(L10n.text("open")) { NSWorkspace.shared.open(updater.releaseNotesURL) }
                 }
                 SettingsToggleRow(L10n.text("about.updateButton"), isOn: $updater.updateButtonEnabled)
-                SettingsToggleRow(L10n.text("about.automaticUpdates"), isOn: $updater.automaticUpdatesEnabled)
+                SettingsToggleRow(L10n.text("about.automaticChecks"), isOn: $updater.automaticChecksEnabled)
+                SettingsToggleRow(L10n.text("about.automaticDownloads"), isOn: $updater.automaticDownloadsEnabled)
                 SettingsButtonRow("GitHub") {
                     Link(L10n.text("about.openGitHub"), destination: AppUpdateConfiguration.repositoryURL)
                 }
