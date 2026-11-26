@@ -48,7 +48,6 @@
 "automaticTargetLanguage" = "Automatic Target Language";
 "availableAsAFallback" = "Available as a Fallback";
 "availableOfflineEntries" = "Available Offline · %1$@ entries · %2$@";
-"availableVariables" = "Available Variables";
 "backgroundColor" = "Background Color";
 "baiduSpeech" = "Baidu Speech";
 "baseURL" = "Base URL";
@@ -487,8 +486,10 @@
 "service.apiUnsupported" = "This service does not support the selected API. Check the address and API format.";
 "service.httpError" = "The service returned HTTP %1$@. Try again later.";
 "service.legacyDefaultName" = "My Translation Service";
-"service.prompt.optionalSourceText" = "Original text (optional)";
-"service.prompt.placement" = "Place {{text}} where you want the original text to appear. If omitted, Seven sends the original text separately after the prompt.";
+"service.prompt.example" = "Polish this text so it sounds more natural.";
+"service.prompt.help" = "Tell the AI what to do. Seven includes the original text automatically.";
+"service.prompt.insertableContent" = "What you can insert";
+"service.prompt.optionalSourceText" = "Put the original text here (optional)";
 "service.prompt.required" = "Enter a prompt for Custom mode.";
 "service.prompt.title" = "Prompt";
 "service.reasoningUnsupported" = "This service does not support the selected reasoning setting. Use the model default.";
@@ -628,7 +629,6 @@
 "translateScreenshot" = "Translate Screenshot";
 "translateSelection" = "Translate Selection";
 "translateTextWithoutAnAPIKey" = "Translate text without an API key";
-"translateTheFollowingTextIntoTargetPreserve" = "Translate the following text into {{target}}. Preserve its tone and explain difficult expressions:\n{{text}}";
 "translateTypedText" = "Translate Typed Text";
 "translating" = "Translating";
 "translatingWith" = "Translating with %1$@";

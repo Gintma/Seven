@@ -62,8 +62,8 @@ extension SettingsView {
                 if serviceEditor.value.mode == .custom {
                     SettingsGroup() {
                         SettingsTextRow(title: L10n.text("service.prompt.title"), text: $serviceEditor.value.prompt,
-                                        placeholder: L10n.text("translateTheFollowingTextIntoTargetPreserve"),
-                                        explanation: L10n.text("service.prompt.placement"))
+                                        placeholder: L10n.text("service.prompt.example"),
+                                        explanation: L10n.text("service.prompt.help"))
                     } footer: {
                         SettingsPromptVariables()
                     }

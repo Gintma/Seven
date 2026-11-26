@@ -871,7 +871,10 @@ struct SettingsTextRow: View {
                     .frame(height: Design.Settings.promptEditorHeight)
                     .settingsSmartTarget("AXTextArea")
             }
-            if let explanation { SettingsNote(text: explanation) }
+            if let explanation {
+                SettingsNote(text: explanation, multiline: true)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }
@@ -914,7 +917,7 @@ struct SettingsPromptVariables: View {
     ] }
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Space.s) {
-            Text(L10n.text("availableVariables"))
+            Text(L10n.text("service.prompt.insertableContent"))
             Grid(alignment: .leading, horizontalSpacing: Design.Space.l, verticalSpacing: Design.Space.xs) {
                 ForEach(variables, id: \.0) { token, meaning in
                     GridRow {

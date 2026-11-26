@@ -48,7 +48,6 @@
 "automaticTargetLanguage" = "翻訳先の自動選択";
 "availableAsAFallback" = "代替として使用可能";
 "availableOfflineEntries" = "オフラインで利用可能 · %1$@ 項目 · %2$@";
-"availableVariables" = "使用できる変数";
 "backgroundColor" = "背景色";
 "baiduSpeech" = "Baidu 読み上げ";
 "baseURL" = "ベース URL";
@@ -487,8 +486,10 @@
 "service.apiUnsupported" = "このサービスは選択した API に対応していません。アドレスと API 形式を確認してください。";
 "service.httpError" = "サービスが HTTP %1$@ を返しました。しばらくしてから再試行してください。";
 "service.legacyDefaultName" = "マイ翻訳サービス";
-"service.prompt.optionalSourceText" = "原文（任意）";
-"service.prompt.placement" = "原文を入れたい位置に {{text}} を置きます。省略すると、Seven はプロンプトの後に原文を別のメッセージとして送信します。";
+"service.prompt.example" = "この文章をより自然な表現に整えてください。";
+"service.prompt.help" = "AI にしてほしいことを書いてください。Seven が原文を自動で添えます。";
+"service.prompt.insertableContent" = "挿入できる内容";
+"service.prompt.optionalSourceText" = "ここに原文を挿入する（任意）";
 "service.prompt.required" = "カスタムモードのプロンプトを入力してください。";
 "service.prompt.title" = "プロンプト";
 "service.reasoningUnsupported" = "このサービスは選んだ推論設定に対応していません。モデルの既定値を使ってください。";
@@ -628,7 +629,6 @@
 "translateScreenshot" = "スクリーンショットを翻訳";
 "translateSelection" = "選択範囲を翻訳";
 "translateTextWithoutAnAPIKey" = "API キーなしでテキストを翻訳";
-"translateTheFollowingTextIntoTargetPreserve" = "次のテキストを {{target}} に翻訳してください。原文の調子を保ち、難しい表現を説明してください：\n{{text}}";
 "translateTypedText" = "入力して翻訳";
 "translating" = "翻訳中";
 "translatingWith" = "%1$@ で翻訳中";

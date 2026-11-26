@@ -48,7 +48,6 @@
 "automaticTargetLanguage" = "대상 언어 자동 선택";
 "availableAsAFallback" = "대체 서비스로 사용 가능";
 "availableOfflineEntries" = "오프라인 사용 가능 · %1$@개 항목 · %2$@";
-"availableVariables" = "사용 가능한 변수";
 "backgroundColor" = "배경색";
 "baiduSpeech" = "Baidu 읽어주기";
 "baseURL" = "기본 URL";
@@ -487,8 +486,10 @@
 "service.apiUnsupported" = "이 서비스는 선택한 API를 지원하지 않습니다. 주소와 API 형식을 확인하세요.";
 "service.httpError" = "서비스에서 HTTP %1$@ 응답을 반환했습니다. 잠시 후 다시 시도하세요.";
 "service.legacyDefaultName" = "내 번역 서비스";
-"service.prompt.optionalSourceText" = "원문(선택 사항)";
-"service.prompt.placement" = "원문을 넣을 위치에 {{text}}를 입력하세요. 생략하면 Seven이 프롬프트 뒤에 원문을 별도 메시지로 보냅니다.";
+"service.prompt.example" = "이 글을 더 자연스럽게 다듬어 주세요.";
+"service.prompt.help" = "AI에게 원하는 작업을 적으세요. Seven이 원문을 자동으로 첨부합니다.";
+"service.prompt.insertableContent" = "삽입할 수 있는 내용";
+"service.prompt.optionalSourceText" = "여기에 원문 넣기(선택 사항)";
 "service.prompt.required" = "사용자 지정 모드의 프롬프트를 입력하세요.";
 "service.prompt.title" = "프롬프트";
 "service.reasoningUnsupported" = "이 서비스는 선택한 추론 설정을 지원하지 않습니다. 모델 기본값을 사용하세요.";
@@ -628,7 +629,6 @@
 "translateScreenshot" = "스크린샷 번역";
 "translateSelection" = "선택 영역 번역";
 "translateTextWithoutAnAPIKey" = "API 키 없이 텍스트 번역";
-"translateTheFollowingTextIntoTargetPreserve" = "다음 텍스트를 {{target}}로 번역하세요. 원문의 어조를 유지하고 어려운 표현을 설명하세요:\n{{text}}";
 "translateTypedText" = "입력 번역";
 "translating" = "번역 중";
 "translatingWith" = "%1$@로 번역하는 중";

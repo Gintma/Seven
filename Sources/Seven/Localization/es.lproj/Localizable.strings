@@ -48,7 +48,6 @@
 "automaticTargetLanguage" = "Idioma de destino automático";
 "availableAsAFallback" = "Disponible como alternativa";
 "availableOfflineEntries" = "Disponible sin conexión · %1$@ entradas · %2$@";
-"availableVariables" = "Variables disponibles";
 "backgroundColor" = "Color de fondo";
 "baiduSpeech" = "Lectura en voz alta de Baidu";
 "baseURL" = "URL base";
@@ -487,8 +486,10 @@
 "service.apiUnsupported" = "El servicio no admite la API elegida. Comprueba la dirección y el formato de API.";
 "service.httpError" = "El servicio devolvió HTTP %1$@. Inténtalo más tarde.";
 "service.legacyDefaultName" = "Mi servicio de traducción";
-"service.prompt.optionalSourceText" = "Texto original (opcional)";
-"service.prompt.placement" = "Coloca {{text}} donde quieras insertar el texto original. Si lo omites, Seven enviará el texto original en un mensaje separado después de la instrucción.";
+"service.prompt.example" = "Revisa este texto para que suene más natural.";
+"service.prompt.help" = "Dile a la IA qué quieres que haga. Seven incluye el texto original automáticamente.";
+"service.prompt.insertableContent" = "Qué puedes insertar";
+"service.prompt.optionalSourceText" = "Coloca aquí el texto original (opcional)";
 "service.prompt.required" = "Introduce una instrucción para el modo Personalizado.";
 "service.prompt.title" = "Instrucción";
 "service.reasoningUnsupported" = "El servicio no admite el ajuste de razonamiento seleccionado. Usa el valor predeterminado del modelo.";
@@ -628,7 +629,6 @@
 "translateScreenshot" = "Traducir captura";
 "translateSelection" = "Traducir selección";
 "translateTextWithoutAnAPIKey" = "Traducir texto sin clave de API";
-"translateTheFollowingTextIntoTargetPreserve" = "Traduce el siguiente texto a {{target}}. Conserva el tono y explica las expresiones difíciles:\n{{text}}";
 "translateTypedText" = "Traducir texto escrito";
 "translating" = "Traduciendo";
 "translatingWith" = "Traduciendo con %1$@";

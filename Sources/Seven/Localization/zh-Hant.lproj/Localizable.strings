@@ -48,7 +48,6 @@
 "automaticTargetLanguage" = "自動目標語言";
 "availableAsAFallback" = "可作為備選";
 "availableOfflineEntries" = "離線可用 · %1$@ 詞條 · %2$@";
-"availableVariables" = "可用變數";
 "backgroundColor" = "背景色";
 "baiduSpeech" = "百度朗讀";
 "baseURL" = "API 位址";
@@ -487,8 +486,10 @@
 "service.apiUnsupported" = "服務不支援目前介面。請確認位址與API 格式。";
 "service.httpError" = "服務傳回 HTTP %1$@，請稍後重試。";
 "service.legacyDefaultName" = "我的翻譯服務";
-"service.prompt.optionalSourceText" = "原文（選填）";
-"service.prompt.placement" = "在範本中加入 {{text}} 可指定原文的位置。省略時，Seven 會在提示詞之後單獨傳送原文。";
+"service.prompt.example" = "幫我潤飾這段話，讓表達更自然。";
+"service.prompt.help" = "直接寫下你想讓 AI 做什麼，Seven 會自動附上原文。";
+"service.prompt.insertableContent" = "可插入的內容";
+"service.prompt.optionalSourceText" = "把原文放在這裡（選填）";
 "service.prompt.required" = "自訂模式需要填寫提示詞。";
 "service.prompt.title" = "提示詞";
 "service.reasoningUnsupported" = "服務不支援目前思考設定，請改為模型預設。";
@@ -628,7 +629,6 @@
 "translateScreenshot" = "截圖翻譯";
 "translateSelection" = "劃詞翻譯";
 "translateTextWithoutAnAPIKey" = "無需 API Key，可直接翻譯文字";
-"translateTheFollowingTextIntoTargetPreserve" = "將以下原文翻譯成 {{target}}，保留原文語氣，並解釋難懂的表達：\n{{text}}";
 "translateTypedText" = "輸入翻譯";
 "translating" = "翻譯中";
 "translatingWith" = "使用%1$@翻譯";

@@ -48,7 +48,6 @@
 "automaticTargetLanguage" = "自动目标语言";
 "availableAsAFallback" = "可作为备选";
 "availableOfflineEntries" = "离线可用 · %1$@ 词条 · %2$@";
-"availableVariables" = "可用变量";
 "backgroundColor" = "背景色";
 "baiduSpeech" = "百度朗读";
 "baseURL" = "接口地址";
@@ -487,8 +486,10 @@
 "service.apiUnsupported" = "服务不支持当前接口。请确认地址与接口格式。";
 "service.httpError" = "服务返回 HTTP %1$@，请稍后重试。";
 "service.legacyDefaultName" = "我的翻译服务";
-"service.prompt.optionalSourceText" = "原文（可选）";
-"service.prompt.placement" = "在模板中加入 {{text}} 可指定原文的位置。省略时，Seven 会在提示词之后单独发送原文。";
+"service.prompt.example" = "帮我润色这段话，让表达更自然。";
+"service.prompt.help" = "直接写你想让 AI 做什么，Seven 会自动附上原文。";
+"service.prompt.insertableContent" = "可插入的内容";
+"service.prompt.optionalSourceText" = "把原文放在这里（可选）";
 "service.prompt.required" = "自定义模式需要填写提示词。";
 "service.prompt.title" = "提示词";
 "service.reasoningUnsupported" = "服务不支持当前思考设置，请改为模型默认。";
@@ -628,7 +629,6 @@
 "translateScreenshot" = "截图翻译";
 "translateSelection" = "划词翻译";
 "translateTextWithoutAnAPIKey" = "无需 API Key，可直接翻译文本";
-"translateTheFollowingTextIntoTargetPreserve" = "将以下原文翻译成 {{target}}，保留原文语气，并解释难懂的表达：\n{{text}}";
 "translateTypedText" = "输入翻译";
 "translating" = "翻译中";
 "translatingWith" = "使用%1$@翻译";
