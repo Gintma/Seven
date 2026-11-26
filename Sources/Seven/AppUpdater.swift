@@ -3,7 +3,7 @@ import Foundation
 import Sparkle
 
 struct AppUpdateConfiguration {
-    static let repositoryURL = URL(string: "https://github.com/Gintma/Seven")!
+    static let repositoryURL = URL(string: "https://github.com/crismakes/Seven")!
 
     enum Availability: Equatable {
         case supported

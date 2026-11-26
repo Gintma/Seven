@@ -130,7 +130,7 @@ if any(int(previous) >= int(build) for previous in existing_builds):
 if any(item.findtext(f"{{{sparkle}}}shortVersionString") == version for item in channel.findall("item")):
     raise SystemExit("该版本已在 appcast.xml 中发布。请设置新的 CFBundleShortVersionString。")
 
-release_url = "https://github.com/Gintma/Seven/releases"
+release_url = "https://github.com/crismakes/Seven/releases"
 item = ET.SubElement(channel, "item")
 ET.SubElement(item, "title").text = f"Seven {version}"
 ET.SubElement(item, "link").text = f"{release_url}/tag/v{version}"

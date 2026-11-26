@@ -6,7 +6,7 @@ Seven handles sensitive local context including user API keys, clipboard content
 
 Please **do not** open a public GitHub Issue for security or privacy vulnerabilities.
 
-Instead, report vulnerabilities privately through [GitHub Security Advisories](https://github.com/Gintma/Seven/security/advisories/new) with:
+Instead, report vulnerabilities privately through [GitHub Security Advisories](https://github.com/crismakes/Seven/security/advisories/new) with:
 
 - A clear description of the issue and its impact
 - Steps to reproduce or a minimal proof of concept

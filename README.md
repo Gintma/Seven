@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Gintma/Seven/actions/workflows/ci.yml"><img src="https://github.com/Gintma/Seven/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/crismakes/Seven/actions/workflows/ci.yml"><img src="https://github.com/crismakes/Seven/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white" alt="macOS 14+" />
   <img src="https://img.shields.io/badge/Swift-5.9%2B-F05138?logo=swift&logoColor=white" alt="Swift 5.9+" />
   <img src="https://img.shields.io/badge/Updates-Sparkle_2-2ea44f" alt="Sparkle 2 updates" />
@@ -69,12 +69,12 @@
 
 ### Download
 
-Pre-built releases will be published on the [GitHub Releases](https://github.com/Gintma/Seven/releases) page.
+Pre-built releases will be published on the [GitHub Releases](https://github.com/crismakes/Seven/releases) page.
 
 ### Build from Source
 
 ```sh
-git clone https://github.com/Gintma/Seven.git
+git clone https://github.com/crismakes/Seven.git
 cd Seven
 
 # One-time setup if you are building without a Developer ID Application certificate
@@ -137,4 +137,4 @@ Engineering guidelines, architecture maps, and module contracts are documented i
 
 ## Maintenance & License
 
-Seven is open source under the [MIT License](LICENSE) and is independently maintained. Bug reports and feature ideas are welcome via [GitHub Issues](https://github.com/Gintma/Seven/issues); external pull requests are currently not accepted.
+Seven is open source under the [MIT License](LICENSE) and is independently maintained. Bug reports and feature ideas are welcome via [GitHub Issues](https://github.com/crismakes/Seven/issues); external pull requests are currently not accepted.

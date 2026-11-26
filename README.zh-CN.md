@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Gintma/Seven/actions/workflows/ci.yml"><img src="https://github.com/Gintma/Seven/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/crismakes/Seven/actions/workflows/ci.yml"><img src="https://github.com/crismakes/Seven/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white" alt="macOS 14+" />
   <img src="https://img.shields.io/badge/Swift-5.9%2B-F05138?logo=swift&logoColor=white" alt="Swift 5.9+" />
   <img src="https://img.shields.io/badge/Updates-Sparkle_2-2ea44f" alt="Sparkle 2 更新" />
@@ -69,12 +69,12 @@
 
 ### 下载使用
 
-预编译版本将发布在 [GitHub Releases](https://github.com/Gintma/Seven/releases)。
+预编译版本将发布在 [GitHub Releases](https://github.com/crismakes/Seven/releases)。
 
 ### 从源码构建
 
 ```sh
-git clone https://github.com/Gintma/Seven.git
+git clone https://github.com/crismakes/Seven.git
 cd Seven
 
 # 没有 Developer ID Application 证书时，先创建本机开发签名身份
@@ -137,4 +137,4 @@ swift test                                 # 离线单元测试与回归套件
 
 ## 维护说明与开源协议
 
-Seven 采用 [MIT 协议](LICENSE) 开源，由作者独立维护。欢迎通过 [GitHub Issues](https://github.com/Gintma/Seven/issues) 反馈缺陷或提出功能建议，暂不接受外部 Pull Request。
+Seven 采用 [MIT 协议](LICENSE) 开源，由作者独立维护。欢迎通过 [GitHub Issues](https://github.com/crismakes/Seven/issues) 反馈缺陷或提出功能建议，暂不接受外部 Pull Request。

@@ -151,7 +151,7 @@ final class AppUpdaterTests: XCTestCase {
     }
 
     func testReleaseNotesUseVersionTagOnlyForReleaseBuilds() {
-        let releases = "https://github.com/Gintma/Seven/releases"
+        let releases = "https://github.com/crismakes/Seven/releases"
         XCTAssertEqual(configuration().releaseNotesURL.absoluteString, releases + "/tag/v1.2.3")
         XCTAssertEqual(configuration(development: true).releaseNotesURL.absoluteString, releases)
         XCTAssertEqual(configuration(identifier: "com.crissun.seven.sparkle").releaseNotesURL.absoluteString, releases)
