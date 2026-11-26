@@ -308,6 +308,7 @@ extension PanelBehaviorTests {
         _ = NSApplication.shared
         let defaults = try XCTUnwrap(isolatedDefaults())
         let settings = SettingsStore(defaults: defaults)
+        settings.languageDetectionMode = .system
         settings.serviceInstances = [ServiceInstance(provider: .google)]
         return TranslationModel(credentials: PanelTestCredentials(), settings: settings)
     }

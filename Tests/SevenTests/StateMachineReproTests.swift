@@ -89,6 +89,8 @@ final class StateMachineReproTests: XCTestCase {
         logger: DiagnosticLogging = NoopDiagnosticLogger()
     ) throws -> TranslationModel {
         let settings = SettingsStore(defaults: ReproDefaults())
+        settings.languageDetectionMode = .system
+        settings.speechEngine = .system
         let model = TranslationModel(
             service: service, credentials: ReproCredentials(), settings: settings, logger: logger,
             history: history, speech: SpeechController(settings: settings, systemVoiceLanguages: { ["zh-CN"] }),

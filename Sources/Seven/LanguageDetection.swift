@@ -5,6 +5,7 @@ import Foundation
 /// 系统识别不支持斯瓦希里语、菲律宾语等，会把它们误判为印尼语，联网识别可以纠正。
 enum LanguageDetectionMode: String, CaseIterable, Identifiable, Sendable {
     case system
+    case youdao
     case baidu
     case google
 
@@ -15,6 +16,7 @@ enum LanguageDetectionMode: String, CaseIterable, Identifiable, Sendable {
     var title: String {
         switch self {
         case .system: return L10n.text("onDeviceDetectionOnly")
+        case .youdao: return L10n.text("enhanceWithYoudao")
         case .google: return L10n.text("enhanceWithGoogle")
         case .baidu: return L10n.text("enhanceWithBaidu")
         }
@@ -24,6 +26,7 @@ enum LanguageDetectionMode: String, CaseIterable, Identifiable, Sendable {
     var host: String? {
         switch self {
         case .system: return nil
+        case .youdao: return YoudaoTranslationService.translationEndpoint.host(percentEncoded: false)
         case .google: return GoogleLanguageDetector.endpoint.host(percentEncoded: false)
         case .baidu: return BaiduLanguageDetector.endpoint.host(percentEncoded: false)
         }
@@ -33,6 +36,7 @@ enum LanguageDetectionMode: String, CaseIterable, Identifiable, Sendable {
     var onlineOrder: [LanguageDetectionMode] {
         switch self {
         case .system: return []
+        case .youdao: return [.youdao]
         case .google: return [.google]
         case .baidu: return [.baidu]
         }

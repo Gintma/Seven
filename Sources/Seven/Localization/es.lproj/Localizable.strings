@@ -206,6 +206,7 @@
 "englishChineseDictionary" = "Diccionario inglés-chino";
 "enhanceWithBaidu" = "Mejorar la detección con Baidu";
 "enhanceWithGoogle" = "Mejorar la detección con Google";
+"enhanceWithYoudao" = "Mejorar la detección con Youdao";
 "enterAModelName" = "Introduce un nombre de modelo.";
 "enterAModelSupportedByThisService" = "Introduce un modelo compatible con este servicio.";
 "enterAPIKey" = "Introducir clave de API";
@@ -278,7 +279,7 @@
 "holdToCaptureASquareArea" = "Mantén pulsada la tecla para capturar un área cuadrada";
 "holdToCaptureMultipleWindows" = "Mantén pulsada la tecla para capturar varias ventanas";
 "holding" = "Manteniendo %1$@";
-"ifOnDeviceDetectionIsUncertainSeven" = "Si la detección local es incierta, Seven envía el texto original a Google o Baidu cuando ese servicio está seleccionado.";
+"ifOnDeviceDetectionIsUncertainSeven" = "Si la detección local es incierta, Seven envía hasta 500 caracteres al servicio de detección en línea seleccionado.";
 "ifOnDeviceSpeechIsUnavailableSeven" = "Si la lectura en voz alta local no está disponible, Seven prueba otros servicios en línea.";
 "ifTheSelectedServiceCannotReadThe" = "Si el servicio seleccionado no puede leer el texto, Seven prueba otro disponible. Los servicios en línea reciben el texto que se leerá.";
 "ifTheUserPromptOmitsTextSeven" = "Si la instrucción de usuario no contiene {{text}}, Seven añade el texto original al final.";

@@ -63,7 +63,9 @@ final class ServiceInstanceTests: XCTestCase {
 
     private func store() throws -> (UserDefaults, SettingsStore) {
         let d = try XCTUnwrap(isolatedDefaults(suiteName: "ServiceInstances-" + UUID().uuidString))
-        return (d, SettingsStore(defaults: d))
+        let settings = SettingsStore(defaults: d)
+        settings.languageDetectionMode = .system
+        return (d, settings)
     }
     func testNewServiceDoesNotStorePromptPlaceholders() {
         let service = ServiceInstance(provider: .custom)

@@ -206,6 +206,7 @@
 "englishChineseDictionary" = "簡明英漢詞典";
 "enhanceWithBaidu" = "使用百度最佳化辨識";
 "enhanceWithGoogle" = "使用 Google 最佳化辨識";
+"enhanceWithYoudao" = "使用有道最佳化辨識";
 "enterAModelName" = "請填寫模型名稱。";
 "enterAModelSupportedByThisService" = "輸入目前服務支援的模型名稱。";
 "enterAPIKey" = "輸入 API Key";
@@ -278,7 +279,7 @@
 "holdToCaptureASquareArea" = "按住以擷取正方形區域";
 "holdToCaptureMultipleWindows" = "按住以擷取多個視窗";
 "holding" = "已按住 %1$@";
-"ifOnDeviceDetectionIsUncertainSeven" = "本機辨識不確定時，若選擇了 Google 或百度，Seven 會將原文傳送給該服務以辨識語言。";
+"ifOnDeviceDetectionIsUncertainSeven" = "本機辨識不確定時，Seven 會將最多 500 個字元傳送給所選的線上辨識服務。";
 "ifOnDeviceSpeechIsUnavailableSeven" = "本機無法朗讀時，將網路連線使用其他朗讀服務";
 "ifTheSelectedServiceCannotReadThe" = "所選服務無法朗讀時，會嘗試其他可用的朗讀服務。使用線上服務時，朗讀文字會傳送給該服務。";
 "ifTheUserPromptOmitsTextSeven" = "使用者提示詞未包含 {{text}} 時，Seven 會在末尾附上原文。";

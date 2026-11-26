@@ -2,6 +2,20 @@ import XCTest
 @testable import Seven
 
 final class LanguageDetectionLiveTests: XCTestCase {
+    func testLiveYoudaoDetectsSourceFromTranslationResponse() async throws {
+        guard ProcessInfo.processInfo.environment["SEVEN_LIVE_TRANSLATION_TESTS"] == "1" else {
+            throw XCTSkip("Set SEVEN_LIVE_TRANSLATION_TESTS=1 to run online service checks.")
+        }
+        let detector = YoudaoTranslationService()
+        for (sample, expected) in [
+            ("Bonjour, comment allez-vous aujourd’hui ?", "fr"),
+            ("這是一個繁體中文的測試句子。", "zh-Hant")
+        ] {
+            let result = try await detector.detect(sample)
+            XCTAssertEqual(result, expected)
+        }
+    }
+
     /// 用 Google 把同一句英文译成目录中的每种语言，再分别交给 Google、百度识别，核对代码对照表。
     func testLiveLanguageDetectionCoversCatalog() async throws {
         guard ProcessInfo.processInfo.environment["SEVEN_LIVE_TRANSLATION_TESTS"] == "1" else {
@@ -81,6 +95,14 @@ private final class UnusedTranslation: TranslationServing {
 }
 
 final class LanguageDetectionPolicyTests: XCTestCase {
+    func testUnsetLanguageDetectionDefaultsToYoudaoAndSavedLocalModeWins() throws {
+        let defaults = try XCTUnwrap(isolatedDefaults())
+        let settings = SettingsStore(defaults: defaults)
+        XCTAssertEqual(settings.languageDetectionMode.rawValue, "youdao")
+        settings.languageDetectionMode = .system
+        XCTAssertEqual(SettingsStore(defaults: defaults).languageDetectionMode, .system)
+    }
+
     func testTrustedLocalResultsSkipOnlineCheck() {
         for local in ["en", "zh-Hans", "zh-Hant", "ja", "ko"] {
             XCTAssertFalse(LanguageDetectionPolicy.needsOnlineCheck(local: .init(code: local, evidence: .confident), primary: "zh-Hans", secondary: "en"), local)
@@ -93,11 +115,23 @@ final class LanguageDetectionPolicyTests: XCTestCase {
         XCTAssertEqual(LanguageDetectionMode.system.onlineOrder, [])
         XCTAssertEqual(LanguageDetectionMode.google.onlineOrder, [.google])
         XCTAssertEqual(LanguageDetectionMode.baidu.onlineOrder, [.baidu])
+        XCTAssertEqual(LanguageDetectionMode.youdao.onlineOrder, [.youdao])
         XCTAssertEqual(LanguageDetectionMode(rawValue: "system"), .system)
         XCTAssertEqual(LanguageDetectionMode(rawValue: "google"), .google)
         XCTAssertEqual(LanguageDetectionMode(rawValue: "baidu"), .baidu)
         XCTAssertFalse(LanguageDetectionPolicy.needsOnlineCheck(local: .init(code: "fr", evidence: .confident), primary: "fr", secondary: "de"))
         XCTAssertFalse(LanguageDetectionPolicy.needsOnlineCheck(local: .init(code: "de", evidence: .confident), primary: "fr", secondary: "de"))
+    }
+
+    func testYoudaoSourceParsesTranslationPairAndIgnoresUnknownLanguage() throws {
+        func parse(_ payload: String) throws -> String? {
+            try YoudaoTranslationService.parseDetectedSource(Data(payload.utf8))
+        }
+        XCTAssertEqual(try parse(#"{"code":0,"type":"fr2zh-CHS"}"#), "fr")
+        XCTAssertEqual(try parse(#"{"code":0,"type":"zh-CHT2zh-CHS"}"#), "zh-Hant")
+        XCTAssertNil(try parse(#"{"code":0,"type":"xx2zh-CHS"}"#))
+        XCTAssertNil(try parse(#"{"code":0}"#))
+        XCTAssertThrowsError(try parse(#"{"code":40,"type":"en2zh-CHS"}"#))
     }
 
     func testGoogleCodesMapToCatalog() throws {
@@ -144,13 +178,14 @@ final class LanguageDetectionModelTests: XCTestCase {
         mode: LanguageDetectionMode,
         google: MockDetector,
         baidu: MockDetector,
-        youdao: CountingOnline = CountingOnline()
+        youdao: CountingOnline = CountingOnline(),
+        youdaoDetector: MockDetector = MockDetector(.success("es"))
     ) -> TranslationModel {
         defaults.set(mode.rawValue, forKey: LanguageDetectionMode.storageKey)
         return TranslationModel(
             service: UnusedTranslation(), dictionaryService: EmptyDictionary(), youdaoService: youdao,
             credentials: NoCredentialStore(), settings: SettingsStore(defaults: defaults),
-            languageDetectors: [.google: google, .baidu: baidu],
+            languageDetectors: [.google: google, .baidu: baidu, .youdao: youdaoDetector],
             languageDetectionDelay: .milliseconds(30)
         )
     }
@@ -294,7 +329,7 @@ final class LanguageDetectionModelTests: XCTestCase {
 
     func testDetectionModeSelectionPersistsImmediately() {
         let model = makeModel(mode: .system, google: MockDetector(.success("es")), baidu: MockDetector(.success("es")))
-        for mode in [LanguageDetectionMode.baidu, .google, .system] {
+        for mode in [LanguageDetectionMode.baidu, .google, .youdao, .system] {
             model.languageDetectionMode = mode
             XCTAssertEqual(SettingsStore(defaults: defaults).languageDetectionMode, mode)
             XCTAssertEqual(defaults.string(forKey: "languageDetection.v1"), mode.rawValue)
@@ -307,13 +342,16 @@ final class LanguageDetectionModelTests: XCTestCase {
         XCTAssertTrue(LanguageDetectionPolicy.needsOnlineCheck(local: LanguageCatalog.localDetection(for: text), primary: "zh-Hans", secondary: "en"))
         for mode in LanguageDetectionMode.allCases {
             let google = MockDetector(.success("es")), baidu = MockDetector(.success("es"))
-            let model = makeModel(mode: mode, google: google, baidu: baidu)
+            let youdao = MockDetector(.success("es"))
+            let model = makeModel(mode: mode, google: google, baidu: baidu, youdaoDetector: youdao)
             model.updateInput(text)
             await model.waitForLanguageDetection()
             XCTAssertEqual(model.detectedSource, "es")
             let googleCalls = await google.calls, baiduCalls = await baidu.calls
             XCTAssertEqual(googleCalls, mode == .google ? 1 : 0, mode.rawValue)
             XCTAssertEqual(baiduCalls, mode == .baidu ? 1 : 0, mode.rawValue)
+            let youdaoCalls = await youdao.calls
+            XCTAssertEqual(youdaoCalls, mode == .youdao ? 1 : 0, mode.rawValue)
         }
     }
 

@@ -206,6 +206,7 @@
 "englishChineseDictionary" = "英中辞典";
 "enhanceWithBaidu" = "Baidu で補助";
 "enhanceWithGoogle" = "Google で補助";
+"enhanceWithYoudao" = "Youdao で補助";
 "enterAModelName" = "モデル名を入力してください。";
 "enterAModelSupportedByThisService" = "このサービスで利用できるモデルを入力してください。";
 "enterAPIKey" = "API キーを入力";
@@ -278,7 +279,7 @@
 "holdToCaptureASquareArea" = "押しながら正方形で撮影";
 "holdToCaptureMultipleWindows" = "押しながら複数のウィンドウを撮影";
 "holding" = "%1$@ を押しています";
-"ifOnDeviceDetectionIsUncertainSeven" = "本体で言語を判定できない場合、選択した Google または Baidu に Seven が原文を送信します。";
+"ifOnDeviceDetectionIsUncertainSeven" = "本体での言語判定が不確かな場合、Seven は選択したオンライン判定サービスに原文を最大 500 文字送信します。";
 "ifOnDeviceSpeechIsUnavailableSeven" = "本体で読み上げられない場合、Seven は別のオンラインサービスを試します。";
 "ifTheSelectedServiceCannotReadThe" = "選んだサービスで読み上げられない場合、Seven は別の利用可能なサービスを試します。オンラインサービスには読み上げるテキストが送信されます。";
 "ifTheUserPromptOmitsTextSeven" = "ユーザープロンプトに {{text}} がない場合、Seven が原文を末尾に追加します。";
