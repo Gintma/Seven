@@ -6,6 +6,8 @@
 "about.developmentUpdatesUnavailable" = "開發版本不支援自動更新或手動檢查。";
 "about.updatesUnconfigured" = "此版本尚未設定更新來源。";
 "about.installUpdate" = "安裝更新";
+"about.likeSeven" = "喜歡 Seven？";
+"about.starOnGitHub" = "去 GitHub 點個 Star";
 "about.updateButton" = "更新按鈕";
 "about.whatsNew" = "更新內容";
 "aboutSeven" = "關於 Seven";
