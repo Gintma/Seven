@@ -489,7 +489,7 @@
 "service.prompt.example" = "幫我潤飾這段話，讓表達更自然。";
 "service.prompt.help" = "直接寫下你想讓 AI 做什麼，Seven 會自動附上原文。";
 "service.prompt.insertableVariables" = "可插入的變數";
-"service.prompt.originalTextReplacement" = "傳送時替換成翻譯視窗裡的原文";
+"service.prompt.originalText" = "原文內容";
 "service.prompt.required" = "自訂模式需要填寫提示詞。";
 "service.prompt.title" = "提示詞";
 "service.reasoningUnsupported" = "服務不支援目前思考設定，請改為模型預設。";

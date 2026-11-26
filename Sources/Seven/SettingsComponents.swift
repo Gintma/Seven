@@ -913,7 +913,7 @@ struct SettingsPromptVariables: View {
     private var variables: [(String, String)] { [
         ("{{target}}", L10n.text("targetLanguageSelectedInTheWindow")),
         ("{{firstLanguage}}", L10n.text("firstLanguageInSettings")),
-        ("{{text}}", L10n.text("service.prompt.originalTextReplacement"))
+        ("{{text}}", L10n.text("service.prompt.originalText"))
     ] }
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Space.s) {

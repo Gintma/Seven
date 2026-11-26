@@ -489,7 +489,7 @@
 "service.prompt.example" = "Revisa este texto para que suene más natural.";
 "service.prompt.help" = "Dile a la IA qué quieres que haga. Seven incluye el texto original automáticamente.";
 "service.prompt.insertableVariables" = "Variables que puedes insertar";
-"service.prompt.originalTextReplacement" = "Se sustituye por el texto original de la ventana de traducción";
+"service.prompt.originalText" = "Texto original";
 "service.prompt.required" = "Introduce una instrucción para el modo Personalizado.";
 "service.prompt.title" = "Instrucción";
 "service.reasoningUnsupported" = "El servicio no admite el ajuste de razonamiento seleccionado. Usa el valor predeterminado del modelo.";

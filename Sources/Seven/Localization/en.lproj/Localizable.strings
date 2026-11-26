@@ -489,7 +489,7 @@
 "service.prompt.example" = "Polish this text so it sounds more natural.";
 "service.prompt.help" = "Tell the AI what to do. Seven includes the original text automatically.";
 "service.prompt.insertableVariables" = "Variables you can insert";
-"service.prompt.originalTextReplacement" = "Replaced with the original text from the translation window";
+"service.prompt.originalText" = "Original text";
 "service.prompt.required" = "Enter a prompt for Custom mode.";
 "service.prompt.title" = "Prompt";
 "service.reasoningUnsupported" = "This service does not support the selected reasoning setting. Use the model default.";
