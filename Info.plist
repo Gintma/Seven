@@ -24,7 +24,7 @@
     <key>CFBundleVersion</key><string>71</string>
     <key>SUFeedURL</key><string>https://raw.githubusercontent.com/Gintma/Seven/main/appcast.xml</string>
     <!-- Replace with the public key printed by Sparkle's generate_keys before publishing. -->
-    <key>SUPublicEDKey</key><string>REPLACE_WITH_SPARKLE_ED25519_PUBLIC_KEY</string>
+    <key>SUPublicEDKey</key><string>ml/8QUAGsrwBHSbal4SqbCcO0YV5rqCBoQz5UYhqdnc=</string>
     <key>SUEnableAutomaticChecks</key><false/>
     <key>SUAutomaticallyUpdate</key><false/>
     <key>SUAllowsAutomaticUpdates</key><true/>
