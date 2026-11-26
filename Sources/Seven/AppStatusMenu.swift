@@ -20,7 +20,7 @@ import AppKit
     }
     static func build(translation: [NSMenuItem], screenshots: [NSMenuItem], ocr: [NSMenuItem], settings: NSMenuItem, updater: AppUpdater, target: NSObject?) -> NSMenu {
         let menu = NSMenu()
-        let update = NSMenuItem(title: L10n.text("about.installUpdate"), action: nil, keyEquivalent: "")
+        let update = NSMenuItem(title: L10n.text("about.updateAvailable"), action: nil, keyEquivalent: "")
         update.target = target
         update.tag = updateTag
         menu.addItem(update)

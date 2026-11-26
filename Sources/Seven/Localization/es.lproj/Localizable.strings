@@ -5,7 +5,7 @@
 "about.checkingForUpdates" = "Buscando actualizaciones…";
 "about.developmentUpdatesUnavailable" = "Las compilaciones de desarrollo no permiten buscar actualizaciones ni actualizarse automáticamente.";
 "about.updatesUnconfigured" = "Esta compilación no tiene configurada una fuente de actualizaciones.";
-"about.installUpdate" = "Instalar actualización";
+"about.updateAvailable" = "Nueva versión";
 "about.openGitHub" = "Abrir";
 "about.updateButton" = "Botón de actualización";
 "about.whatsNew" = "Novedades";

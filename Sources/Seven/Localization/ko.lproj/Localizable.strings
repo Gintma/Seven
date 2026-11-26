@@ -5,7 +5,7 @@
 "about.checkingForUpdates" = "업데이트 확인 중…";
 "about.developmentUpdatesUnavailable" = "개발 빌드에서는 업데이트 확인과 자동 업데이트를 사용할 수 없습니다.";
 "about.updatesUnconfigured" = "이 빌드에는 업데이트 소스가 설정되어 있지 않습니다.";
-"about.installUpdate" = "업데이트 설치";
+"about.updateAvailable" = "새 버전 발견";
 "about.openGitHub" = "열기";
 "about.updateButton" = "업데이트 버튼";
 "about.whatsNew" = "새로운 소식";

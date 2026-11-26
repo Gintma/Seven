@@ -391,7 +391,7 @@ private struct SettingsUpdateShortcut: View {
 
     var body: some View {
         Button(action: updater.installAvailableUpdate) {
-            Label(L10n.text("about.installUpdate"), systemImage: "arrow.down.circle")
+            Label(L10n.text("about.updateAvailable"), systemImage: "arrow.down.circle")
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)

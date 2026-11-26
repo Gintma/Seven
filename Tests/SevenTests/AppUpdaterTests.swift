@@ -131,7 +131,7 @@ final class AppUpdaterTests: XCTestCase {
             try L10n.$languageOverride.withValue(.english) {
                 let menu = AppStatusMenu.build(translation: [], screenshots: [], ocr: [], settings: NSMenuItem(),
                                                updater: updater, target: target)
-                let item = try XCTUnwrap(menu.items.first { $0.title == L10n.text("about.installUpdate") })
+                let item = try XCTUnwrap(menu.items.first { $0.title == L10n.text("about.updateAvailable") })
                 XCTAssertTrue(item.isHidden)
 
                 backend.onChange?(.updateAvailable(true))
