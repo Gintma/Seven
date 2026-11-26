@@ -35,9 +35,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             )
             window.title = L10n.text("sevenSettings")
             window.titleVisibility = .hidden
-            if #unavailable(macOS 26) {
-                window.titlebarAppearsTransparent = true
-            }
+            window.titlebarAppearsTransparent = true
             window.toolbarStyle = .unified
             window.isReleasedWhenClosed = false
             window.contentMinSize = NSSize(width: Design.Settings.windowWidth, height: Design.Settings.minimumHeight)
@@ -63,13 +61,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 dictionaryManager: dictionaryManager,
                 diagnostics: diagnostics,
                 updater: updater,
-                sectionRequests: sectionRequests,
-                didSelectSection: { [weak window] section in
-                    if #available(macOS 26, *) {
-                        // 关于页的摘要固定在滚动表单上方，其他页面使用原生标题栏遮挡滚动内容。
-                        window?.titlebarAppearsTransparent = section == .about
-                    }
-                }
+                sectionRequests: sectionRequests
             ))
             window.center()
             return window

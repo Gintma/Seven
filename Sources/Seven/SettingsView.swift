@@ -145,7 +145,6 @@ struct SettingsView: View {
     let diagnostics: DiagnosticLogging
     @ObservedObject var updater: AppUpdater
     let sectionRequests: CurrentValueSubject<SettingsSection?, Never>
-    let didSelectSection: (SettingsSection) -> Void
 
     @ObservedObject var interfaceLanguage = InterfaceLanguageState.shared
     @State private var selection: SettingsSection = .translation
@@ -226,7 +225,6 @@ struct SettingsView: View {
                 sectionRequests.send(nil)
                 sidebarSelection.wrappedValue = section
             }
-            .onChange(of: selection, initial: true) { didSelectSection(selection) }
             .alert(L10n.text("saveChangesToThisService"), isPresented: $serviceEditor.confirmsDeparture) {
                 Button(L10n.text("save")) { saveServiceAndDepart() }
                 Button(L10n.text("donTSave"), role: .destructive) { serviceEditor.discardAndDepart() }
@@ -338,7 +336,8 @@ struct SettingsView: View {
 
     private var detailContent: some View {
         let title = selection.title
-        return detail.themeDetailSurface().navigationTitle(title)
+        // 透明标题栏不遮挡滚动内容，详情区在自身边界内裁切。
+        return detail.clipped().themeDetailSurface().navigationTitle(title)
             .settingsOverlayScrollbars()
             .toolbar {
                 if #available(macOS 26, *) {
