@@ -126,7 +126,7 @@ extension AppDelegate {
             case .success(let image):
                 screenshotTask = Task {
                     do {
-                        guard let cg = ScreenshotSaving.bitmap(image)?.cgImage else { throw ScreenshotTranslationError.captureFailed }
+                        guard let cg = ScreenshotSaving.cgImage(image) else { throw ScreenshotTranslationError.captureFailed }
                         let result = try await self.textRecognizer.recognizeText(in: cg)
                         guard self.screenshotGate.accepts(generation), !Task.isCancelled else { return }
                         await self.logger.record(.info, "screenshot_ocr_succeeded", metadata: [

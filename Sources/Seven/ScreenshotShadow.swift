@@ -54,7 +54,7 @@ final class ScreenshotShadowPreferences {
     }
     /// 导出只添加外围留白，原图像素保持不变；不用于钉图悬浮显示的复制/保存。
     static func image(_ source:NSImage,style:ScreenshotShadowStyle)->NSImage {
-        guard style.effective,let bitmap=ScreenshotSaving.bitmap(source),let original=bitmap.cgImage,source.size.width>0,source.size.height>0 else{return source}
+        guard style.effective,let original=ScreenshotSaving.cgImage(source),source.size.width>0,source.size.height>0 else{return source}
         let sx=CGFloat(original.width)/source.size.width,sy=CGFloat(original.height)/source.size.height
         let px=Int(ceil(style.inset*sx)),py=Int(ceil(style.inset*sy)),width=original.width+px*2,height=original.height+py*2
         guard let context=CGContext(data:nil,width:width,height:height,bitsPerComponent:8,bytesPerRow:width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo: .init(alpha: .premultipliedLast)) else{return source}

@@ -29,9 +29,34 @@ final class ScreenshotSavePreferences {
         formatter.timeZone=timeZone;formatter.dateFormat="yyyy-MM-dd_HH-mm-ss"
         return "Seven_\(formatter.string(from:date)).\(format.fileExtension)"
     }
-    static func bitmap(_ image:NSImage)->NSBitmapImageRep? {
-        return image.representations.compactMap {$0 as? NSBitmapImageRep}.max {$0.pixelsWide*$0.pixelsHigh < $1.pixelsWide*$1.pixelsHigh}
-            ?? image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:))
+    static func cgImage(_ image: NSImage) -> CGImage? {
+        cgImage(image, from: largestPixelRepresentation(of: image))
+    }
+
+    static func bitmap(_ image: NSImage) -> NSBitmapImageRep? {
+        let representation = largestPixelRepresentation(of: image)
+        if let bitmap = representation as? NSBitmapImageRep { return bitmap }
+        guard let raster = cgImage(image, from: representation) else { return nil }
+        let bitmap = NSBitmapImageRep(cgImage: raster)
+        let size = image.size
+        if size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 {
+            bitmap.size = size
+        }
+        return bitmap
+    }
+
+    private static func largestPixelRepresentation(of image: NSImage) -> NSImageRep? {
+        image.representations.filter { $0.pixelsWide > 0 && $0.pixelsHigh > 0 }.max {
+            Double($0.pixelsWide) * Double($0.pixelsHigh) < Double($1.pixelsWide) * Double($1.pixelsHigh)
+        }
+    }
+
+    private static func cgImage(_ image: NSImage, from representation: NSImageRep?) -> CGImage? {
+        guard let representation else {
+            return image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+        }
+        if let bitmap = representation as? NSBitmapImageRep { return bitmap.cgImage }
+        return representation.cgImage(forProposedRect: nil, context: nil, hints: nil)
     }
     static func data(_ image:NSImage,format:ScreenshotSaveFormat)->Data? {
         let bitmap=bitmap(image)

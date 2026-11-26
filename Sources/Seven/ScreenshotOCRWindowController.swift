@@ -321,7 +321,7 @@ import UniformTypeIdentifiers
         cancelImageCompression()
         restoreOriginalIfNeeded()
         task?.cancel(); generation = UUID()
-        guard let image, let cg = ScreenshotSaving.bitmap(image)?.cgImage else { return }
+        guard let image, let cg = ScreenshotSaving.cgImage(image) else { return }
         let token = generation, worker = recognizer(language)
         isRecognizing = true; progress.isHidden = false; progress.startAnimation(nil)
         progressKey = "recognizingText"; updateActions()

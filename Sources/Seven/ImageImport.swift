@@ -45,9 +45,8 @@ enum ImageImportError: LocalizedError {
             return try file(url)
         }
         guard let image = pasteboard.readObjects(forClasses: [NSImage.self])?.first as? NSImage,
-              let bitmap = ScreenshotSaving.bitmap(image) else { throw ImageImportError.noImage }
-        guard Double(bitmap.pixelsWide) * Double(bitmap.pixelsHigh) <= Double(ScreenshotScrollPolicy.maximumPixels) else { throw ImageImportError.tooLarge }
-        guard let cg = bitmap.cgImage else { throw ImageImportError.noImage }
+              let cg = ScreenshotSaving.cgImage(image) else { throw ImageImportError.noImage }
+        guard Double(cg.width) * Double(cg.height) <= Double(ScreenshotScrollPolicy.maximumPixels) else { throw ImageImportError.tooLarge }
         return preservingLogicalSize ? image : NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
     }
 }
