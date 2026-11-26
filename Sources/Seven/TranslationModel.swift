@@ -46,6 +46,9 @@ final class TranslationModel: ObservableObject {
     @Published var status = "准备好，开始一段翻译。"
     @Published var issue: LocalizedMessage?
     var errorMessage: String? { issue?.text }
+    @Published var rendersCustomResultsAsMarkdown: Bool {
+        didSet { settings.rendersCustomResultsAsMarkdown = rendersCustomResultsAsMarkdown }
+    }
     @Published var clearTranslationOnDismiss: Bool {
         didSet { settings.clearTranslationOnDismiss = clearTranslationOnDismiss }
     }
@@ -137,6 +140,7 @@ final class TranslationModel: ObservableObject {
         self.logger = logger
         self.history = history
         self.serviceInstances = settings.migrateServiceInstances()
+        self.rendersCustomResultsAsMarkdown = settings.rendersCustomResultsAsMarkdown
         self.clearTranslationOnDismiss = settings.clearTranslationOnDismiss
         self.pinned = settings.pinned
         self.source = settings.sourceLanguage

@@ -24,6 +24,8 @@ private final class StreamFixtureProtocol: URLProtocol {
             text = "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"你好\"}]},\"finishReason\":\"STOP\"}]}\n\n"
         case "multiline":
             text = "data: {\"choices\":\ndata: [{\"delta\":{\"content\":\"你好\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]"
+        case "markdown-whitespace":
+            text = #"data: {"choices":[{"delta":{"content":"    example\n\n"},"finish_reason":"stop"}]}"# + "\n\ndata: [DONE]\n\n"
         case "invalid": text = "data: PRIVATE-NOT-JSON\n\n"
         default:
             text = "\u{FEFF}: keepalive\n\ndata: {\"choices\":[{\"delta\":{\"content\":\"你\"},\"finish_reason\":null}]}\n\ndata: {\"choices\":[{\"delta\":{\"content\":\"好\"},\"finish_reason\":null}]}\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"
@@ -51,6 +53,21 @@ final class ServiceStreamTransportTests: XCTestCase {
         configuration.protocolClasses = [StreamFixtureProtocol.self]
         let session = URLSession(configuration: configuration)
         return (CompatibleTranslationService(session: session), session)
+    }
+
+    func testCustomStreamingKeepsFinalCodeIndentAndLineBreaks() async throws {
+        let (service, session) = service()
+        defer { session.invalidateAndCancel() }
+        let base = input(.openAICompatible, fixture: "markdown-whitespace")
+        var configuration = base.configuration
+        configuration.mode = .custom
+        configuration.prompt = "Explain"
+        let request = TranslationRequest(text: base.text, source: base.source, target: base.target,
+                                         configuration: configuration, apiKey: base.apiKey)
+        let custom = try await service.translateStream(request) { _ in }
+        let normal = try await service.translateStream(base) { _ in }
+        XCTAssertEqual(custom, "    example\n\n")
+        XCTAssertEqual(normal, "example")
     }
 
     private func input(_ style: ServiceAPIStyle, fixture: String) -> TranslationRequest {

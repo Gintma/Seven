@@ -184,6 +184,12 @@ for localization in "$project_dir/Sources/Seven/Localization/"*.lproj; do
 done
 cp "$compiled_assets/Assets.car" "$compiled_assets/AppIcon.icns" "$app/Contents/Resources/"
 cp "$project_dir/Sources/Seven/Art/Shiba.usdz" "$app/Contents/Resources/"
+# 静态链接的 Markdown 解析器随应用分发其许可证与版权声明。
+licenses="$app/Contents/Resources/Licenses"
+mkdir -p "$licenses"
+cp "$project_dir/.build/checkouts/swift-markdown/LICENSE.txt" "$licenses/swift-markdown-LICENSE.txt"
+cp "$project_dir/.build/checkouts/swift-markdown/NOTICE.txt" "$licenses/swift-markdown-NOTICE.txt"
+cp "$project_dir/.build/checkouts/swift-cmark/COPYING" "$licenses/swift-cmark-COPYING.txt"
 # (N) 允许某类文件为空，避免 zsh 报 no matches found；总数为 0 时才视为错误。
 brand_icons=("$project_dir/Resources/BrandIcons/"*.(png|svg)(N))
 if (( ${#brand_icons} == 0 )); then

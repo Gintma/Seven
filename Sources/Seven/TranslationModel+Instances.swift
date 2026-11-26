@@ -37,6 +37,7 @@ extension TranslationModel {
         if let index = resultIndex(item.id) {
             serviceResults[index].phase = .idle; serviceResults[index].text = ""; serviceResults[index].dictionaryEntry = nil
             serviceResults[index].issue = nil
+            serviceResults[index].markdownOutput = nil
         }
         clearConfigurationTestResult()
         persistInstances()

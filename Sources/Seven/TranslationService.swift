@@ -319,7 +319,7 @@ final class CompatibleTranslationService: TranslationServing {
             guard decoder.completed else { throw TranslationError.incomplete }
             let trimmed = accumulated.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { throw TranslationError.empty }
-            return trimmed
+            return input.configuration.mode == .custom ? accumulated : trimmed
         } catch let error as URLError {
             if error.code == .cancelled { throw CancellationError() }
             if error.code == .timedOut { throw TranslationError.transport(.key("theRequestTimedOutCheckYourConnection")) }

@@ -646,6 +646,120 @@ extension PanelBehaviorTests {
         XCTAssertEqual(scroll.contentView.bounds.minY, 20, accuracy: 1)
     }
 
+    func testMarkdownBodyPausesWhenFoldedAndReopensWithTheLatestSnapshot() async throws {
+        let model = try panelModel()
+        let body = AppKitServiceBodyView(model: model)
+        let view = try XCTUnwrap(body.subviews.compactMap { $0 as? StreamingResultTextView }.first)
+        var result = markdownPanelResult(id: model.addService(.custom), text: "**Initial**", phase: .streaming)
+        func publish(_ result: TranslationServiceResult) {
+            model.serviceResults = [result]
+            body.apply(result)
+        }
+        publish(result)
+        try await waitForMarkdownBody { view.string == "Initial\n" }
+        result.text = "**Intermediate**"
+        publish(result)
+        body.renderingSuspended = true
+        result.text = "**Latest** [Label](https://example.com)"
+        result.markdownOutput?.status = .completed
+        result.phase = .success
+        publish(result)
+        try await Task.sleep(for: .milliseconds(320))
+        XCTAssertEqual(view.string, "Initial\n")
+
+        body.renderingSuspended = false
+        publish(result)
+        try await waitForMarkdownBody { view.string == "Latest Label\n" }
+        XCTAssertEqual(body.speechText(for: result), "Latest Label")
+        XCTAssertTrue(view.copiesSelectionAsPlainText)
+        model.rendersCustomResultsAsMarkdown = false
+        publish(result)
+        XCTAssertEqual(view.string, result.text)
+        XCTAssertEqual(body.speechText(for: result), "Latest Label")
+        XCTAssertFalse(view.copiesSelectionAsPlainText)
+    }
+
+    func testOversizeMarkdownResultShowsFullLiteralSourceIncrementally() async throws {
+        let model = try panelModel()
+        let body = AppKitServiceBodyView(model: model)
+        let view = try XCTUnwrap(body.subviews.compactMap { $0 as? StreamingResultTextView }.first)
+        let raw = "**Header**\n" + String(repeating: "👩‍💻 e\u{301}\n", count: 4600) + "Tail"
+        let result = markdownPanelResult(id: model.addService(.custom), text: raw, phase: .success)
+        model.serviceResults = [result]
+        var intermediate = false
+        body.onVisibleTextChange = { [weak view] in
+            guard let view, !view.string.isEmpty, view.string != raw else { return }
+            intermediate = true
+            XCTAssertTrue(raw.hasPrefix(view.string))
+        }
+        body.apply(result)
+        try await waitForMarkdownBody { view.string == raw }
+        XCTAssertTrue(intermediate)
+        XCTAssertEqual(view.string, raw)
+        XCTAssertFalse(view.isRevealing)
+        XCTAssertEqual(body.speechText(for: result), "")
+    }
+
+    func testMarkdownRestyleKeepsReadingLineAtViewportEdge() async throws {
+        let model = try panelModel()
+        model.input = "Source"
+        model.rendersCustomResultsAsMarkdown = false
+        let raw = (0..<60).map { "# Heading number \($0)\n\nBody number \($0)\n\n" }.joined()
+        let result = markdownPanelResult(id: model.addService(.custom), text: raw, phase: .success)
+        model.serviceResults = [result]
+        let controller = AppKitTranslationViewController(model: model)
+        controller.view.frame = CGRect(x: 0, y: 0, width: 570, height: 400)
+        controller.view.layoutSubtreeIfNeeded()
+        controller.refreshWindowLayout(animated: false)
+        let scroll = try XCTUnwrap(controller.view.subviews.compactMap { $0 as? UserActivityScrollView }.first)
+        let document = try XCTUnwrap(scroll.documentView)
+        func resultTextView(in view: NSView) -> StreamingResultTextView? {
+            if let textView = view as? StreamingResultTextView { return textView }
+            return view.subviews.lazy.compactMap { resultTextView(in: $0) }.first
+        }
+        let view = try XCTUnwrap(resultTextView(in: document))
+        func topOfLine(_ title: String) -> CGFloat? {
+            let range = (view.string as NSString).range(of: title)
+            guard range.location != NSNotFound,
+                  let manager = view.layoutManager, let container = view.textContainer else { return nil }
+            manager.ensureLayout(for: container)
+            let glyph = manager.glyphIndexForCharacter(at: range.location)
+            let bounds = manager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+            return document.convert(NSPoint(x: 0, y: view.textContainerOrigin.y + bounds.minY), from: view).y
+        }
+        let line = "Heading number 21"
+        let initial = try XCTUnwrap(topOfLine(line))
+        scroll.beginUserIndicatorActivity()
+        scroll.contentView.scroll(to: NSPoint(x: 0, y: initial + 2))
+        scroll.reflectScrolledClipView(scroll.contentView)
+        scroll.endUserIndicatorActivity()
+        XCTAssertEqual(scroll.contentView.bounds.minY, initial + 2, accuracy: 1)
+
+        model.rendersCustomResultsAsMarkdown = true
+        try await waitForPanelLayout(controller, "Markdown 保留阅读行") {
+            guard view.string.hasPrefix("Heading number 0"), let updated = topOfLine(line) else { return false }
+            return abs(scroll.contentView.bounds.minY - updated - 2) < 2
+        }
+        let moved = try XCTUnwrap(topOfLine(line))
+        XCTAssertNotEqual(moved, initial)
+        XCTAssertEqual(scroll.contentView.bounds.minY, moved + 2, accuracy: 2)
+    }
+
+    private func markdownPanelResult(id: TranslationProviderID, text: String, phase: TranslationResultPhase) -> TranslationServiceResult {
+        var result = TranslationServiceResult(id: id, title: "Fixture", subtitle: "", isTranslation: true,
+            phase: phase, text: text, dictionaryEntry: nil, errorMessage: nil)
+        var output = MarkdownOutput()
+        if phase == .success { output.status = .completed }
+        result.markdownOutput = output
+        return result
+    }
+
+    private func waitForMarkdownBody(_ condition: () -> Bool) async throws {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while !condition(), ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        XCTAssertTrue(condition(), "Markdown 正文没有完成更新")
+    }
+
     private func waitForPanelLayout(_ controller: NSViewController, _ step: String, until condition: () -> Bool) async throws {
         let deadline = ContinuousClock.now.advanced(by: .seconds(2))
         repeat {

@@ -634,6 +634,8 @@
 "translatingWith" = "Traduciendo con %1$@";
 "translation" = "Traducción";
 "translation.canceled" = "Cancelado";
+"translation.markdown.openLink" = "¿Abrir este enlace en el navegador?";
+"translation.markdown.setting" = "Mostrar los resultados personalizados de IA en Markdown";
 "translation.noServiceResult" = "El servicio no devolvió ningún resultado.";
 "translation.skipped" = "Omitido";
 "translation.unsupportedLanguage" = "%1$@ no admite %2$@";

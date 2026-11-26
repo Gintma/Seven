@@ -26,6 +26,7 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
     private var bodyNeedsLanguageRefresh = false
     private var lastDictionaryPreferences: AppKitServiceBodyView.DictionaryPreferences?
     private var lastShowsBody = false
+    private var lastMarkdownEnabled = false
     private var canToggle = false
     private var progressRunning = false
 
@@ -34,6 +35,7 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
     private static let bodyHorizontalInsets = Design.Space.blockInset * 2
     var isRevealing: Bool { bodyView.isRevealing }
     var onVisibleTextChange: (() -> Void)?
+    var onMarkdownReflow: (() -> Void)?
     var onPreferredHeightChange: ((CGFloat, Bool) -> Void)?
     private(set) var preferredHeight: CGFloat = headerHeight
 
@@ -59,6 +61,8 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
         bodyView.onVisibleTextChange = { [weak self] in
             self?.onVisibleTextChange?()
         }
+        bodyView.onMarkdownReflow = { [weak self] in self?.onMarkdownReflow?() }
+        bodyView.onMarkdownSpeechChange = { [weak self] in self?.updateSpeechButton() }
         configureHeader()
         cardHeightConstraint = heightAnchor.constraint(equalToConstant: Self.headerHeight)
         NSLayoutConstraint.activate([
@@ -122,7 +126,8 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
         bodyView.renderingSuspended = !showsBody
         let dictionaryPreferences = result.id == .youdao && result.dictionaryEntry != nil
             ? AppKitServiceBodyView.DictionaryPreferences(model) : nil
-        let bodyChanged = bodyNeedsLanguageRefresh || lastResult != result
+        let markdownEnabled = result.markdownOutput != nil && model.rendersCustomResultsAsMarkdown
+        let bodyChanged = lastMarkdownEnabled != markdownEnabled || bodyNeedsLanguageRefresh || lastResult != result
             || showsBody != previousShowsBody || lastDictionaryPreferences != dictionaryPreferences
         if showsBody && bodyChanged {
             bodyNeedsLanguageRefresh = false
@@ -131,6 +136,7 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
         lastDictionaryPreferences = dictionaryPreferences
         lastResult = result
         lastShowsBody = showsBody
+        lastMarkdownEnabled = markdownEnabled
         bodyView.setAccessibilityHidden(!showsBody)
         bodyView.setAccessibilityExposed(showsBody)
         updateSpeechButton()
@@ -154,6 +160,15 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
         super.layout()
         let width = max(0, bodyContainer.bounds.width - Self.bodyHorizontalInsets)
         bodyView.frame = NSRect(x: Design.Space.blockInset, y: 2, width: width, height: bodyContentHeight)
+    }
+
+    func readingAnchor(at y: CGFloat, in document: NSView) -> (() -> CGFloat?) {
+        if lastShowsBody, let anchor = bodyView.readingAnchor(at: y, in: document) { return anchor }
+        let offset = convert(NSPoint(x: 0, y: y), from: document).y
+        return { [weak self, weak document] in
+            guard let self, let document, self.superview != nil else { return nil }
+            return document.convert(NSPoint(x: 0, y: offset), from: self).y
+        }
     }
 
     func updateVisibleBodyHeight() {
@@ -249,7 +264,7 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
         guard let result = lastResult else { return }
         model.speech.toggle(
             content: speechContent,
-            text: result.text,
+            text: bodyView.speechText(for: result),
             declaredLanguage: provider == .ecdict ? nil : (model.resolvedTarget ?? model.target)
         )
         updateSpeechButton()
@@ -268,9 +283,9 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
     }
 
     private func updateSpeechButton() {
-        let text = lastResult?.text ?? ""
+        let text = lastResult.map { bodyView.speechText(for: $0) } ?? ""
         let language = provider == .ecdict ? nil : (model.resolvedTarget ?? model.target)
-        speechButton.isEnabled = speechButton.isEnabled && model.speech.canSpeak(text: text, declaredLanguage: language)
+        speechButton.isEnabled = lastShowsBody && model.speech.canSpeak(text: text, declaredLanguage: language)
         speechButton.apply(
             model.speech.appearance(for: speechContent),
             symbol: model.speech.icon(for: speechContent),

@@ -129,7 +129,7 @@ private final class ImmediateStreamingService: TranslationServing {
 }
 
 private actor GatedStreamingService: TranslationServing {
-    private var continuation: CheckedContinuation<Void, Never>?
+    private var continuations: [CheckedContinuation<Void, Never>] = []
     private var finishRequested = false
 
 
@@ -139,7 +139,7 @@ private actor GatedStreamingService: TranslationServing {
     ) async throws -> String {
         await onUpdate("你好")
         if !finishRequested {
-            await withCheckedContinuation { continuation = $0 }
+            await withCheckedContinuation { continuations.append($0) }
         }
         await onUpdate("你好世界")
         return "你好世界"
@@ -147,8 +147,29 @@ private actor GatedStreamingService: TranslationServing {
 
     func finish() {
         finishRequested = true
-        continuation?.resume()
-        continuation = nil
+        continuations.forEach { $0.resume() }
+        continuations.removeAll()
+    }
+}
+
+private actor DelayedMarkdownService: TranslationServing {
+    private var updates: [@Sendable (String) async -> Void] = []
+    private var pending: [Int: CheckedContinuation<String, Never>] = [:]
+    var count: Int { updates.count }
+
+    func translateStream(_ request: TranslationRequest, onUpdate: @escaping @Sendable (String) async -> Void) async throws -> String {
+        let index = updates.count
+        updates.append(onUpdate)
+        return await withCheckedContinuation { pending[index] = $0 }
+    }
+
+    func emit(_ text: String, for index: Int) async {
+        guard updates.indices.contains(index) else { return }
+        await updates[index](text)
+    }
+
+    func finish(_ text: String, for index: Int) {
+        pending.removeValue(forKey: index)?.resume(returning: text)
     }
 }
 
@@ -741,6 +762,91 @@ final class TranslationModelTests: XCTestCase {
         }
         let count = await service.requests.count
         XCTAssertEqual(count, 4)
+    }
+
+    func testMarkdownMetadataDistinguishesCancelledPartialFromCompletionAndRetry() async throws {
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices())
+        let settings = SettingsStore(defaults: defaults)
+        settings.serviceInstances = []
+        let service = GatedStreamingService()
+        let model = TranslationModel(service: service, credentials: MemoryCredentials(), settings: settings)
+        let provider = try installService(on: model, configuration: .init(mode: .custom, prompt: "Explain"), key: "")
+        model.updateInput("Input sentence")
+        model.translate()
+        for _ in 0..<100 where model.serviceResults.first?.phase != .streaming {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let receiving = try XCTUnwrap(model.serviceResults.first?.markdownOutput)
+        XCTAssertEqual(receiving.status, .receiving)
+
+        model.cancel()
+        XCTAssertEqual(model.serviceResults.first?.phase, .success)
+        XCTAssertEqual(model.serviceResults.first?.markdownOutput?.status, .interrupted)
+        XCTAssertEqual(model.serviceResults.first?.text, "你好")
+        model.retryResult(provider)
+        let retry = try XCTUnwrap(model.serviceResults.first?.markdownOutput)
+        XCTAssertNotEqual(retry.requestID, receiving.requestID)
+        await service.finish()
+        try await waitUntilIdle(model)
+        XCTAssertEqual(model.serviceResults.first?.markdownOutput?.requestID, retry.requestID)
+        XCTAssertEqual(model.serviceResults.first?.markdownOutput?.status, .completed)
+        XCTAssertEqual(model.serviceResults.first?.text, "你好世界")
+    }
+
+    func testLateMarkdownChunksCannotOverwriteRetryInSameGeneration() async throws {
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices())
+        let settings = SettingsStore(defaults: defaults)
+        settings.serviceInstances = []
+        let service = DelayedMarkdownService()
+        let model = TranslationModel(service: service, credentials: MemoryCredentials(), settings: settings)
+        let provider = try installService(on: model, configuration: .init(mode: .custom, prompt: "Explain"), key: "")
+        model.updateInput("Input sentence")
+        model.translate()
+        for _ in 0..<100 where await service.count < 1 { try await Task.sleep(for: .milliseconds(5)) }
+        await service.emit("Old **start**", for: 0)
+        let previous = model.serviceResults.first?.markdownOutput
+        model.retryResult(provider)
+        for _ in 0..<100 where await service.count < 2 { try await Task.sleep(for: .milliseconds(5)) }
+        await service.emit("New **start**", for: 1)
+        await service.emit("Out of order", for: 0)
+        await service.finish("Old end", for: 0)
+        XCTAssertEqual(model.serviceResults.first?.text, "New **start**")
+        XCTAssertNotEqual(model.serviceResults.first?.markdownOutput?.requestID, previous?.requestID)
+        await service.finish("New end", for: 1)
+        try await waitUntilIdle(model)
+        XCTAssertEqual(model.serviceResults.first?.text, "New end")
+        XCTAssertEqual(model.serviceResults.first?.markdownOutput?.status, .completed)
+    }
+
+    func testMarkdownMetadataExcludesNormalServicesAndInputReplacementUsesOriginalTranslation() async throws {
+        let defaults = try XCTUnwrap(modelDefaultsWithoutOnlineServices())
+        let settings = SettingsStore(defaults: defaults)
+        var ai = ServiceInstance(provider: .custom)
+        ai.baseAddress = "https://api.example.com/v1"
+        ai.model = "fixture-model"
+        var custom = ServiceInstance(provider: .custom)
+        custom.baseAddress = ai.baseAddress
+        custom.model = ai.model
+        custom.mode = .custom
+        custom.prompt = "Explain here"
+        let google = ServiceInstance(provider: .google)
+        settings.serviceInstances = [custom, ai, google]
+        let model = TranslationModel(
+            service: ImmediateService(response: "**literal**"), googleService: ImmediateOnlineService(response: "**google**"),
+            credentials: MemoryCredentials(), settings: settings
+        )
+        model.updateInput("Input sentence")
+        model.translate()
+        try await waitUntilIdle(model)
+        let results = Dictionary(uniqueKeysWithValues: model.serviceResults.map { ($0.id, $0) })
+        XCTAssertNil(results[ai.id]?.markdownOutput)
+        XCTAssertNil(results[google.id]?.markdownOutput)
+        XCTAssertEqual(results[custom.id]?.markdownOutput?.status, .completed)
+
+        XCTAssertEqual(try model.beginInputReplacement("Input sentence"), ai.id)
+        try await waitUntilIdle(model)
+        XCTAssertEqual(model.serviceResults.first?.text, "**literal**")
+        XCTAssertNil(model.serviceResults.first?.markdownOutput)
     }
 
     func testStreamingTranslationPublishesAndCompletes() async throws {

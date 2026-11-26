@@ -6,6 +6,8 @@ import QuartzCore
 final class StreamingResultTextView: NSTextView {
     static let themeTokenAttribute = NSAttributedString.Key("SevenThemeToken")
     private var palette = ThemePalette.system
+    var copiesSelectionAsPlainText = false
+    var usesSimpleTextCursor = false
 
     func applyTheme(_ palette: ThemePalette) {
         self.palette = palette
@@ -30,6 +32,7 @@ final class StreamingResultTextView: NSTextView {
 
     private let pending = NSMutableAttributedString()
     private var pendingOffset = 0
+    private var revealsInBatches = false
     private var revealTimer: Timer?
     private var lastTick: CFTimeInterval = 0
     private var credit: Double = 0
@@ -93,6 +96,7 @@ final class StreamingResultTextView: NSTextView {
     }
 
     override func cursorUpdate(with event: NSEvent) {
+        if usesSimpleTextCursor && !renderingSuspended { NSCursor.iBeam.set(); return }
         let point = convert(event.locationInWindow, from: nil)
         guard !renderingSuspended, !arrowCursorRects.contains(where: { $0.contains(point) }),
               let manager = layoutManager, let container = textContainer else { updateHoveredLink(nil); NSCursor.arrow.set(); return }
@@ -115,6 +119,7 @@ final class StreamingResultTextView: NSTextView {
     }
 
     override func resetCursorRects() {
+        if usesSimpleTextCursor { addCursorRect(bounds, cursor: .iBeam); return }
         addCursorRect(bounds, cursor: .arrow)
         guard let manager = layoutManager, let container = textContainer else { return }
         _ = manager.glyphRange(for: container)
@@ -148,8 +153,14 @@ final class StreamingResultTextView: NSTextView {
         }
     }
 
-    func append(_ value: NSAttributedString, progressively: Bool) {
+    func append(_ value: NSAttributedString, progressively: Bool, batches: Bool = false) {
         guard !renderingSuspended, value.length > 0 else { return }
+        if batches || revealsInBatches {
+            revealsInBatches = true
+            pending.append(value)
+            startTimerIfNeeded()
+            return
+        }
         guard progressively, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
             flushPending(notify: false)
             textStorage?.append(value)
@@ -175,14 +186,86 @@ final class StreamingResultTextView: NSTextView {
         RunLoop.main.add(timer, forMode: .common)
     }
 
-    func replace(with value: NSAttributedString) {
+    func replace(with value: NSAttributedString, preservingSelection: Bool = false) {
+        let oldText = string as NSString
+        let anchors = preservingSelection ? selectedRanges.compactMap { item -> ResultTextAnchor? in
+            let range = item.rangeValue
+            guard range.length > 0, NSMaxRange(range) <= oldText.length else { return nil }
+            return ResultTextAnchor(in: oldText, range: range)
+        } : []
         updateHoveredLink(nil)
         stopTimer()
         pending.setAttributedString(NSAttributedString(string: ""))
         pendingOffset = 0
+        revealsInBatches = false
         textStorage?.setAttributedString(value)
+        if !anchors.isEmpty {
+            let updated = value.string as NSString
+            let ranges = anchors.map { $0.range(in: updated) }.sorted { $0.location < $1.location }
+            var disjoint: [NSValue] = []
+            for range in ranges where disjoint.last.map({ NSMaxRange($0.rangeValue) <= range.location }) ?? true {
+                disjoint.append(NSValue(range: range))
+            }
+            setSelectedRanges(disjoint, affinity: selectionAffinity, stillSelecting: false)
+        }
         window?.invalidateCursorRects(for: self)
         onVisibleTextChange?()
+    }
+
+    override func copy(_ sender: Any?) {
+        if copiesSelectionAsPlainText {
+            _ = copyPlainSelection(to: .general)
+        } else {
+            super.copy(sender)
+        }
+    }
+
+    @discardableResult
+    func copyPlainSelection(to pasteboard: NSPasteboard) -> Bool {
+        let source = string as NSString
+        let selections = selectedRanges.compactMap { item -> String? in
+            let range = item.rangeValue
+            guard range.length > 0, NSMaxRange(range) <= source.length else { return nil }
+            return source.substring(with: range).replacingOccurrences(of: "\u{2028}", with: "\n")
+        }
+        guard !selections.isEmpty else { return false }
+        pasteboard.clearContents()
+        return pasteboard.setString(selections.joined(separator: "\n"), forType: .string)
+    }
+
+    /// Keep the text line at the viewport edge when a card is restyled or resized.
+    func readingAnchor(at y: CGFloat, in document: NSView) -> (() -> CGFloat?)? {
+        let point = convert(NSPoint(x: 0, y: y), from: document)
+        guard bounds.minY <= point.y, point.y < bounds.maxY,
+              let manager = layoutManager, let container = textContainer, manager.numberOfGlyphs > 0 else { return nil }
+        let localY = point.y - textContainerOrigin.y
+        let glyph = manager.glyphIndex(for: NSPoint(x: 0, y: localY), in: container)
+        guard glyph < manager.numberOfGlyphs else { return nil }
+        var lineGlyphs = NSRange()
+        let line = manager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: &lineGlyphs)
+        let characters = manager.characterRange(forGlyphRange: lineGlyphs, actualGlyphRange: nil)
+        let source = string as NSString
+        guard characters.length > 0, NSMaxRange(characters) <= source.length else { return nil }
+        let oldLine = source.substring(with: characters)
+        let label = oldLine.trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters).union(.symbols))
+        let needle = String(label.prefix(96))
+        let needleRange = (oldLine as NSString).range(of: needle)
+        let range = needleRange.location == NSNotFound || needle.isEmpty
+            ? source.rangeOfComposedCharacterSequence(at: characters.location)
+            : NSRange(location: characters.location + needleRange.location, length: needleRange.length)
+        let anchor = ResultTextAnchor(in: source, range: range)
+        let inset = localY - line.minY
+        return { [weak self, weak document] in
+            guard let self, let document, let manager = self.layoutManager,
+                  let container = self.textContainer, !self.string.isEmpty else { return nil }
+            manager.ensureLayout(for: container)
+            let text = self.string as NSString
+            let location = min(anchor.range(in: text).location, text.length - 1)
+            let glyph = manager.glyphIndexForCharacter(at: location)
+            guard glyph < manager.numberOfGlyphs else { return nil }
+            let line = manager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+            return document.convert(NSPoint(x: 0, y: self.textContainerOrigin.y + line.minY + inset), from: self).y
+        }
     }
 
     override func scrollRangeToVisible(_ range: NSRange) {}
@@ -190,18 +273,23 @@ final class StreamingResultTextView: NSTextView {
 
     private func revealNextFrame() {
         guard !renderingSuspended, pendingOffset < pending.length else { stopTimer(); return }
-        let now = CACurrentMediaTime()
-        // Stable cadence across chunk boundaries; never dump an entire burst after a stall.
-        credit += min(0.04, now - lastTick) * 90
-        lastTick = now
-        var characters = min(3, Int(credit))
-        guard characters > 0 else { return }
         let start = pendingOffset
-        let string = pending.string as NSString
-        while characters > 0, pendingOffset < pending.length {
-            pendingOffset = NSMaxRange(string.rangeOfComposedCharacterSequence(at: pendingOffset))
-            characters -= 1
-            credit -= 1
+        let string = pending.mutableString
+        if revealsInBatches {
+            let end = min(pending.length, pendingOffset + 8192)
+            pendingOffset = NSMaxRange(string.rangeOfComposedCharacterSequence(at: end - 1))
+        } else {
+            let now = CACurrentMediaTime()
+            // Stable cadence across chunk boundaries; never dump an entire burst after a stall.
+            credit += min(0.04, now - lastTick) * 90
+            lastTick = now
+            var characters = min(3, Int(credit))
+            guard characters > 0 else { return }
+            while characters > 0, pendingOffset < pending.length {
+                pendingOffset = NSMaxRange(string.rangeOfComposedCharacterSequence(at: pendingOffset))
+                characters -= 1
+                credit -= 1
+            }
         }
         textStorage?.append(pending.attributedSubstring(from: NSRange(
             location: start, length: pendingOffset - start
@@ -209,6 +297,7 @@ final class StreamingResultTextView: NSTextView {
         if pendingOffset == pending.length {
             pending.setAttributedString(NSAttributedString(string: ""))
             pendingOffset = 0
+            revealsInBatches = false
             stopTimer()
         }
         onVisibleTextChange?()
@@ -222,6 +311,7 @@ final class StreamingResultTextView: NSTextView {
         }
         pending.setAttributedString(NSAttributedString(string: ""))
         pendingOffset = 0
+        revealsInBatches = false
         stopTimer()
         if notify { onVisibleTextChange?() }
     }

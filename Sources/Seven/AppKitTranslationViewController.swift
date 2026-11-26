@@ -39,6 +39,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
     private var dirtyProviders = Set<TranslationProviderID>()
     private let followButton = SymbolButton(symbol: "arrow.down.to.line", label: L10n.text("followLatestTranslation"))
     private var followsStreamingOutput = false
+    private var markdownReadingAnchor: (() -> CGFloat?)?
     private var previousLoading = false
     private var previousInput = ""
 
@@ -78,6 +79,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         root.addSubview(followButton)
         layoutTransition.onFrame = { [weak self] in self?.commitCurrentLayoutFrame() }
         scrollView.onUserScroll = { [weak self] isAtBottom in
+            self?.markdownReadingAnchor = nil
             self?.followsStreamingOutput = isAtBottom
             self?.updateFollowButton()
         }
@@ -228,6 +230,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         let previousHeights = managedHeightConstraints().map { ($0, $0.constant) }
         if model.input != previousInput || (model.isLoading && !previousLoading) {
             followsStreamingOutput = false
+            markdownReadingAnchor = nil
         }
         previousInput = model.input
         previousLoading = model.isLoading
@@ -241,6 +244,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         if orderChanged {
             currentProviderOrder = order
             serviceStack.removeAllArrangedSubviews()
+            serviceCards = serviceCards.filter { order.contains($0.key) }
             for result in results {
                 let card = card(for: result.id)
                 serviceStack.addArrangedSubview(card)
@@ -302,8 +306,22 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
             self?.componentHeightChanged(animated: animated)
         }
         card.onVisibleTextChange = { [weak self] in self?.renderedContentChanged(provider) }
+        card.onMarkdownReflow = { [weak self] in self?.captureMarkdownReadingAnchor() }
         serviceCards[provider] = card
         return card
+    }
+
+    private func captureMarkdownReadingAnchor() {
+        guard markdownReadingAnchor == nil, !followsStreamingOutput, !isCommittingLayout else { return }
+        let y = scrollView.contentView.bounds.minY
+        for provider in currentProviderOrder {
+            guard let card = serviceCards[provider], card.superview != nil else { continue }
+            let rect = documentView.convert(card.bounds, from: card)
+            if rect.minY <= y, y < rect.maxY {
+                markdownReadingAnchor = card.readingAnchor(at: y, in: documentView)
+                return
+            }
+        }
     }
 
     private func componentHeightChanged(animated: Bool) {
@@ -333,7 +351,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
             self.dirtyProviders.removeAll()
             for provider in dirty { self.serviceCards[provider]?.updateVisibleBodyHeight() }
             self.isApplyingModel = false
-            if previous.contains(where: { abs($0.0.constant - $0.1) > 0.01 }) {
+            if self.markdownReadingAnchor != nil || previous.contains(where: { abs($0.0.constant - $0.1) > 0.01 }) {
                 self.performUnifiedLayout(animated: self.view.window?.isVisible == true,
                                           previousHeights: previous, duration: Design.Motion.follow)
             } else {
@@ -370,7 +388,8 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
             constraint.constant = previous
             return (constraint, target)
         }
-        let seconds = animated && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? duration : 0
+        let seconds = animated && markdownReadingAnchor == nil
+            && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? duration : 0
         layoutTransition.update(changes: changes + targets, duration: seconds) { [weak self] in
             self?.inputView.finishViewportLayout()
             completion?()
@@ -382,6 +401,8 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         isCommittingLayout = true
         defer { isCommittingLayout = false }
         let previousOrigin = scrollView.contentView.bounds.origin
+        let readingAnchor = markdownReadingAnchor
+        markdownReadingAnchor = nil
         let cards = currentProviderOrder.compactMap { serviceCards[$0] }
         serviceContainerHeightConstraint.constant = cards.reduce(
             CGFloat(max(0, cards.count - 1)) * serviceStack.spacing
@@ -419,7 +440,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
             scrollToBottom()
         } else {
             let origin = NSPoint(x: previousOrigin.x, y: min(
-                max(0, previousOrigin.y), max(0, documentView.frame.height - scrollView.contentSize.height)
+                max(0, readingAnchor?() ?? previousOrigin.y), max(0, documentView.frame.height - scrollView.contentSize.height)
             ))
             if scrollView.contentView.bounds.origin != origin {
                 scrollView.contentView.scroll(to: origin)
@@ -469,6 +490,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         renderedLayoutWorkItem = nil
         dirtyProviders.removeAll()
         followsStreamingOutput = false
+        markdownReadingAnchor = nil
         structuralTransactionActive = true
         pendingReload = false
         model.beginClearTransition()

@@ -634,6 +634,8 @@
 "translatingWith" = "%1$@ で翻訳中";
 "translation" = "訳文";
 "translation.canceled" = "キャンセルしました";
+"translation.markdown.openLink" = "ブラウザでリンクを開きますか？";
+"translation.markdown.setting" = "AI のカスタム結果を Markdown で表示";
 "translation.noServiceResult" = "サービスから結果が返りませんでした。";
 "translation.skipped" = "スキップしました";
 "translation.unsupportedLanguage" = "%1$@ は %2$@ に対応していません";

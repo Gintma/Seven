@@ -128,6 +128,7 @@ struct TranslationServiceResult: Identifiable, Equatable, Sendable {
         get { issue?.text }
         set { issue = newValue.map(LocalizedMessage.verbatim) }
     }
+    var markdownOutput: MarkdownOutput?
     var appleMissingLanguages: [String] = []
 
     init(id: TranslationProviderID, title: String, subtitle: String, isTranslation: Bool,

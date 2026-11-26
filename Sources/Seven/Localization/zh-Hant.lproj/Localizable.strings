@@ -634,6 +634,8 @@
 "translatingWith" = "使用%1$@翻譯";
 "translation" = "譯文";
 "translation.canceled" = "已取消";
+"translation.markdown.openLink" = "要在瀏覽器中開啟連結嗎？";
+"translation.markdown.setting" = "用 Markdown 顯示 AI 自訂結果";
 "translation.noServiceResult" = "服務沒有傳回結果。";
 "translation.skipped" = "本次未執行";
 "translation.unsupportedLanguage" = "%1$@ 不支援%2$@";
