@@ -108,6 +108,7 @@
 "copyText" = "テキストをコピー";
 "copyTheModelIDFromTheInference" = "Volcengine Ark コンソールの推論エンドポイントからモデル ID をコピーしてください。";
 "copyTranslation" = "訳文をコピー";
+"copyCode" = "コードをコピー";
 "copyright2026CrisSunAllRightsReserved" = "Copyright © 2026 cris_sun. All rights reserved.";
 "cornerRadius" = "角の半径";
 "cornerRadius0Px" = "角の半径：0 px";
@@ -634,6 +635,8 @@
 "translatingWith" = "%1$@ で翻訳中";
 "translation" = "訳文";
 "translation.canceled" = "キャンセルしました";
+"translation.markdown.openLink" = "ブラウザでリンクを開きますか？";
+"translation.markdown.setting" = "AI のカスタム結果を Markdown で表示";
 "translation.noServiceResult" = "サービスから結果が返りませんでした。";
 "translation.skipped" = "スキップしました";
 "translation.unsupportedLanguage" = "%1$@ は %2$@ に対応していません";

@@ -283,6 +283,8 @@ enum PanelVisibilityPolicy {
 /// 翻译浮窗使用紧凑的默认宽度，并记住手动调整后的尺寸。
 enum TranslationPanelSize {
     static let defaultWidth: CGFloat = 400
+    static let horizontalContentInset = Design.Space.l
+    static let defaultContentWidth = defaultWidth - 2 * horizontalContentInset
     /// 最窄时语言栏仍能放下“简体中文 · 自动”，卡片标题行仍能放下服务名与三个操作按钮。
     static let minimumWidth: CGFloat = 360
 }

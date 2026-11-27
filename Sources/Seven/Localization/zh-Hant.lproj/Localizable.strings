@@ -108,6 +108,7 @@
 "copyText" = "複製文字";
 "copyTheModelIDFromTheInference" = "模型 ID 請從火山方舟控制檯的推理接入點取得。";
 "copyTranslation" = "複製譯文";
+"copyCode" = "複製程式碼";
 "copyright2026CrisSunAllRightsReserved" = "Copyright © 2026 cris_sun 保留一切權利。";
 "cornerRadius" = "圓角半徑";
 "cornerRadius0Px" = "圓角：0 px";
@@ -634,6 +635,8 @@
 "translatingWith" = "使用%1$@翻譯";
 "translation" = "譯文";
 "translation.canceled" = "已取消";
+"translation.markdown.openLink" = "要在瀏覽器中開啟連結嗎？";
+"translation.markdown.setting" = "用 Markdown 顯示 AI 自訂結果";
 "translation.noServiceResult" = "服務沒有傳回結果。";
 "translation.skipped" = "本次未執行";
 "translation.unsupportedLanguage" = "%1$@ 不支援%2$@";

@@ -108,6 +108,7 @@
 "copyText" = "텍스트 복사";
 "copyTheModelIDFromTheInference" = "Volcengine Ark 콘솔의 추론 엔드포인트에서 모델 ID를 복사하세요.";
 "copyTranslation" = "번역문 복사";
+"copyCode" = "코드 복사";
 "copyright2026CrisSunAllRightsReserved" = "Copyright © 2026 cris_sun. 모든 권리 보유.";
 "cornerRadius" = "모서리 반경";
 "cornerRadius0Px" = "모서리 반경: 0 px";
@@ -634,6 +635,8 @@
 "translatingWith" = "%1$@로 번역하는 중";
 "translation" = "번역문";
 "translation.canceled" = "취소됨";
+"translation.markdown.openLink" = "브라우저에서 이 링크를 열까요?";
+"translation.markdown.setting" = "AI 사용자 지정 결과를 Markdown으로 표시";
 "translation.noServiceResult" = "서비스에서 결과를 반환하지 않았습니다.";
 "translation.skipped" = "건너뜀";
 "translation.unsupportedLanguage" = "%1$@에서 %2$@를 지원하지 않습니다";

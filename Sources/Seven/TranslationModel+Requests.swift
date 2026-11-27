@@ -114,6 +114,7 @@ extension TranslationModel {
         generation = id
         serviceTasks[provider]?.cancel()
         serviceTasks[provider] = nil
+        serviceResults[index].markdownOutput = nil
         if provider == .appleTranslation { appleTranslationRequest = nil }
         if let message = unsupportedLanguageMessage(serviceResults[index], text: text, target: requestTarget) {
             serviceResults[index].phase = .skipped
@@ -312,6 +313,7 @@ extension TranslationModel {
             Task { await logger.record(.info, "translation_cancelled", metadata: [:]) }
         }
         for index in serviceResults.indices where serviceResults[index].phase.isRunning {
+            serviceResults[index].markdownOutput?.status = .interrupted
             serviceResults[index].phase = serviceResults[index].text.isEmpty ? .cancelled : .success
         }
         isLoading = false
@@ -394,6 +396,7 @@ extension TranslationModel {
         var result = serviceResults[index]
         result.text = text
         result.dictionaryEntry = dictionaryEntry
+        result.markdownOutput?.status = .completed
         result.phase = .success
         result.issue = nil
         serviceResults[index] = result
@@ -475,14 +478,21 @@ extension TranslationModel {
         request: TranslationRequest,
         generation id: UUID
     ) {
+        let markdown = request.configuration.mode == .custom ? MarkdownOutput() : nil
+        if let index = resultIndex(provider) { serviceResults[index].markdownOutput = markdown }
+
         let start = Date()
         let task = Task { [weak self, service, logger] in
             guard let self else { return }
             do {
                 let result = try await service.translateStream(request) { partial in
-                    await self.applyStreamingUpdate(partial, provider: provider, generation: id)
+                    await self.applyStreamingUpdate(
+                        partial, provider: provider, generation: id, markdownRequestID: markdown?.requestID
+                    )
                 }
-                guard self.generation == id, !Task.isCancelled else { return }
+                guard self.generation == id, !Task.isCancelled,
+                      let index = self.resultIndex(provider),
+                      self.serviceResults[index].markdownOutput?.requestID == markdown?.requestID else { return }
                 self.finishResult(
                     provider,
                     text: result,
@@ -495,7 +505,9 @@ extension TranslationModel {
                 ])
             } catch {
                 // 已取消的请求（例如服务被停用后又重新启用）迟到的错误不能覆盖新请求的状态。
-                guard self.generation == id, !Task.isCancelled else { return }
+                guard self.generation == id, !Task.isCancelled,
+                      let index = self.resultIndex(provider),
+                      self.serviceResults[index].markdownOutput?.requestID == markdown?.requestID else { return }
                 if !(error is CancellationError) {
                     self.failResult(provider, error: error, generation: id)
                     await logger.record(.error, "translation_failed", metadata: [
@@ -512,6 +524,7 @@ extension TranslationModel {
     private func failResult(_ provider: TranslationProviderID, error: Error, generation id: UUID) {
         guard generation == id, let index = resultIndex(provider) else { return }
         serviceTasks[provider] = nil
+        serviceResults[index].markdownOutput?.status = .interrupted
         if error as? TranslationError == .incomplete { serviceResults[index].text = "" }
         if case .unsupportedLanguage(let message)? = error as? TranslationError {
             serviceResults[index].text = ""
@@ -565,9 +578,12 @@ extension TranslationModel {
     private func applyStreamingUpdate(
         _ partial: String,
         provider: TranslationProviderID,
-        generation id: UUID
+        generation id: UUID,
+        markdownRequestID: UUID?
     ) {
-        guard generation == id, !Task.isCancelled, let index = resultIndex(provider) else { return }
+        guard generation == id, !Task.isCancelled, let index = resultIndex(provider),
+              serviceResults[index].phase.isRunning,
+              serviceResults[index].markdownOutput?.requestID == markdownRequestID else { return }
         serviceResults[index].text = partial
         serviceResults[index].phase = .streaming
     }

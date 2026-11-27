@@ -646,6 +646,241 @@ extension PanelBehaviorTests {
         XCTAssertEqual(scroll.contentView.bounds.minY, 20, accuracy: 1)
     }
 
+    func testMarkdownBodyPausesWhenFoldedAndReopensWithTheLatestSnapshot() async throws {
+        let model = try panelModel()
+        let body = AppKitServiceBodyView(model: model)
+        let view = try XCTUnwrap(body.subviews.compactMap { $0 as? StreamingResultTextView }.first)
+        var result = markdownPanelResult(id: model.addService(.custom), text: "**Initial**", phase: .streaming)
+        func publish(_ result: TranslationServiceResult) {
+            model.serviceResults = [result]
+            body.apply(result)
+        }
+        publish(result)
+        try await waitForMarkdownBody { view.string == "Initial" }
+        result.text = "**Intermediate**"
+        publish(result)
+        body.renderingSuspended = true
+        result.text = "**Latest** [Label](https://example.com)"
+        result.markdownOutput?.status = .completed
+        result.phase = .success
+        publish(result)
+        try await Task.sleep(for: .milliseconds(320))
+        XCTAssertEqual(view.string, "Initial")
+
+        body.renderingSuspended = false
+        publish(result)
+        try await waitForMarkdownBody { view.string == "Latest Label" }
+        XCTAssertEqual(body.speechText(for: result), "Latest Label")
+        XCTAssertTrue(view.copiesSelectionAsPlainText)
+        model.rendersCustomResultsAsMarkdown = false
+        publish(result)
+        XCTAssertEqual(view.string, result.text)
+        XCTAssertEqual(body.speechText(for: result), result.text)
+        XCTAssertFalse(view.copiesSelectionAsPlainText)
+
+        model.rendersCustomResultsAsMarkdown = true
+        publish(result)
+        try await waitForMarkdownBody { view.string == "Latest Label" }
+        XCTAssertEqual(body.speechText(for: result), "Latest Label")
+    }
+
+    func testDisablingMarkdownCancelsPendingParsingAndReadsLatestLiteralResult() async throws {
+        let model = try panelModel()
+        let body = AppKitServiceBodyView(model: model)
+        var result = markdownPanelResult(id: model.addService(.custom), text: "**Pending**", phase: .streaming)
+        func publish() {
+            model.serviceResults = [result]
+            body.apply(result)
+        }
+
+        let disabledParse = expectation(description: "Markdown parsing must not deliver after disabling the setting")
+        disabledParse.isInverted = true
+        body.onMarkdownSpeechChange = { disabledParse.fulfill() }
+        publish()
+        XCTAssertEqual(body.speechText(for: result), "")
+
+        model.rendersCustomResultsAsMarkdown = false
+        publish()
+        result.text = "Latest [label](https://example.com)\n\n```text\ncode\n```"
+        result.markdownOutput?.status = .completed
+        result.phase = .success
+        publish()
+        XCTAssertEqual(body.speechText(for: result), result.text)
+        await fulfillment(of: [disabledParse], timeout: 0.4)
+        XCTAssertEqual(body.speechText(for: result), result.text)
+
+        let enabledParse = expectation(description: "Reenabling Markdown parses the latest result")
+        body.onMarkdownSpeechChange = { enabledParse.fulfill() }
+        model.rendersCustomResultsAsMarkdown = true
+        publish()
+        await fulfillment(of: [enabledParse], timeout: 2)
+        XCTAssertEqual(body.speechText(for: result), "Latest label")
+    }
+
+    func testMarkdownWideTableHasIndependentHorizontalScrollAndCopiesAcrossTheTable() async throws {
+        let model = try panelModel()
+        let body = AppKitServiceBodyView(model: model)
+        body.frame.size = NSSize(width: 320, height: 400)
+        let view = try XCTUnwrap(body.subviews.compactMap { $0 as? StreamingResultTextView }.first)
+        let raw = """
+            Before
+
+            | A | B | C | D | E | F |
+            | --- | --- | --- | --- | --- | --- |
+            | One | AlphaBetaGammaDelta | 三 | 四 | 五 | LastCell |
+
+            After
+            """
+        let result = markdownPanelResult(id: model.addService(.custom), text: raw, phase: .success)
+        model.serviceResults = [result]
+        body.apply(result)
+        try await waitForMarkdownBody { view.string.contains("After") }
+        body.layoutSubtreeIfNeeded()
+
+        let table = try XCTUnwrap(view.subviews.compactMap { $0 as? NSScrollView }.first)
+        let document = try XCTUnwrap(table.documentView)
+        let cellPoint = table.convert(NSPoint(x: 24, y: 24), to: body)
+        let hit = try XCTUnwrap(view.hitTest(cellPoint))
+        XCTAssertTrue(hit.isDescendant(of: table), "The result text view must route pointer input into table cells")
+        XCTAssertTrue(table.hasHorizontalScroller)
+        XCTAssertFalse(table.hasVerticalScroller)
+        XCTAssertGreaterThan(document.frame.width, table.contentSize.width)
+        let end = document.frame.width - table.contentSize.width
+        table.contentView.scroll(to: NSPoint(x: end, y: 0))
+        table.reflectScrolledClipView(table.contentView)
+        XCTAssertEqual(table.contentView.bounds.minX, end, accuracy: 1)
+        XCTAssertEqual(table.contentView.bounds.minY, 0, accuracy: 1)
+        let offset = table.contentView.bounds.minX
+        if let scroll = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2,
+                                wheel1: 0, wheel2: 60, wheel3: 0),
+           let event = NSEvent(cgEvent: scroll) {
+            hit.scrollWheel(with: event)
+            XCTAssertLessThan(table.contentView.bounds.minX, offset)
+        } else {
+            XCTFail("Could not construct horizontal scroll event")
+        }
+
+        let pasteboard = NSPasteboard(name: .init("SevenTests.WideTable.\(UUID())"))
+        defer { pasteboard.releaseGlobally() }
+        view.setSelectedRange(NSRange(location: 0, length: (view.string as NSString).length))
+        XCTAssertTrue(view.copyPlainSelection(to: pasteboard))
+        let copied = try XCTUnwrap(pasteboard.string(forType: .string))
+        XCTAssertTrue(copied.hasPrefix("Before"))
+        XCTAssertTrue(copied.contains("AlphaBetaGammaDelta"))
+        XCTAssertTrue(copied.contains("LastCell"))
+        XCTAssertTrue(copied.hasSuffix("After"))
+        XCTAssertFalse(copied.contains("\u{FFFC}"))
+        let innerText = try XCTUnwrap(document as? StreamingResultTextView)
+        innerText.setSelectedRange((innerText.string as NSString).range(of: "LastCell"))
+        XCTAssertTrue(innerText.copyPlainSelection(to: pasteboard))
+        XCTAssertEqual(pasteboard.string(forType: .string), "LastCell")
+
+        body.frame.size.width = 750
+        _ = body.measuredHeight(for: 750)
+        body.layoutSubtreeIfNeeded()
+        XCTAssertFalse(view.subviews.contains { $0 is NSScrollView })
+        XCTAssertTrue(view.string.contains("LastCell"))
+    }
+
+    func testMarkdownBodyHeightStopsAtTheFinalTableBorder() async throws {
+        let model = try panelModel()
+        let body = AppKitServiceBodyView(model: model)
+        let view = try XCTUnwrap(body.subviews.compactMap { $0 as? StreamingResultTextView }.first)
+        let raw = "| 车次 | 状态 |\n| --- | --- |\n| G101 | 准点 |"
+        let result = markdownPanelResult(id: model.addService(.custom), text: raw, phase: .success)
+        model.serviceResults = [result]
+        body.apply(result)
+        try await waitForMarkdownBody { view.string.hasPrefix("车次") }
+        let height = body.measuredHeight(for: 304)
+        let manager = try XCTUnwrap(view.layoutManager)
+        let location = (view.string as NSString).range(of: "准点").location
+        let style = try XCTUnwrap(view.textStorage?.attribute(.paragraphStyle, at: location, effectiveRange: nil) as? NSParagraphStyle)
+        let cell = try XCTUnwrap(style.textBlocks.last as? NSTextTableBlock)
+        let cellBounds = manager.boundsRect(for: cell, at: manager.glyphIndexForCharacter(at: location), effectiveRange: nil)
+        XCTAssertEqual(height, ceil(cellBounds.maxY), accuracy: 1)
+    }
+
+    func testOversizeMarkdownResultShowsFullLiteralSourceIncrementally() async throws {
+        let model = try panelModel()
+        let body = AppKitServiceBodyView(model: model)
+        let view = try XCTUnwrap(body.subviews.compactMap { $0 as? StreamingResultTextView }.first)
+        let raw = "**Header**\n" + String(repeating: "👩‍💻 e\u{301}\n", count: 4600) + "Tail"
+        let result = markdownPanelResult(id: model.addService(.custom), text: raw, phase: .success)
+        model.serviceResults = [result]
+        var intermediate = false
+        body.onVisibleTextChange = { [weak view] in
+            guard let view, !view.string.isEmpty, view.string != raw else { return }
+            intermediate = true
+            XCTAssertTrue(raw.hasPrefix(view.string))
+        }
+        body.apply(result)
+        try await waitForMarkdownBody { view.string == raw }
+        XCTAssertTrue(intermediate)
+        XCTAssertEqual(view.string, raw)
+        XCTAssertFalse(view.isRevealing)
+        XCTAssertTrue(body.speechText(for: result) == raw, "朗读降级结果时使用完整的纯文本")
+    }
+
+    func testMarkdownRestyleKeepsReadingLineAtViewportEdge() async throws {
+        let model = try panelModel()
+        model.input = "Source"
+        model.rendersCustomResultsAsMarkdown = false
+        let raw = (0..<60).map { "# Heading number \($0)\n\nBody number \($0)\n\n" }.joined()
+        let result = markdownPanelResult(id: model.addService(.custom), text: raw, phase: .success)
+        model.serviceResults = [result]
+        let controller = AppKitTranslationViewController(model: model)
+        controller.view.frame = CGRect(x: 0, y: 0, width: 570, height: 400)
+        controller.view.layoutSubtreeIfNeeded()
+        controller.refreshWindowLayout(animated: false)
+        let scroll = try XCTUnwrap(controller.view.subviews.compactMap { $0 as? UserActivityScrollView }.first)
+        let document = try XCTUnwrap(scroll.documentView)
+        func resultTextView(in view: NSView) -> StreamingResultTextView? {
+            if let textView = view as? StreamingResultTextView { return textView }
+            return view.subviews.lazy.compactMap { resultTextView(in: $0) }.first
+        }
+        let view = try XCTUnwrap(resultTextView(in: document))
+        func topOfLine(_ title: String) -> CGFloat? {
+            let range = (view.string as NSString).range(of: title)
+            guard range.location != NSNotFound,
+                  let manager = view.layoutManager, let container = view.textContainer else { return nil }
+            manager.ensureLayout(for: container)
+            let glyph = manager.glyphIndexForCharacter(at: range.location)
+            let bounds = manager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+            return document.convert(NSPoint(x: 0, y: view.textContainerOrigin.y + bounds.minY), from: view).y
+        }
+        let line = "Heading number 21"
+        let initial = try XCTUnwrap(topOfLine(line))
+        scroll.beginUserIndicatorActivity()
+        scroll.contentView.scroll(to: NSPoint(x: 0, y: initial + 2))
+        scroll.reflectScrolledClipView(scroll.contentView)
+        scroll.endUserIndicatorActivity()
+        XCTAssertEqual(scroll.contentView.bounds.minY, initial + 2, accuracy: 1)
+
+        model.rendersCustomResultsAsMarkdown = true
+        try await waitForPanelLayout(controller, "Markdown 保留阅读行") {
+            guard view.string.hasPrefix("Heading number 0"), let updated = topOfLine(line) else { return false }
+            return abs(scroll.contentView.bounds.minY - updated - 2) < 2
+        }
+        let moved = try XCTUnwrap(topOfLine(line))
+        XCTAssertNotEqual(moved, initial)
+        XCTAssertEqual(scroll.contentView.bounds.minY, moved + 2, accuracy: 2)
+    }
+
+    private func markdownPanelResult(id: TranslationProviderID, text: String, phase: TranslationResultPhase) -> TranslationServiceResult {
+        var result = TranslationServiceResult(id: id, title: "Fixture", subtitle: "", isTranslation: true,
+            phase: phase, text: text, dictionaryEntry: nil, errorMessage: nil)
+        var output = MarkdownOutput()
+        if phase == .success { output.status = .completed }
+        result.markdownOutput = output
+        return result
+    }
+
+    private func waitForMarkdownBody(_ condition: () -> Bool) async throws {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while !condition(), ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        XCTAssertTrue(condition(), "Markdown 正文没有完成更新")
+    }
+
     private func waitForPanelLayout(_ controller: NSViewController, _ step: String, until condition: () -> Bool) async throws {
         let deadline = ContinuousClock.now.advanced(by: .seconds(2))
         repeat {

@@ -26,8 +26,18 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
     private var result: TranslationServiceResult?
     private var renderedPlainText = ""
     private var rendersPlainTranslation = false
+    private var markdownRequestID: UUID?
+    private var lastMarkdown: (MarkdownSnapshot, MarkdownParseResult)?
+    private var isShowingRichMarkdown = false
+    private var markdownNeedsRestyle = false
+    private var wasMarkdownEnabled = false
+    private var loggedMarkdownFallback: ResultMarkdownDocument.Fallback?
+    private lazy var markdownUpdates = ResultMarkdownUpdates { [weak self] snapshot, parsed in
+        self?.receiveMarkdown(snapshot, parsed: parsed)
+    }
     private var actionSignature = ""
     private var measuredWidth: CGFloat = 0
+    private var renderedMarkdownWidth: CGFloat?
     private var cachedTextHeight: CGFloat = 0
     private var textMeasurementDirty = true
     private var pronunciationButtons: [SpeechContent: SpeechToggleButton] = [:]
@@ -35,6 +45,8 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
     private var pronunciationLocations: [SpeechContent: Int] = [:]
     private var speechCancellable: AnyCancellable?
     var onVisibleTextChange: (() -> Void)?
+    var onMarkdownReflow: (() -> Void)?
+    var onMarkdownSpeechChange: (() -> Void)?
     var isRevealing: Bool { textView.isRevealing }
     var renderingSuspended: Bool {
         get { textView.renderingSuspended }
@@ -42,7 +54,10 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
             if textView.renderingSuspended != newValue {
                 textView.renderingSuspended = newValue
                 textMeasurementDirty = true
-                if newValue { stopPronunciation() }
+                if newValue {
+                    if markdownRequestID != nil { markdownUpdates.suspend() }
+                    stopPronunciation()
+                }
             }
         }
     }
@@ -54,6 +69,7 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
         textView.isEditable = false
         textView.isSelectable = true
         textView.isRichText = true
+        textView.isAutomaticLinkDetectionEnabled = false
         textView.delegate = self
         textView.linkTextAttributes = [.underlineStyle: 0]
         textView.textContainerInset = .zero
@@ -81,12 +97,19 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
     func applyTheme(_ palette: ThemePalette) {
         self.palette = palette
         textView.applyTheme(palette)
+        if isShowingRichMarkdown {
+            markdownNeedsRestyle = true
+            if !renderingSuspended, let (snapshot, parsed) = lastMarkdown {
+                displayMarkdown(snapshot, parsed: parsed)
+            }
+        }
     }
 
     required init?(coder: NSCoder) { nil }
 
     func invalidateLocalizedActions() {
         actionSignature = ""
+        textView.refreshMarkdownCodeLabels()
     }
 
     func apply(_ result: TranslationServiceResult) {
@@ -112,28 +135,134 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
         guard !renderingSuspended else { return }
         dictionaryTerms.removeAll()
         pronunciationLocations.removeAll()
-        let plain = result.dictionaryEntry == nil
-            && (result.phase == .streaming || result.phase == .success)
-        if plain {
-            let source = result.text as NSString
-            let continues = rendersPlainTranslation && source.hasPrefix(renderedPlainText)
-            if !continues { textView.replace(with: NSAttributedString(string: "")) }
-            let previousCount = continues ? (renderedPlainText as NSString).length : 0
-            let suffix = source.substring(from: previousCount)
-            if !suffix.isEmpty {
-                textView.append(styled(
-                    suffix,
-                    font: Design.Text.content.nsFont,
-                    color: .ink,
-                    lineSpacing: 6
-                ), progressively: result.phase == .streaming
-                    || previousPhase == .streaming || textView.isRevealing)
+        let plain = result.dictionaryEntry == nil && (result.phase == .streaming || result.phase == .success)
+        let markdownEnabled = model.rendersCustomResultsAsMarkdown
+        let requestChanged = markdownRequestID != result.markdownOutput?.requestID
+        if markdownRequestID != nil, requestChanged || (wasMarkdownEnabled && !markdownEnabled) {
+            markdownUpdates.reset()
+            lastMarkdown = nil
+            loggedMarkdownFallback = nil
+            markdownNeedsRestyle = false
+        }
+        wasMarkdownEnabled = markdownEnabled
+
+        if requestChanged {
+            isShowingRichMarkdown = false
+            textView.usesSimpleTextCursor = false
+            rendersPlainTranslation = false
+            renderedPlainText = ""
+            textView.replace(with: NSAttributedString(string: ""))
+            markdownRequestID = result.markdownOutput?.requestID
+        }
+
+        textView.copiesSelectionAsPlainText = plain && result.markdownOutput != nil && markdownEnabled
+        if markdownEnabled, let output = result.markdownOutput, !result.text.isEmpty {
+            markdownUpdates.submit(MarkdownSnapshot(output: output, text: result.text))
+            if plain {
+                if markdownNeedsRestyle, let (snapshot, parsed) = lastMarkdown {
+                    displayMarkdown(snapshot, parsed: parsed)
+                }
+                return
             }
+        }
+
+        if plain {
+            updatePlainText(result.text, progressively: result.phase == .streaming
+                            || previousPhase == .streaming || textView.isRevealing)
         } else {
+            isShowingRichMarkdown = false
+            rendersPlainTranslation = false
+            renderedPlainText = ""
+            textView.usesSimpleTextCursor = false
             textView.replace(with: attributedText(for: result))
         }
-        rendersPlainTranslation = plain
-        renderedPlainText = plain ? result.text : ""
+    }
+
+    private func updatePlainText(_ text: String, progressively: Bool, batches: Bool = false) {
+        let source = text as NSString
+        if isShowingRichMarkdown {
+            let limit = ResultMarkdownDocument.maximumSourceBytes
+            let seedLength = batches && source.length > limit
+                ? NSMaxRange(source.rangeOfComposedCharacterSequence(at: limit - 1)) : source.length
+            let seed = source.substring(to: seedLength)
+            replaceMarkdownText(styled(seed, font: Design.Text.content.nsFont, color: .ink, lineSpacing: 6))
+            isShowingRichMarkdown = false
+            rendersPlainTranslation = true
+            renderedPlainText = seed
+        }
+
+        let continues = rendersPlainTranslation && source.hasPrefix(renderedPlainText)
+        let previousCount = continues ? (renderedPlainText as NSString).length : 0
+        if !continues { textView.replace(with: NSAttributedString(string: "")) }
+        let suffix = source.substring(from: previousCount)
+        if !suffix.isEmpty {
+            textView.append(styled(suffix, font: Design.Text.content.nsFont, color: .ink, lineSpacing: 6),
+                            progressively: progressively, batches: batches)
+        }
+        rendersPlainTranslation = true
+        renderedPlainText = text
+    }
+
+    private func receiveMarkdown(_ snapshot: MarkdownSnapshot, parsed: MarkdownParseResult) {
+        guard wasMarkdownEnabled, !renderingSuspended,
+              let result, result.markdownOutput?.requestID == snapshot.output.requestID,
+              let current = model.serviceResults.first(where: { $0.id == result.id })?.markdownOutput,
+              current.requestID == snapshot.output.requestID,
+              current.status != .completed || snapshot.output.status == .completed else { return }
+        lastMarkdown = (snapshot, parsed)
+        if case .failure(let reason) = parsed.document, loggedMarkdownFallback != reason {
+            loggedMarkdownFallback = reason
+            Task { [logger = model.logger] in
+                await logger.record(.info, "translation_markdown_fallback", metadata: [
+                    "elapsed_ms": String(parsed.elapsedMilliseconds), "bytes": String(parsed.byteCount),
+                    "reason": reason.rawValue
+                ])
+            }
+        }
+        if result.phase == .streaming || result.phase == .success {
+            displayMarkdown(snapshot, parsed: parsed)
+        }
+        onMarkdownSpeechChange?()
+    }
+
+    private func displayMarkdown(_ snapshot: MarkdownSnapshot, parsed: MarkdownParseResult) {
+        markdownNeedsRestyle = false
+        switch parsed.document {
+        case .success(let document):
+            isShowingRichMarkdown = true
+            rendersPlainTranslation = false
+            renderedPlainText = ""
+            textView.usesSimpleTextCursor = false
+            renderMarkdown(document, width: measuredWidth > 0 ? measuredWidth : nil)
+        case .failure:
+            textView.usesSimpleTextCursor = true
+            updatePlainText(snapshot.text, progressively: false, batches: true)
+        }
+    }
+
+    private func renderMarkdown(_ document: ResultMarkdownDocument, width: CGFloat?) {
+        renderedMarkdownWidth = width
+        let text = ResultMarkdownRenderer(palette: palette).render(document, availableWidth: width)
+        replaceMarkdownText(text, markdown: true)
+    }
+
+    private func replaceMarkdownText(_ text: NSAttributedString, markdown: Bool = false) {
+        onMarkdownReflow?()
+        textView.replace(with: text, preservingSelection: true, markdown: markdown)
+    }
+
+    func speechText(for result: TranslationServiceResult) -> String {
+        guard model.rendersCustomResultsAsMarkdown, let output = result.markdownOutput else { return result.text }
+        guard !result.text.isEmpty, let (snapshot, parsed) = lastMarkdown,
+              snapshot.output.requestID == output.requestID else { return "" }
+        switch parsed.document {
+        case .success(let document): return document.speechText
+        case .failure: return result.text
+        }
+    }
+
+    func readingAnchor(at y: CGFloat, in document: NSView) -> (() -> CGFloat?)? {
+        textView.readingAnchor(at: y, in: document)
     }
 
     func setAccessibilityExposed(_ exposed: Bool) {
@@ -156,6 +285,10 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
             // 词形按整组换行；宽度变化时重排正文和按钮位置，原始结果不变。
             if let result, result.dictionaryEntry != nil {
                 updateText(for: result, previousPhase: result.phase)
+            } else if isShowingRichMarkdown, !renderingSuspended, renderedMarkdownWidth != safeWidth,
+                      let (_, parsed) = lastMarkdown, case .success(let document) = parsed.document,
+                      document.hasWidthDependentLayout {
+                renderMarkdown(document, width: safeWidth)
             }
             textMeasurementDirty = true
         }
@@ -164,7 +297,12 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
             if result?.dictionaryEntry != nil { normalizeVisibleParagraphGaps(manager: manager, container: container) }
             manager.ensureLayout(for: container)
             _ = manager.glyphRange(for: container)
-            cachedTextHeight = ceil(manager.usedRect(for: container).height)
+            let used = manager.usedRect(for: container)
+            let extra = manager.extraLineFragmentRect
+            // This line is TextKit's caret position after the last newline, with no glyphs.
+            let bottom = isShowingRichMarkdown && !extra.isEmpty && manager.extraLineFragmentTextContainer === container
+                ? min(used.maxY, extra.minY) : used.maxY
+            cachedTextHeight = ceil(max(0, bottom - used.minY))
             textMeasurementDirty = false
         }
         let textHeight = cachedTextHeight
@@ -491,11 +629,15 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
     }
 
     func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
-        guard !renderingSuspended, textView === self.textView, let token = link as? String,
-              let storage = textView.textStorage, (0..<storage.length).contains(charIndex),
-              storage.attribute(.link, at: charIndex, effectiveRange: nil) as? String == token,
-              let term = dictionaryTerms[token] else { return true }
-        model.translateTerm(term)
+        guard !renderingSuspended, textView === self.textView || textView.isDescendant(of: self.textView),
+              let storage = textView.textStorage, (0..<storage.length).contains(charIndex) else { return true }
+        let displayedLink = storage.attribute(.link, at: charIndex, effectiveRange: nil)
+        if textView === self.textView, let token = link as? String, displayedLink as? String == token, let term = dictionaryTerms[token] {
+            model.translateTerm(term)
+        } else if model.rendersCustomResultsAsMarkdown, isShowingRichMarkdown,
+                  let url = link as? URL, displayedLink as? URL == url, let window {
+            ResultMarkdownLink.confirm(url, in: window)
+        }
         return true
     }
 

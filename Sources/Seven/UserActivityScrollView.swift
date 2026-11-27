@@ -6,11 +6,12 @@ final class UserActivityScrollView: NSScrollView {
     private var indicatorHideWorkItem: DispatchWorkItem?
     private var userIndicatorActive = false
 
-    func installUserActivityIndicatorPolicy() {
+    func installUserActivityIndicatorPolicy(drawsTrack: Bool = true) {
         autohidesScrollers = false
         let scroller = UserActivityScroller()
         scroller.controlSize = .mini
         scroller.activityOwner = self
+        scroller.drawsTrack = drawsTrack
         verticalScroller = scroller
         scrollerStyle = .overlay
         setIndicatorVisible(false)
@@ -91,6 +92,11 @@ private final class UserActivityScroller: NSScroller {
     override class var isCompatibleWithOverlayScrollers: Bool { true }
 
     weak var activityOwner: UserActivityScrollView?
+    var drawsTrack = true
+
+    override func drawKnobSlot(in slotRect: NSRect, highlight flag: Bool) {
+        if drawsTrack { super.drawKnobSlot(in: slotRect, highlight: flag) }
+    }
 
     override func mouseDown(with event: NSEvent) {
         activityOwner?.beginUserIndicatorActivity()

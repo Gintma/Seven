@@ -30,6 +30,7 @@ extension SettingsView {
             }
             SettingsGroup(L10n.text("window")) {
                 SettingsToggleRow(L10n.text("clearTranslationWhenOpeningWindow"), isOn: $model.clearTranslationOnDismiss)
+                SettingsToggleRow(L10n.text("translation.markdown.setting"), isOn: $model.rendersCustomResultsAsMarkdown)
                 SettingsSegmentedRow(title: L10n.text("windowPosition"), selection: Binding(get: { panelPlacement }, set: { panelPlacement=$0; $0.save() }),
                                      options: PanelPlacementMode.allCases.map { ($0, $0.title) })
                 .help(L10n.text("rememberLastPositionReturnsTheWindowTo"))
