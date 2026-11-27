@@ -1579,36 +1579,39 @@ private struct SettingsHoverBackground: NSViewRepresentable {
     func updateNSView(_ view: SettingsHoverFeedbackView, context: Context) { view.isEnabled = isEnabled }
 }
 
-private final class SettingsHoverFeedbackView: NSView, ThemeApplying {
+final class SettingsHoverFeedbackView: NSView, ThemeApplying {
     private var palette = ThemePalette.system
     func applyTheme(_ palette: ThemePalette) { self.palette = palette; needsDisplay = true }
     var isEnabled = true {
         didSet { if !isEnabled { hovered = false } }
     }
     private var hovered = false { didSet { if oldValue != hovered { needsDisplay = true } } }
-    private var hoverTracking: NSTrackingArea?
-
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         ThemeManager.shared.register(self)
         identifier = NSUserInterfaceItemIdentifier("settingsHoverFeedback")
         setAccessibilityElement(false)
+        clipsToBounds = true
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+                                       owner: self))
     }
     required init?(coder: NSCoder) { nil }
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
-        if let hoverTracking { removeTrackingArea(hoverTracking) }
-        let tracking = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self)
-        addTrackingArea(tracking)
-        hoverTracking = tracking
+        // 滚动可以移走指针下的行，即使 AppKit 没有发送退出事件。
+        if hovered, !containsPointer { hovered = false }
     }
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         if window == nil { hovered = false }
     }
-    override func mouseEntered(with event: NSEvent) { hovered = isEnabled }
+    override func mouseEntered(with event: NSEvent) { hovered = isEnabled && containsPointer }
     override func mouseExited(with event: NSEvent) { hovered = false }
+    private var containsPointer: Bool {
+        guard let window else { return false }
+        return isMousePoint(convert(window.mouseLocationOutsideOfEventStream, from: nil), in: visibleRect)
+    }
     override func draw(_ dirtyRect: NSRect) {
         guard hovered, isEnabled else { return }
         palette.controlHoverFill.setFill()
