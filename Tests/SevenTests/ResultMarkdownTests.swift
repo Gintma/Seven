@@ -78,6 +78,42 @@ final class ResultMarkdownTests: XCTestCase {
         XCTAssertLessThanOrEqual(count.maxX, 260)
     }
 
+    func testMarkdownDoesNotAddEmptyLinesAtTheEnd() throws {
+        let renderer = ResultMarkdownRenderer(palette: .system)
+        let prose = try ResultMarkdownDocument.parse("第一行\n第二行\n第三行")
+        XCTAssertEqual(renderer.render(prose).string, "第一行\u{2028}第二行\u{2028}第三行")
+
+        let table = try ResultMarkdownDocument.parse("| 车次 | 状态 |\n| --- | --- |\n| G101 | 准点 |")
+        let rendered = renderer.render(table).string
+        XCTAssertTrue(rendered.hasSuffix("准点\n"))
+        XCTAssertFalse(rendered.hasSuffix("\n\n"))
+
+        let code = try ResultMarkdownDocument.parse("```text\n    code\n\n```")
+        XCTAssertEqual(renderer.render(code).string, "    code\n\n")
+    }
+
+    func testNativeTablePaintBoundsFitTheBodyAtDifferentWidths() throws {
+        let source = "| 车次 | 状态 |\n| --- | --- |\n| G101 | 准点 |"
+        let rendered = ResultMarkdownRenderer(palette: .system).render(try ResultMarkdownDocument.parse(source))
+        let text = rendered.string as NSString
+        let cellRange = text.range(of: "准点")
+        let paragraph = try XCTUnwrap(rendered.attribute(.paragraphStyle, at: cellRange.location, effectiveRange: nil) as? NSParagraphStyle)
+        let cell = try XCTUnwrap(paragraph.textBlocks.last as? NSTextTableBlock)
+        for width: CGFloat in [180, 304, 527, 900] {
+            let storage = NSTextStorage(attributedString: rendered)
+            let manager = NSLayoutManager()
+            let container = NSTextContainer(containerSize: NSSize(width: width, height: 1000))
+            container.lineFragmentPadding = 0
+            storage.addLayoutManager(manager)
+            manager.addTextContainer(container)
+            manager.ensureLayout(for: container)
+            let glyph = manager.glyphIndexForCharacter(at: cellRange.location)
+            let bounds = manager.boundsRect(for: cell, at: glyph, effectiveRange: nil)
+            XCTAssertGreaterThan(bounds.width, 0)
+            XCTAssertLessThanOrEqual(bounds.maxX, width, "Width \(width) must include the entire border")
+        }
+    }
+
     func testModelGeneratedBoldLabelsRenderWithoutStandardDelimiterSpacing() throws {
         let source = """
             **翻译：**The train is late.

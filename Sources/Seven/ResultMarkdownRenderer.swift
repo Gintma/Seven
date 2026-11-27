@@ -6,25 +6,28 @@ struct ResultMarkdownRenderer {
 
     func render(_ document: ResultMarkdownDocument) -> NSAttributedString {
         let output = NSMutableAttributedString()
-        for block in document.blocks {
+        for (index, block) in document.blocks.enumerated() {
+            let hasNextBlock = index + 1 < document.blocks.count
             let paragraph = style(for: block)
             switch block.content {
             case .paragraph(let runs):
-                append(runs, paragraph: paragraph, marker: block.listMarker, to: output)
+                append(runs, paragraph: paragraph, marker: block.listMarker, terminatesParagraph: hasNextBlock, to: output)
             case .heading(let level, let runs):
                 let scale = 1 + CGFloat(max(1, 5 - level)) * 0.08
-                append(runs, paragraph: paragraph, size: Design.Text.content.size * scale, bold: true, to: output)
+                append(runs, paragraph: paragraph, size: Design.Text.content.size * scale, bold: true,
+                       terminatesParagraph: hasNextBlock, to: output)
             case .code(let code):
                 paragraph.lineSpacing = 2
                 paragraph.lineBreakMode = .byCharWrapping
                 let run = ResultMarkdownDocument.Run(text: code, style: .code)
                 let value = attributed(run, paragraph: paragraph)
                 output.append(value)
-                if !code.hasSuffix("\n") { output.append(attributed(.init(text: "\n", style: .code), paragraph: paragraph)) }
+                if hasNextBlock, !code.hasSuffix("\n") { output.append(attributed(.init(text: "\n", style: .code), paragraph: paragraph)) }
             case .rule:
-                output.append(attributed(.init(text: "────────\n"), paragraph: paragraph, color: .inkSecondary))
+                let line = hasNextBlock ? "────────\n" : "────────"
+                output.append(attributed(.init(text: line), paragraph: paragraph, color: .inkSecondary))
             case .table(let rows, let alignments):
-                appendTable(rows, alignments: alignments, paragraph: paragraph, to: output)
+                appendTable(rows, alignments: alignments, paragraph: paragraph, separatesFollowingBlock: hasNextBlock, to: output)
             }
         }
         return output
@@ -60,7 +63,7 @@ struct ResultMarkdownRenderer {
     private func append(
         _ runs: [ResultMarkdownDocument.Run], paragraph: NSParagraphStyle,
         marker: String? = nil, size: CGFloat = Design.Text.content.size, bold: Bool = false,
-        to output: NSMutableAttributedString
+        terminatesParagraph: Bool = true, to output: NSMutableAttributedString
     ) {
         if let marker { output.append(attributed(.init(text: marker + "\t"), paragraph: paragraph, size: size)) }
         for var run in runs {
@@ -69,7 +72,7 @@ struct ResultMarkdownRenderer {
             }
             output.append(attributed(run, paragraph: paragraph, size: size, bold: bold))
         }
-        output.append(attributed(.init(text: "\n"), paragraph: paragraph, size: size))
+        if terminatesParagraph { output.append(attributed(.init(text: "\n"), paragraph: paragraph, size: size)) }
     }
 
     private func attributed(
@@ -93,12 +96,14 @@ struct ResultMarkdownRenderer {
 
     private func appendTable(
         _ rows: [[[ResultMarkdownDocument.Run]]], alignments: [ResultMarkdownDocument.Alignment],
-        paragraph: NSMutableParagraphStyle, to output: NSMutableAttributedString
+        paragraph: NSMutableParagraphStyle, separatesFollowingBlock: Bool, to output: NSMutableAttributedString
     ) {
         let table = NSTextTable()
         table.numberOfColumns = alignments.count
         table.layoutAlgorithm = .fixedLayoutAlgorithm
         table.collapsesBorders = true
+        // TextKit positions collapsed borders on half points outside the table width.
+        table.setValue(99, type: .percentageValueType, for: .width)
         for (rowIndex, row) in rows.enumerated() {
             for (column, alignment) in alignments.enumerated() {
                 let cell = NSTextTableBlock(table: table, startingRow: rowIndex, rowSpan: 1,
@@ -120,6 +125,6 @@ struct ResultMarkdownRenderer {
                 append(runs, paragraph: style, bold: rowIndex == 0, to: output)
             }
         }
-        output.append(attributed(.init(text: "\n"), paragraph: paragraph))
+        if separatesFollowingBlock { output.append(attributed(.init(text: "\n"), paragraph: paragraph)) }
     }
 }

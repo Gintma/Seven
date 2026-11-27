@@ -282,7 +282,12 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
             if result?.dictionaryEntry != nil { normalizeVisibleParagraphGaps(manager: manager, container: container) }
             manager.ensureLayout(for: container)
             _ = manager.glyphRange(for: container)
-            cachedTextHeight = ceil(manager.usedRect(for: container).height)
+            let used = manager.usedRect(for: container)
+            let extra = manager.extraLineFragmentRect
+            // This line is TextKit's caret position after the last newline, with no glyphs.
+            let bottom = isShowingRichMarkdown && !extra.isEmpty && manager.extraLineFragmentTextContainer === container
+                ? min(used.maxY, extra.minY) : used.maxY
+            cachedTextHeight = ceil(max(0, bottom - used.minY))
             textMeasurementDirty = false
         }
         let textHeight = cachedTextHeight

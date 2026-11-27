@@ -656,7 +656,7 @@ extension PanelBehaviorTests {
             body.apply(result)
         }
         publish(result)
-        try await waitForMarkdownBody { view.string == "Initial\n" }
+        try await waitForMarkdownBody { view.string == "Initial" }
         result.text = "**Intermediate**"
         publish(result)
         body.renderingSuspended = true
@@ -665,11 +665,11 @@ extension PanelBehaviorTests {
         result.phase = .success
         publish(result)
         try await Task.sleep(for: .milliseconds(320))
-        XCTAssertEqual(view.string, "Initial\n")
+        XCTAssertEqual(view.string, "Initial")
 
         body.renderingSuspended = false
         publish(result)
-        try await waitForMarkdownBody { view.string == "Latest Label\n" }
+        try await waitForMarkdownBody { view.string == "Latest Label" }
         XCTAssertEqual(body.speechText(for: result), "Latest Label")
         XCTAssertTrue(view.copiesSelectionAsPlainText)
         model.rendersCustomResultsAsMarkdown = false
@@ -677,6 +677,24 @@ extension PanelBehaviorTests {
         XCTAssertEqual(view.string, result.text)
         XCTAssertEqual(body.speechText(for: result), "Latest Label")
         XCTAssertFalse(view.copiesSelectionAsPlainText)
+    }
+
+    func testMarkdownBodyHeightStopsAtTheFinalTableBorder() async throws {
+        let model = try panelModel()
+        let body = AppKitServiceBodyView(model: model)
+        let view = try XCTUnwrap(body.subviews.compactMap { $0 as? StreamingResultTextView }.first)
+        let raw = "| 车次 | 状态 |\n| --- | --- |\n| G101 | 准点 |"
+        let result = markdownPanelResult(id: model.addService(.custom), text: raw, phase: .success)
+        model.serviceResults = [result]
+        body.apply(result)
+        try await waitForMarkdownBody { view.string.hasPrefix("车次") }
+        let height = body.measuredHeight(for: 304)
+        let manager = try XCTUnwrap(view.layoutManager)
+        let location = (view.string as NSString).range(of: "准点").location
+        let style = try XCTUnwrap(view.textStorage?.attribute(.paragraphStyle, at: location, effectiveRange: nil) as? NSParagraphStyle)
+        let cell = try XCTUnwrap(style.textBlocks.last as? NSTextTableBlock)
+        let cellBounds = manager.boundsRect(for: cell, at: manager.glyphIndexForCharacter(at: location), effectiveRange: nil)
+        XCTAssertEqual(height, ceil(cellBounds.maxY), accuracy: 1)
     }
 
     func testOversizeMarkdownResultShowsFullLiteralSourceIncrementally() async throws {

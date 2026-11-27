@@ -63,7 +63,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         view = root
 
         OverlayScrollerPolicy.configure(scrollView)
-        scrollView.installUserActivityIndicatorPolicy()
+        scrollView.installUserActivityIndicatorPolicy(drawsTrack: false)
         scrollView.drawsBackground = false
         scrollView.borderType = .noBorder
         scrollView.translatesAutoresizingMaskIntoConstraints = false
