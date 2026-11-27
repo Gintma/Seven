@@ -169,9 +169,8 @@ enum Design {
 
         static let themeSwatchWidth: CGFloat = 28
         static let themeSwatchHeight: CGFloat = 20
-        static let themeChoiceColumns = 3
-        static let themeChoiceHeight: CGFloat = 46
-        static let themePickerWidth: CGFloat = 390
+        static let themeChoiceHeight: CGFloat = 30
+        static let themePickerWidth: CGFloat = 240
         static let themePickerMaximumHeight: CGFloat = 340
 
         /// 首选语言式原生紧凑列表行高。

@@ -1818,21 +1818,18 @@ private struct SettingsThemeChoices: View {
 
     var body: some View {
         let choices = ThemePreset.choices(for: variant)
-        let columns = Array(repeating: GridItem(.flexible(), spacing: Design.Space.xs),
-                            count: Design.Settings.themeChoiceColumns)
-        let rows = (choices.count + columns.count - 1) / columns.count
-        let gridHeight = CGFloat(rows) * Design.Settings.themeChoiceHeight
-            + CGFloat(max(0, rows - 1)) * Design.Space.xs
+        let listHeight = CGFloat(choices.count) * Design.Settings.themeChoiceHeight
+            + CGFloat(max(0, choices.count - 1)) * Design.Space.xs
         return VStack(alignment: .leading, spacing: Design.Space.s) {
             Text(title).font(Design.Settings.groupFont).foregroundStyle(ThemeStyle.ink)
             ScrollView {
-                LazyVGrid(columns: columns, spacing: Design.Space.xs) {
+                LazyVStack(spacing: Design.Space.xs) {
                     ForEach(choices) { choice in
                         choiceButton(choice)
                     }
                 }
             }
-            .frame(height: min(gridHeight, Design.Settings.themePickerMaximumHeight))
+            .frame(height: min(listHeight, Design.Settings.themePickerMaximumHeight))
             .settingsOverlayScrollbars()
         }
         .padding(Design.Space.m)
@@ -1843,18 +1840,17 @@ private struct SettingsThemeChoices: View {
     private func choiceButton(_ choice: ThemePreset) -> some View {
         let selected = choice.id == selectedID
         return Button { select(choice.id) } label: {
-            VStack(alignment: .leading, spacing: Design.Space.xs) {
-                HStack {
-                    ThemeSwatch(preset: choice, variant: variant)
-                    Spacer(minLength: 0)
-                    if selected {
-                        Image(systemName: "checkmark").font(Design.Text.note.font)
-                            .foregroundStyle(ThemeStyle.accentInk)
-                    }
-                }
-                Text(choice.title).font(Design.Text.note.font)
+            HStack(spacing: Design.Space.s) {
+                ThemeSwatch(preset: choice, variant: variant)
+                Text(choice.title).font(Design.Settings.rowFont)
                     .lineLimit(1)
                     .foregroundStyle(ThemeStyle.ink)
+                Spacer(minLength: 0)
+                if selected {
+                    Image(systemName: "checkmark").font(Design.Text.note.font)
+                        .foregroundStyle(ThemeStyle.accentInk)
+                        .accessibilityHidden(true)
+                }
             }
             .padding(.horizontal, Design.Space.s)
             .frame(maxWidth: .infinity, alignment: .leading)
