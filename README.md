@@ -40,16 +40,17 @@ Read a foreign-language document, reply in another language, or mark up a screen
 
 ### Translate and rewrite across apps
 
-- **Selection and input translation** — Select a sentence in a document you’re reading to see the translation, or type or paste text into the panel.
-- **Screenshot translation** — Draw a box around subtitles or foreign text in an image to see the translation.
-- **Translate & Replace** — Writing a message in WeChat or Telegram? Select the Chinese text in the message field and replace it with English, right where you typed it.
-- **Custom AI prompts** — Turn a passage you just read into three key points and see the result in the translation panel.
-- **Translation services** — Use Apple Translation, Youdao, Google, or the offline English–Chinese dictionary, or bring your own AI service.
-- **History and favorites** — Find an earlier translation, save it as a favorite, or export the collection as JSON or Markdown.
+- **Selection and input translation** — Select text in another app and press `⌥D`, or open the input panel with `⌥A`. Choose a target language directly or let Seven pick between your two preferred languages.
+- **Screenshot translation** — Press `⌥S` and select text you can't highlight, such as text in an image or subtitles. Seven recognizes the text on your Mac and passes it to the translation panel.
+- **Translate & Replace** — Select text in an editable field and press `⌃⌥T`. Seven verifies the original field and selection before writing the translation back. For example, draft a WeChat or Telegram reply in Chinese, then turn it into English in the message field.
+- **Translation services and read-aloud** — Use Apple Translation, Youdao, Google, or a downloadable offline English–Chinese dictionary. Bring an API key for streaming services such as OpenAI, Claude, Gemini, and DeepSeek, or use a compatible endpoint. Copy or listen to the input and results.
+- **Custom AI prompts** — Summarize, rewrite, or pull out key points in the translation panel, with readable Markdown results and one-click code copying.
+- **History and favorites** — Search original text and translations across services, keep favorites in a separate collection, and export either collection as JSON or Markdown.
 
 ### Capture, annotate, and pin
 
-Giving feedback on a page? Capture a region or window, then add an arrow or a numbered callout to show what needs changing.
+- **Regions, windows, and smart selection** — Freeze the screen to select an area or window, combine multiple windows, restore the last region, or copy a HEX color. Enable smart selection to pick controls inside windows.
+- **Non-destructive annotation** — Add arrows, shapes, numbered callouts, text, pixelation, or a spotlight. Undo or redo edits, export PNG or JPG at the original resolution, or use the macOS Share menu. For example, point an arrow at the button you want a teammate to change.
 
 <p align="center">
   <img src="Docs/assets/screenshot-editor.png" width="840" alt="Seven's screenshot editor with a floating toolbar, an arrow, a rectangle, and a numbered callout on a public science article" />
@@ -57,7 +58,7 @@ Giving feedback on a page? Capture a region or window, then add an arrow or a nu
 
 #### Scrolling capture
 
-When a document takes up several screens, scroll to stitch it into one image and watch the preview as it grows.
+Scroll up or down to stitch a long screenshot with a live preview. Annotate, copy, save, share, pin, or extract text from the result.
 
 <p align="center">
   <img src="Docs/assets/scroll-capture.png" width="840" alt="A scrolled selection beside Seven’s live stitched preview and capture controls" />
@@ -65,7 +66,7 @@ When a document takes up several screens, scroll to stitch it into one image and
 
 #### Floating pins
 
-Keep a design reference in sight while you work by pinning a screenshot above your other windows.
+Keep a screenshot, clipboard image, or text above other windows. Adjust zoom and opacity or annotate the pin in place. Pin a reference image to keep it visible while you work on a design.
 
 <p align="center">
   <img src="Docs/assets/floating-pin.png" width="840" alt="A floating coral photo pinned above the public article for reference" />
@@ -73,7 +74,8 @@ Keep a design reference in sight while you work by pinning a screenshot above yo
 
 ### Extract text on your Mac
 
-Need a quote from a scanned page? Select the area, check the recognized text next to the original, and copy what you need. Recognition runs on your Mac.
+- **On-device OCR and smart layout** — Apple Vision recognizes text on your Mac. Select text directly on the image and use the adjacent pane to edit, reflow paragraphs, translate, or export it as TXT. You can check a quote against a scanned page before copying it into your notes.
+- **Silent OCR and image import** — Copy recognition results straight to the clipboard, or send an image to OCR from Finder's Open With menu, drag and drop, or the clipboard. You can also open local images for annotation.
 
 <p align="center">
   <img src="Docs/assets/ocr-window.png" width="840" alt="Seven's OCR window showing a crop from a public science article next to its editable recognized text" />
@@ -83,7 +85,8 @@ The screenshots use a public [NOAA National Ocean Service article about corals](
 
 ### Make it yours
 
-Customize shortcuts, switch themes, or choose one of six interface languages in Settings.
+- Set common languages, translation service order, global shortcuts, and screenshot toolbar actions. The translation panel can follow the pointer, remember its position, or stay pinned.
+- Choose from system, light, and dark appearances, with Reduce Motion support and six interface languages (English, Simplified Chinese, Traditional Chinese, Japanese, Korean, and Spanish).
 
 ## Download
 
