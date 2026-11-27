@@ -61,13 +61,18 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .translation:
             return SettingsSidebarIcon("character.book.closed.fill", tint: .blue, symbolSize: Design.Settings.sidebarLargeSymbolSize)
-        case .service: return SettingsSidebarIcon("globe")
-        case .speech: return SettingsSidebarIcon("speaker.wave.2.fill")
-        case .history: return SettingsSidebarIcon("clock.fill")
+        case .service:
+            return SettingsSidebarIcon("globe", tint: Color(red: 0.05, green: 0.54, blue: 0.73))
+        case .speech:
+            return SettingsSidebarIcon("speaker.wave.2.fill", tint: Color(red: 0.57, green: 0.25, blue: 0.81))
+        case .history: return SettingsSidebarIcon("clock.fill", tint: .indigo)
         case .screenshot:
             return SettingsSidebarIcon("camera.viewfinder", tint: Color(red: 0.10, green: 0.55, blue: 0.36))
-        case .pin: return SettingsSidebarIcon("pin.fill", symbolSize: Design.Settings.sidebarLargeSymbolSize)
-        case .toolbar: return SettingsSidebarIcon("slider.horizontal.3")
+        case .pin:
+            return SettingsSidebarIcon("pin.fill", tint: Color(red: 0.82, green: 0.30, blue: 0.31),
+                                       symbolSize: Design.Settings.sidebarLargeSymbolSize)
+        case .toolbar:
+            return SettingsSidebarIcon("slider.horizontal.3", tint: Color(red: 0.07, green: 0.53, blue: 0.53))
         case .ocr:
             return SettingsSidebarIcon("text.viewfinder", tint: Color(red: 0.80, green: 0.41, blue: 0.12))
         case .general: return SettingsSidebarIcon("gearshape.fill")
