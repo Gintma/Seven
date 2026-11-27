@@ -53,8 +53,8 @@ final class ResultMarkdownTests: XCTestCase {
         XCTAssertTrue(rendered.string.contains("Link\u{2028}second line"))
         XCTAssertTrue(rendered.string.contains("3.\tParent\n•\tNested\n4.\tAnother"))
         XCTAssertGreaterThan(try paragraph("Nested").firstLineHeadIndent, try paragraph("Parent").firstLineHeadIndent)
-        XCTAssertFalse(try paragraph("Quoted").textBlocks.isEmpty)
-        XCTAssertTrue(rendered.string.contains("────────"))
+        XCTAssertEqual(try attrs("Quoted")[ResultMarkdownRenderer.quoteDepthAttribute] as? Int, 1)
+        XCTAssertEqual(try attrs("\u{200B}")[ResultMarkdownRenderer.ruleAttribute] as? Bool, true)
         XCTAssertTrue(rendered.string.contains("\t  code\n  second\n\n"))
         XCTAssertEqual(try paragraph("code").lineBreakMode, .byCharWrapping)
 
@@ -76,6 +76,13 @@ final class ResultMarkdownTests: XCTestCase {
         XCTAssertEqual(name.minY, count.minY, accuracy: 1)
         XCTAssertGreaterThan(count.minX, name.minX)
         XCTAssertLessThanOrEqual(count.maxX, 260)
+    }
+
+    func testTaskListKeepsBothStatesAndOrderedStart() throws {
+        let result = try ResultMarkdownDocument.parse("3. Third\n4. Fourth\n\n- [x] Done\n- [ ] Todo")
+        let text = ResultMarkdownRenderer(palette: .system).render(result).string
+        XCTAssertTrue(text.contains("3.\tThird\n4.\tFourth"))
+        XCTAssertTrue(text.contains("☑\tDone\n☐\tTodo"))
     }
 
     func testMarkdownDoesNotAddEmptyLinesAtTheEnd() throws {

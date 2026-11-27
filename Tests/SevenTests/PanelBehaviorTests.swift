@@ -679,6 +679,71 @@ extension PanelBehaviorTests {
         XCTAssertFalse(view.copiesSelectionAsPlainText)
     }
 
+    func testMarkdownWideTableHasIndependentHorizontalScrollAndCopiesAcrossTheTable() async throws {
+        let model = try panelModel()
+        let body = AppKitServiceBodyView(model: model)
+        body.frame.size = NSSize(width: 320, height: 400)
+        let view = try XCTUnwrap(body.subviews.compactMap { $0 as? StreamingResultTextView }.first)
+        let raw = """
+            Before
+
+            | A | B | C | D | E | F |
+            | --- | --- | --- | --- | --- | --- |
+            | One | AlphaBetaGammaDelta | 三 | 四 | 五 | LastCell |
+
+            After
+            """
+        let result = markdownPanelResult(id: model.addService(.custom), text: raw, phase: .success)
+        model.serviceResults = [result]
+        body.apply(result)
+        try await waitForMarkdownBody { view.string.contains("After") }
+        body.layoutSubtreeIfNeeded()
+
+        let table = try XCTUnwrap(view.subviews.compactMap { $0 as? NSScrollView }.first)
+        let document = try XCTUnwrap(table.documentView)
+        let cellPoint = table.convert(NSPoint(x: 24, y: 24), to: body)
+        let hit = try XCTUnwrap(view.hitTest(cellPoint))
+        XCTAssertTrue(hit.isDescendant(of: table), "The result text view must route pointer input into table cells")
+        XCTAssertTrue(table.hasHorizontalScroller)
+        XCTAssertFalse(table.hasVerticalScroller)
+        XCTAssertGreaterThan(document.frame.width, table.contentSize.width)
+        let end = document.frame.width - table.contentSize.width
+        table.contentView.scroll(to: NSPoint(x: end, y: 0))
+        table.reflectScrolledClipView(table.contentView)
+        XCTAssertEqual(table.contentView.bounds.minX, end, accuracy: 1)
+        XCTAssertEqual(table.contentView.bounds.minY, 0, accuracy: 1)
+        let offset = table.contentView.bounds.minX
+        if let scroll = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2,
+                                wheel1: 0, wheel2: 60, wheel3: 0),
+           let event = NSEvent(cgEvent: scroll) {
+            hit.scrollWheel(with: event)
+            XCTAssertLessThan(table.contentView.bounds.minX, offset)
+        } else {
+            XCTFail("Could not construct horizontal scroll event")
+        }
+
+        let pasteboard = NSPasteboard(name: .init("SevenTests.WideTable.\(UUID())"))
+        defer { pasteboard.releaseGlobally() }
+        view.setSelectedRange(NSRange(location: 0, length: (view.string as NSString).length))
+        XCTAssertTrue(view.copyPlainSelection(to: pasteboard))
+        let copied = try XCTUnwrap(pasteboard.string(forType: .string))
+        XCTAssertTrue(copied.hasPrefix("Before"))
+        XCTAssertTrue(copied.contains("AlphaBetaGammaDelta"))
+        XCTAssertTrue(copied.contains("LastCell"))
+        XCTAssertTrue(copied.hasSuffix("After"))
+        XCTAssertFalse(copied.contains("\u{FFFC}"))
+        let innerText = try XCTUnwrap(document as? StreamingResultTextView)
+        innerText.setSelectedRange((innerText.string as NSString).range(of: "LastCell"))
+        XCTAssertTrue(innerText.copyPlainSelection(to: pasteboard))
+        XCTAssertEqual(pasteboard.string(forType: .string), "LastCell")
+
+        body.frame.size.width = 750
+        _ = body.measuredHeight(for: 750)
+        body.layoutSubtreeIfNeeded()
+        XCTAssertFalse(view.subviews.contains { $0 is NSScrollView })
+        XCTAssertTrue(view.string.contains("LastCell"))
+    }
+
     func testMarkdownBodyHeightStopsAtTheFinalTableBorder() async throws {
         let model = try panelModel()
         let body = AppKitServiceBodyView(model: model)

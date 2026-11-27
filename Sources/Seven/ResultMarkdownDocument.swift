@@ -117,7 +117,11 @@ struct ResultMarkdownDocument: Equatable, Sendable {
                     for (offset, item) in node.children.enumerated() {
                         try checkBudget(depth + 1)
                         var children = try self.blocks(item.children, indent: indent + 1, quote: quote, depth: depth + 2)
-                        let marker = start.map { "\($0 + UInt(offset))." } ?? "•"
+                        let marker = switch (item as? ListItem)?.checkbox {
+                        case .checked: "☑"
+                        case .unchecked: "☐"
+                        case nil: start.map { "\($0 + UInt(offset))." } ?? "•"
+                        }
                         if let first = children.first, first.indent == indent + 1,
                            case .paragraph = first.content, first.quoteDepth == quote {
                             children[0].listMarker = marker

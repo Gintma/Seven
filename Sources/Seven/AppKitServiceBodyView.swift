@@ -37,6 +37,7 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
     }
     private var actionSignature = ""
     private var measuredWidth: CGFloat = 0
+    private var renderedMarkdownWidth: CGFloat = 0
     private var cachedTextHeight: CGFloat = 0
     private var textMeasurementDirty = true
     private var pronunciationButtons: [SpeechContent: SpeechToggleButton] = [:]
@@ -230,16 +231,23 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
             rendersPlainTranslation = false
             renderedPlainText = ""
             textView.usesSimpleTextCursor = false
-            replaceMarkdownText(ResultMarkdownRenderer(palette: palette).render(document))
+            let width = measuredWidth > 0 ? measuredWidth : TranslationPanelSize.defaultWidth - Design.Space.l * 2 - Design.Space.blockInset * 2
+            renderMarkdown(document, width: width)
         case .failure:
             textView.usesSimpleTextCursor = true
             updatePlainText(snapshot.text, progressively: false, batches: true)
         }
     }
 
-    private func replaceMarkdownText(_ text: NSAttributedString) {
+    private func renderMarkdown(_ document: ResultMarkdownDocument, width: CGFloat) {
+        renderedMarkdownWidth = width
+        let text = ResultMarkdownRenderer(palette: palette).render(document, availableWidth: width)
+        replaceMarkdownText(text, markdown: true)
+    }
+
+    private func replaceMarkdownText(_ text: NSAttributedString, markdown: Bool = false) {
         onMarkdownReflow?()
-        textView.replace(with: text, preservingSelection: true)
+        textView.replace(with: text, preservingSelection: true, markdown: markdown)
     }
 
     func speechText(for result: TranslationServiceResult) -> String {
@@ -274,6 +282,10 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
             // 词形按整组换行；宽度变化时重排正文和按钮位置，原始结果不变。
             if let result, result.dictionaryEntry != nil {
                 updateText(for: result, previousPhase: result.phase)
+            } else if isShowingRichMarkdown, !renderingSuspended, abs(renderedMarkdownWidth - safeWidth) > 0.5,
+                      let (_, parsed) = lastMarkdown, case .success(let document) = parsed.document,
+                      document.blocks.contains(where: { if case .table = $0.content { return true }; return false }) {
+                renderMarkdown(document, width: safeWidth)
             }
             textMeasurementDirty = true
         }
@@ -614,10 +626,10 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
     }
 
     func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
-        guard !renderingSuspended, textView === self.textView,
+        guard !renderingSuspended, textView === self.textView || textView.isDescendant(of: self.textView),
               let storage = textView.textStorage, (0..<storage.length).contains(charIndex) else { return true }
         let displayedLink = storage.attribute(.link, at: charIndex, effectiveRange: nil)
-        if let token = link as? String, displayedLink as? String == token, let term = dictionaryTerms[token] {
+        if textView === self.textView, let token = link as? String, displayedLink as? String == token, let term = dictionaryTerms[token] {
             model.translateTerm(term)
         } else if model.rendersCustomResultsAsMarkdown, isShowingRichMarkdown,
                   let url = link as? URL, displayedLink as? URL == url, let window {

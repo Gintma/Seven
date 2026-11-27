@@ -8,6 +8,44 @@ final class StreamingResultTextView: NSTextView {
     private var palette = ThemePalette.system
     var copiesSelectionAsPlainText = false
     var usesSimpleTextCursor = false
+    private var drawsMarkdownDecorations = false
+    private var containsWideTables = false
+    private var wideTables: [Int: ResultMarkdownTableScrollView] = [:]
+
+    override func draw(_ dirtyRect: NSRect) {
+        if drawsMarkdownDecorations { ResultMarkdownDecoration.draw(in: self, dirtyRect: dirtyRect, palette: palette) }
+        super.draw(dirtyRect)
+    }
+
+    override func layout() {
+        super.layout()
+        layoutWideTables()
+    }
+
+    private func layoutWideTables() {
+        if !containsWideTables, wideTables.isEmpty { return }
+        guard let storage = textStorage, let layout = layoutManager, let container = textContainer else { return }
+        layout.ensureLayout(for: container)
+        var active = Set<Int>()
+        storage.enumerateAttribute(ResultMarkdownWideTable.attribute, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
+            guard let table = value as? ResultMarkdownWideTable else { return }
+            let glyphs = layout.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            guard glyphs.length > 0 else { return }
+            let rect = layout.boundingRect(forGlyphRange: glyphs, in: container)
+            let origin = textContainerOrigin
+            let frame = NSRect(x: rect.minX + origin.x, y: rect.minY + origin.y,
+                               width: max(0, bounds.width - rect.minX - origin.x), height: table.height)
+            guard frame.width > 0, frame.height > 0 else { return }
+            let tableView = wideTables[table.blockIndex] ?? ResultMarkdownTableScrollView()
+            if tableView.superview == nil { addSubview(tableView) }
+            tableView.apply(table, frame: frame, delegate: delegate)
+            wideTables[table.blockIndex] = tableView
+            active.insert(table.blockIndex)
+        }
+        for index in wideTables.keys.filter({ !active.contains($0) }) {
+            wideTables.removeValue(forKey: index)?.removeFromSuperview()
+        }
+    }
 
     func applyTheme(_ palette: ThemePalette) {
         self.palette = palette
@@ -186,7 +224,7 @@ final class StreamingResultTextView: NSTextView {
         RunLoop.main.add(timer, forMode: .common)
     }
 
-    func replace(with value: NSAttributedString, preservingSelection: Bool = false) {
+    func replace(with value: NSAttributedString, preservingSelection: Bool = false, markdown: Bool = false) {
         let oldText = string as NSString
         let anchors = preservingSelection ? selectedRanges.compactMap { item -> ResultTextAnchor? in
             let range = item.rangeValue
@@ -198,7 +236,15 @@ final class StreamingResultTextView: NSTextView {
         pending.setAttributedString(NSAttributedString(string: ""))
         pendingOffset = 0
         revealsInBatches = false
+        drawsMarkdownDecorations = markdown
+        containsWideTables = false
+        if markdown {
+            value.enumerateAttribute(ResultMarkdownWideTable.attribute, in: NSRange(location: 0, length: value.length)) { attachment, _, stop in
+                if attachment != nil { containsWideTables = true; stop.pointee = true }
+            }
+        }
         textStorage?.setAttributedString(value)
+        if containsWideTables || !wideTables.isEmpty { needsLayout = true }
         if !anchors.isEmpty {
             let updated = value.string as NSString
             let ranges = anchors.map { $0.range(in: updated) }.sorted { $0.location < $1.location }
@@ -226,9 +272,18 @@ final class StreamingResultTextView: NSTextView {
         let selections = selectedRanges.compactMap { item -> String? in
             let range = item.rangeValue
             guard range.length > 0, NSMaxRange(range) <= source.length else { return nil }
-            return source.substring(with: range).replacingOccurrences(of: "\u{2028}", with: "\n")
+            guard let textStorage else { return source.substring(with: range) }
+            var text = ""
+            textStorage.enumerateAttributes(in: range) { attributes, part, _ in
+                if let table = attributes[ResultMarkdownWideTable.attribute] as? ResultMarkdownWideTable {
+                    text += table.plainText
+                } else if attributes[ResultMarkdownRenderer.ruleAttribute] == nil {
+                    text += source.substring(with: part)
+                }
+            }
+            return text.replacingOccurrences(of: "\u{2028}", with: "\n")
         }
-        guard !selections.isEmpty else { return false }
+        guard selections.contains(where: { !$0.isEmpty }) else { return false }
         pasteboard.clearContents()
         return pasteboard.setString(selections.joined(separator: "\n"), forType: .string)
     }
