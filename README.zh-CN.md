@@ -9,16 +9,17 @@
 </p>
 
 <p align="center">
-  为日常阅读、写作与屏幕信息处理打造 · 基于 Swift、AppKit、SwiftUI 与 C 构建 · 使用 Sparkle 2 更新
-</p>
-
-<p align="center">
+  <a href="https://github.com/crismakes/Seven/releases/latest"><img src="https://img.shields.io/github/v/release/crismakes/Seven?label=Latest%20Release" alt="Latest Release" /></a>
+  <a href="https://github.com/crismakes/Seven/releases"><img src="https://img.shields.io/github/downloads/crismakes/Seven/total?label=Downloads" alt="Downloads" /></a>
+  <img src="https://img.shields.io/badge/macOS_14%2B-Apple_Silicon_%26_Intel-000000?logo=apple&amp;logoColor=white" alt="macOS 14+ (Apple Silicon &amp; Intel)" />
+  <img src="https://img.shields.io/badge/Apple-Notarized-2ea44f" alt="Apple Notarized" />
   <a href="https://github.com/crismakes/Seven/actions/workflows/ci.yml"><img src="https://github.com/crismakes/Seven/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <img src="https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white" alt="macOS 14+" />
-  <img src="https://img.shields.io/badge/Swift-5.9%2B-F05138?logo=swift&logoColor=white" alt="Swift 5.9+" />
-  <img src="https://img.shields.io/badge/Updates-Sparkle_2-2ea44f" alt="Sparkle 2 更新" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License" /></a>
 </p>
+
+<h3 align="center"><a href="https://github.com/crismakes/Seven/releases/latest">下载最新版本</a></h3>
+
+<p align="center">Apple 签名公证 · 支持应用内自动更新</p>
 
 <p align="center">
   <a href="README.md">English</a> · <strong>简体中文</strong>
@@ -26,84 +27,52 @@
 
 <!-- 视觉预览图 / 演示动图预留位 -->
 
----
-
 ## 为什么选择 Seven
 
-- **AI 原生，自带主流模型** — 统一流式接入 OpenAI、Claude、Gemini、DeepSeek、MiniMax、智谱、Kimi、千问、豆包、OpenRouter 及自定义兼容接口，支持自定义提示词与「翻译并替换」，同时内置 Apple 翻译与离线英汉词典。
-- **一站式屏幕信息效率工作流** — 将跨应用 AI 翻译、冻结截图标注、长截图、悬浮钉图与本机离线 OCR 整合在一个轻量的菜单栏应用里，打通阅读、写作与信息捕捉。
-- **原生 macOS 应用** — 基于 AppKit、SwiftUI、Apple Vision、Apple Translation 与纯 C 滚动配准内核（`ScrollRegistrationCore`）构建，应用更新由 Sparkle 2 提供。
-- **隐私本地优先** — OCR 全程通过 Apple Vision 在本机完成，自备 API Key 按实例存在本地受限权限文件（`0700`/`0600`），无任何统计上报或后台遥测。
-- **贴合 macOS 原生体验** — 原生悬浮滚动条、30 套内置浅/深主题与系统默认外观、减弱动态效果适配，并支持 6 种界面语言（简中、繁中、英、日、韩、西）。
-
----
+一个轻量原生菜单栏应用，替代平时要分开安装的三类工具。跨应用用 AI 翻译和改写文字，截屏或滚动截长图并标注、钉在桌面上，也能直接在本机提取图片文字。Seven 采用 MIT 协议开源，使用 Developer ID 签名并通过 Apple 公证。
 
 ## 核心功能
 
-### 翻译与原地替换
+### 跨应用翻译与改写
 
-- **多入口触发** — 支持输入翻译、跨应用划词翻译（`⌥D`）、截图翻译（`⌥S`），以及「翻译并替换」（`⌃⌥T`），写回前会核对目标进程、编辑控件与 UTF-16 选区。
-- **内置 + 自带密钥服务** — 内置 Apple 翻译、离线简明英汉词典（ECDICT）、有道与 Google；自带密钥服务统一流式输出，支持 OpenAI、Claude、Gemini、DeepSeek、MiniMax、智谱、Kimi、千问、豆包、OpenRouter 与自定义兼容接口。
-- **智能语言路由与自定义提示词** — 第一/第二语言自动识别与固定目标语言切换，流式输出尊重你的阅读滚动位置，并提供语音朗读、多服务翻译历史、独立收藏夹和 JSON／Markdown 导出。
-  - 自定义模式使用一段提示词。`{{target}}` 代表窗口选定的目标语言，`{{firstLanguage}}` 代表设置中的第一语言。用 `{{text}}` 指定原文出现的位置时，整段提示词会作为一条用户消息发送。省略 `{{text}}` 时，Seven 先发送系统提示词，再把原文作为一条单独的用户消息发送。
+- **在手头的应用里翻译** —— 划词、输入或截图即可翻译，也可以用「翻译并替换」将结果写回原输入框。
+- **自选翻译服务** —— 支持 Apple 翻译、有道、Google 和可下载的离线英汉词典，也可用自己的 API Key 接入 OpenAI、Claude、Gemini 等服务或自定义兼容接口，流式查看结果。
+- **AI 自定义结果的原生 Markdown 排版（已进入 `main`）** —— 在结果卡片中直接阅读表格、引用和列表，单个代码块可一键复制。Markdown 排版下按纯文本朗读，跳过代码块和链接地址。
 
-### 截图、长截图与钉图
+<details>
+<summary>自定义提示词变量与消息发送规则</summary>
 
-- **冻结选区与智能选区** — 支持悬停点选整窗、手动拖选、按住 `⌘` 多窗口合成、按住 `⇧` 正方形、`F` 全屏、`R` 恢复上次选区、`C` 取色复制 HEX；开启智能选区后还可识别窗口内的面板、按钮、输入框和图片。
-- **无损标注与输出** — 提供马赛克、形状箭头、聚焦遮罩、序号/圆点标注与多样式文字，支持完整撤销/重做，导出保留原图像素（PNG/JPG），并支持系统共享菜单。
-- **手动滚动长截图** — 纯 C 图像配准内核支持向上与向下滚动实时拼接，附带清晰悬浮预览并保留原始导出分辨率。
-- **悬浮钉图** — 支持将截图、剪贴板图片或纯文字排版钉在屏幕上，滚轮调节缩放与不透明度，支持原位二次编辑标注且不影响导出像素。
+自定义模式使用一段提示词。`{{target}}` 插入当前选定的目标语言，`{{firstLanguage}}` 插入设置中的第一语言。
 
-### 本机 OCR 与图片输入
+- 包含 `{{text}}` 时，Seven 在指定位置插入原文，将展开后的整段提示词作为一条用户消息发送。
+- 省略 `{{text}}` 时，Seven 将提示词作为系统消息发送，再把原文作为一条独立的用户消息发送。
 
-- **离线文字识别** — 独立 OCR 提供原图对照与可编辑分栏窗口，支持原图直接拖选复制、缩放平移、智能排版、一键翻译与导出 TXT；静默 OCR 识别后直接将文字写入剪贴板。
-- **灵活图片入口** — 支持 `PNG`、`JPEG`、`HEIC`、`TIFF`、`BMP`、`GIF`、`WebP`；「打开本地图片…」进入截图编辑，Finder「打开方式 → Seven」、拖入窗口与剪贴板 OCR 直接进入本机识别。
+</details>
 
----
+### 截图、标注与钉图
 
-## 安装与构建
+- **选准画面再标注** —— 冻结屏幕后框选区域或点选窗口，添加箭头、形状、序号或马赛克，再按原始分辨率导出。
+- **滚动截取长图** —— 向上或向下滚动时实时拼接，边截边预览，保留完整分辨率。
+- **让参考内容留在眼前** —— 将截图、剪贴板图片或纯文字钉在其他窗口上方，可调节缩放和不透明度。
 
-### 系统要求
+### 在本机提取文字
 
-- **macOS 14.0（Sonoma）** 及以上版本
-- **Xcode 15+ / Swift 5.9+** 用于从源码构建。应用打包脚本需要 Xcode 26 或更新版本来编译分层图标。
+- **对照原图处理文字** —— 直接在图上选字，对照原图编辑识别结果，再翻译或导出 TXT。静默 OCR 会将识别结果直接复制到剪贴板。
+- **从屏幕或图片开始** —— 框选屏幕区域，或通过 Finder、拖放、剪贴板将图片送入 OCR。
 
-### 下载使用
+## 下载
 
-预编译版本将发布在 [GitHub Releases](https://github.com/crismakes/Seven/releases)。
+支持 **macOS 14.0（Sonoma）及以上版本**，兼容 Apple 芯片和 Intel Mac。
 
-### 从源码构建
+1. 在 **Assets** 中下载并打开 `.dmg`，也可以下载并解压 `.zip`。 [GitHub 最新版本](https://github.com/crismakes/Seven/releases/latest)
+2. 将 **Seven** 拖入 **Applications（应用程序）**，再从应用程序文件夹打开。
 
-```sh
-git clone https://github.com/crismakes/Seven.git
-cd Seven
+Seven 会自动检查更新。你也可以在「设置 → 关于」手动检查，或开启「自动下载并安装」。已签名并公证的版本列在[更新源](appcast.xml)中。
 
-# 没有 Developer ID Application 证书时，先创建本机开发签名身份
-./setup-local-signing.sh
+跨应用划词、「翻译并替换」和可选的智能选区需要**辅助功能**权限。截图、长截图、截图翻译和屏幕 OCR 需要**屏幕录制**权限。
 
-# 构建并签名当前架构的 Seven.app
-./build-app.sh release
-open Seven.app
-```
-
-打包需要 Xcode 26 或更新版本，SwiftPM 首次解析时会下载已锁定的 Sparkle 依赖。脚本优先使用 `SEVEN_SIGN_IDENTITY` 指定的证书全名或 SHA-1 指纹，其次查找钥匙串搜索列表中的 Developer ID Application 身份，最后使用本机开发签名。`--local-signing` 跳过自动查找 Developer ID，`--universal` 同时构建 Apple 芯片与 Intel 版本。
-
-### 应用更新与发布打包
-
-Seven 会在后台按计划检查更新。在「设置 → 关于」可以手动检查、打开当前版本的发布页，或开启自动下载并安装。Sparkle 可以在 Seven 退出时安装已下载的更新。发现新版本后，更新入口会出现在菜单栏下拉菜单和设置侧栏。具备 Developer ID 签名并配置更新源和公钥的正式发布包才启用 Sparkle。
-
-1. 安装 Developer ID Application 证书及其私钥。运行 `swift package resolve`，再运行 `.build/artifacts/sparkle/Sparkle/bin/generate_keys --account seven`。将公开密钥填入 `Info.plist` 的 `SUPublicEDKey`，私钥保留在钥匙串。
-2. 运行 `xcrun notarytool store-credentials <配置名>`，将 `SEVEN_NOTARY_PROFILE` 设置为该配置名。
-3. 在 `Info.plist` 设置发布版本并递增 `CFBundleVersion`。退出 Seven 后运行 `./Tools/release.sh`，如需同时生成签名和公证的磁盘映像，追加 `--dmg`。
-4. 将 `dist/v<版本>/` 中的产物上传到 GitHub Release `v<版本>`，随后将更新后的 `appcast.xml` 发布到 `main`。
-
-在 macOS 桌面会话中运行 `./Tools/build-dmg.sh Seven.app dist/preview/Seven-preview.dmg` 可预览安装窗口。预览 DMG 未签名，无需公证凭据。
-
-正式包首次以 `com.crissun.seven` 启动时，若新偏好域为空，会复制旧安装的设置。macOS 可能要求为新的应用身份重新授权辅助功能和录屏。
-
----
-
-## 默认快捷键与权限说明
+<details>
+<summary>默认快捷键</summary>
 
 | 功能 | 默认快捷键 |
 |---|---|
@@ -115,32 +84,42 @@ Seven 会在后台按计划检查更新。在「设置 → 关于」可以手动
 | 框选 OCR | `⌃⌥O` |
 | 其他截图、图片、OCR 与钉图操作 | 默认未设置 |
 
-- **辅助功能权限**：仅用于跨应用划词读取、「翻译并替换」安全写回，以及可选的智能选区控件识别。
-- **屏幕录制权限**：仅用于截图框选、滚动长截图、截图翻译与屏幕 OCR。
+</details>
 
----
+## 隐私
 
-## 隐私与本地数据
+- **零遥测** —— Seven 不收集使用统计。
+- **凭据留在本机** —— API Key 按服务实例存入本地文件，目录权限为 `0700`，文件权限为 `0600`。导出和日志均不包含密钥。
+- **本机 OCR** —— Apple Vision 在本机识别文字。使用在线翻译时，文本会发给所选服务。若本机语种识别不确定，所选联网检测服务（默认有道）最多可收到 500 个字符的翻译输入，也可在设置中选择仅本机识别。语音合成默认使用有道，主动朗读时才请求在线语音。
+- **技术诊断** —— 正式版隐藏诊断入口。开发版日志只记录技术事件、耗时、尺寸等指标，不记录原文、译文、剪贴板或 OCR 内容、图像、窗口标题和凭据。
 
-- **零遥测**：不收集使用统计。
-- **本地凭据隔离**：自带密钥服务的 API Key 按实例保存在 `~/Library/Application Support/Seven/credentials.json`（目录权限 `0700`、文件权限 `0600`），绝不进入历史或诊断导出。
-- **本机离线 OCR**：截图与图片文字识别均由 Apple Vision 在本机完成。翻译输入的本机语种识别不确定时，Seven 会将最多 500 个字符发送给所选的联网识别服务，默认使用有道。可在设置中选择仅本机识别。语音合成默认使用有道，主动朗读时才请求在线语音。
-- **诊断日志边界**：正式 Release 隐藏诊断入口；开发包中诊断日志仅记录技术事件与脱敏指标（耗时、数量、像素尺寸、错误类型等），严禁记录原文、译文、剪贴板/OCR 文本、截图图像、窗口标题与凭据。
+## 从源码构建
 
----
+<details>
+<summary>构建、测试与打包 Seven</summary>
 
-## 开发
+从源码构建和打包使用 **Xcode 26 或更新版本**。项目声明的 Swift 工具版本为 5.9，锁定的 Markdown 依赖实际要求 **Swift 6.2 或更新版本**，Xcode 26 已包含该工具链。
 
 ```sh
-swift build                                # 必须零警告
-swift test                                 # 离线单元测试与回归套件
-./build-app.sh release --variant dev       # 独立凭据、翻译历史和收藏数据的开发试用包（Seven-dev.app）
+git clone https://github.com/crismakes/Seven.git
+cd Seven
+
+swift build
+swift test
+
+# 没有 Developer ID Application 签名身份时执行一次
+./setup-local-signing.sh
+
+./build-app.sh release
+open Seven.app
 ```
 
-工程规范、代码结构与各模块契约见 [AGENTS.md](AGENTS.md)。
+SwiftPM 首次构建时下载锁定的依赖。打包脚本优先使用 `SEVEN_SIGN_IDENTITY` 指定的证书全名或 SHA-1 指纹，其次查找钥匙串搜索列表中的 Developer ID Application，最后使用本机开发签名。可用 `--local-signing` 跳过 Developer ID 自动查找，或用 `--universal` 同时打包 Apple 芯片与 Intel 版本。需要独立的开发试用包时，运行 `./build-app.sh release --variant dev`。
 
----
+参阅[工程规范](AGENTS.md)和[维护者发版指南](Docs/Release.md)。
 
-## 维护说明与开源协议
+</details>
 
-Seven 采用 [MIT 协议](LICENSE) 开源，由作者独立维护。欢迎通过 [GitHub Issues](https://github.com/crismakes/Seven/issues) 反馈缺陷或提出功能建议，暂不接受外部 Pull Request。
+## 开源协议与反馈
+
+Seven 采用 [MIT 协议](LICENSE)开源。欢迎在 [GitHub Issues](https://github.com/crismakes/Seven/issues) 反馈问题或提出功能建议。
