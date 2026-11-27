@@ -44,18 +44,8 @@ Replace three separate utilities with one lightweight, native menu bar app. Tran
 - **Screenshot translation** — Press `⌥S` and select text you can't highlight, such as text in an image or subtitles. Seven recognizes the text on your Mac and passes it to the translation panel.
 - **Translate & Replace** — Select text in an editable field and press `⌃⌥T`. Seven verifies the original field and selection before writing the translation back.
 - **Translation services and read-aloud** — Use Apple Translation, Youdao, Google, or a downloadable offline English–Chinese dictionary. Bring an API key for streaming services such as OpenAI, Claude, Gemini, and DeepSeek, or use a compatible endpoint. Copy or listen to the input and results.
-- **Custom AI prompts (Markdown rendering on `main`)** — Summarize, rewrite, or extract key points in the same panel. Result cards render tables, block quotes, and lists natively and let you copy individual code blocks. Plain-text read-aloud skips code blocks and link URLs.
+- **Custom AI prompts** — Summarize, rewrite, or pull out key points in the translation panel, with readable Markdown results and one-click code copying.
 - **History and favorites** — Search original text and translations across services, keep favorites in a separate collection, and export either collection as JSON or Markdown.
-
-<details>
-<summary>Custom prompt variables and message routing</summary>
-
-Custom mode uses one prompt. `{{target}}` inserts the selected target language, and `{{firstLanguage}}` inserts your first language from Settings.
-
-- With `{{text}}`, Seven inserts the source text at that position and sends the expanded prompt as a single user message.
-- Without `{{text}}`, Seven sends the prompt as a system message and the source text as a separate user message.
-
-</details>
 
 ### Capture, annotate, and pin
 
