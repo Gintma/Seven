@@ -33,6 +33,10 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
     var layoutHeightConstraints: [NSLayoutConstraint] { [cardHeightConstraint] }
     var renderedHeight: CGFloat { cardHeightConstraint.constant }
     private static let bodyHorizontalInsets = Design.Space.blockInset * 2
+    private var bodyMeasurementWidth: CGFloat {
+        let cardWidth = bounds.width > 1 ? bounds.width : TranslationPanelSize.defaultContentWidth
+        return max(180, cardWidth - Self.bodyHorizontalInsets)
+    }
     var isRevealing: Bool { bodyView.isRevealing }
     var onVisibleTextChange: (() -> Void)?
     var onMarkdownReflow: (() -> Void)?
@@ -144,8 +148,7 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
         updateProgress()
         let nextBodyHeight: CGFloat
         if showsBody {
-            let contentWidth = max(180, bounds.width > 1 ? bounds.width - Self.bodyHorizontalInsets : 480)
-            bodyContentHeight = ceil(bodyView.measuredHeight(for: contentWidth))
+            bodyContentHeight = ceil(bodyView.measuredHeight(for: bodyMeasurementWidth))
             nextBodyHeight = bodyContentHeight + 16
         } else {
             nextBodyHeight = 0
@@ -174,7 +177,7 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
     func updateVisibleBodyHeight() {
         updateProgress()
         guard lastShowsBody else { return }
-        bodyContentHeight = ceil(bodyView.measuredHeight(for: max(180, bounds.width - Self.bodyHorizontalInsets)))
+        bodyContentHeight = ceil(bodyView.measuredHeight(for: bodyMeasurementWidth))
         _ = setBodyHeight(bodyContentHeight + 16, animated: false)
         needsLayout = true
     }

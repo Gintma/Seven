@@ -313,16 +313,7 @@ final class StreamingResultTextView: NSTextView {
             let range = item.rangeValue
             guard range.length > 0, NSMaxRange(range) <= source.length else { return nil }
             guard let textStorage else { return source.substring(with: range) }
-            var text = ""
-            textStorage.enumerateAttributes(in: range) { attributes, part, _ in
-                if let table = attributes[ResultMarkdownWideTable.attribute] as? ResultMarkdownWideTable {
-                    text += table.plainText
-                } else if attributes[ResultMarkdownRenderer.ruleAttribute] == nil,
-                          attributes[ResultMarkdownCodeHeader.attribute] == nil {
-                    text += source.substring(with: part)
-                }
-            }
-            return text.replacingOccurrences(of: "\u{2028}", with: "\n")
+            return ResultMarkdownRenderer.plainText(in: textStorage, range: range)
         }
         guard selections.contains(where: { !$0.isEmpty }) else { return false }
         pasteboard.clearContents()

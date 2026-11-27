@@ -37,7 +37,7 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
     }
     private var actionSignature = ""
     private var measuredWidth: CGFloat = 0
-    private var renderedMarkdownWidth: CGFloat = 0
+    private var renderedMarkdownWidth: CGFloat?
     private var cachedTextHeight: CGFloat = 0
     private var textMeasurementDirty = true
     private var pronunciationButtons: [SpeechContent: SpeechToggleButton] = [:]
@@ -137,29 +137,29 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
         pronunciationLocations.removeAll()
         let plain = result.dictionaryEntry == nil && (result.phase == .streaming || result.phase == .success)
         let markdownEnabled = model.rendersCustomResultsAsMarkdown
-        let displayChanged = wasMarkdownEnabled != markdownEnabled
+        let requestChanged = markdownRequestID != result.markdownOutput?.requestID
+        if markdownRequestID != nil, requestChanged || (wasMarkdownEnabled && !markdownEnabled) {
+            markdownUpdates.reset()
+            lastMarkdown = nil
+            loggedMarkdownFallback = nil
+            markdownNeedsRestyle = false
+        }
         wasMarkdownEnabled = markdownEnabled
 
-        if markdownRequestID != result.markdownOutput?.requestID {
-            if markdownRequestID != nil { markdownUpdates.reset() }
-            if markdownRequestID != nil || result.markdownOutput != nil {
-                lastMarkdown = nil
-                loggedMarkdownFallback = nil
-                isShowingRichMarkdown = false
-                markdownNeedsRestyle = false
-                textView.usesSimpleTextCursor = false
-                rendersPlainTranslation = false
-                renderedPlainText = ""
-                textView.replace(with: NSAttributedString(string: ""))
-            }
+        if requestChanged {
+            isShowingRichMarkdown = false
+            textView.usesSimpleTextCursor = false
+            rendersPlainTranslation = false
+            renderedPlainText = ""
+            textView.replace(with: NSAttributedString(string: ""))
             markdownRequestID = result.markdownOutput?.requestID
         }
 
         textView.copiesSelectionAsPlainText = plain && result.markdownOutput != nil && markdownEnabled
-        if let output = result.markdownOutput, !result.text.isEmpty {
+        if markdownEnabled, let output = result.markdownOutput, !result.text.isEmpty {
             markdownUpdates.submit(MarkdownSnapshot(output: output, text: result.text))
-            if plain && markdownEnabled {
-                if let (snapshot, parsed) = lastMarkdown, displayChanged || markdownNeedsRestyle {
+            if plain {
+                if markdownNeedsRestyle, let (snapshot, parsed) = lastMarkdown {
                     displayMarkdown(snapshot, parsed: parsed)
                 }
                 return
@@ -204,7 +204,8 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
     }
 
     private func receiveMarkdown(_ snapshot: MarkdownSnapshot, parsed: MarkdownParseResult) {
-        guard !renderingSuspended, let result, result.markdownOutput?.requestID == snapshot.output.requestID,
+        guard wasMarkdownEnabled, !renderingSuspended,
+              let result, result.markdownOutput?.requestID == snapshot.output.requestID,
               let current = model.serviceResults.first(where: { $0.id == result.id })?.markdownOutput,
               current.requestID == snapshot.output.requestID,
               current.status != .completed || snapshot.output.status == .completed else { return }
@@ -218,7 +219,7 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
                 ])
             }
         }
-        if model.rendersCustomResultsAsMarkdown, result.phase == .streaming || result.phase == .success {
+        if result.phase == .streaming || result.phase == .success {
             displayMarkdown(snapshot, parsed: parsed)
         }
         onMarkdownSpeechChange?()
@@ -232,15 +233,14 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
             rendersPlainTranslation = false
             renderedPlainText = ""
             textView.usesSimpleTextCursor = false
-            let width = measuredWidth > 0 ? measuredWidth : TranslationPanelSize.defaultWidth - Design.Space.l * 2 - Design.Space.blockInset * 2
-            renderMarkdown(document, width: width)
+            renderMarkdown(document, width: measuredWidth > 0 ? measuredWidth : nil)
         case .failure:
             textView.usesSimpleTextCursor = true
             updatePlainText(snapshot.text, progressively: false, batches: true)
         }
     }
 
-    private func renderMarkdown(_ document: ResultMarkdownDocument, width: CGFloat) {
+    private func renderMarkdown(_ document: ResultMarkdownDocument, width: CGFloat?) {
         renderedMarkdownWidth = width
         let text = ResultMarkdownRenderer(palette: palette).render(document, availableWidth: width)
         replaceMarkdownText(text, markdown: true)
@@ -252,11 +252,13 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
     }
 
     func speechText(for result: TranslationServiceResult) -> String {
-        guard let output = result.markdownOutput else { return result.text }
+        guard model.rendersCustomResultsAsMarkdown, let output = result.markdownOutput else { return result.text }
         guard !result.text.isEmpty, let (snapshot, parsed) = lastMarkdown,
-              snapshot.output.requestID == output.requestID,
-              case .success(let document) = parsed.document else { return "" }
-        return document.speechText
+              snapshot.output.requestID == output.requestID else { return "" }
+        switch parsed.document {
+        case .success(let document): return document.speechText
+        case .failure: return result.text
+        }
     }
 
     func readingAnchor(at y: CGFloat, in document: NSView) -> (() -> CGFloat?)? {
@@ -283,9 +285,9 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
             // 词形按整组换行；宽度变化时重排正文和按钮位置，原始结果不变。
             if let result, result.dictionaryEntry != nil {
                 updateText(for: result, previousPhase: result.phase)
-            } else if isShowingRichMarkdown, !renderingSuspended, abs(renderedMarkdownWidth - safeWidth) > 0.5,
+            } else if isShowingRichMarkdown, !renderingSuspended, renderedMarkdownWidth != safeWidth,
                       let (_, parsed) = lastMarkdown, case .success(let document) = parsed.document,
-                      document.blocks.contains(where: { if case .table = $0.content { return true }; return false }) {
+                      document.hasWidthDependentLayout {
                 renderMarkdown(document, width: safeWidth)
             }
             textMeasurementDirty = true

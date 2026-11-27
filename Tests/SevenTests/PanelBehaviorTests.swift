@@ -675,8 +675,46 @@ extension PanelBehaviorTests {
         model.rendersCustomResultsAsMarkdown = false
         publish(result)
         XCTAssertEqual(view.string, result.text)
-        XCTAssertEqual(body.speechText(for: result), "Latest Label")
+        XCTAssertEqual(body.speechText(for: result), result.text)
         XCTAssertFalse(view.copiesSelectionAsPlainText)
+
+        model.rendersCustomResultsAsMarkdown = true
+        publish(result)
+        try await waitForMarkdownBody { view.string == "Latest Label" }
+        XCTAssertEqual(body.speechText(for: result), "Latest Label")
+    }
+
+    func testDisablingMarkdownCancelsPendingParsingAndReadsLatestLiteralResult() async throws {
+        let model = try panelModel()
+        let body = AppKitServiceBodyView(model: model)
+        var result = markdownPanelResult(id: model.addService(.custom), text: "**Pending**", phase: .streaming)
+        func publish() {
+            model.serviceResults = [result]
+            body.apply(result)
+        }
+
+        let disabledParse = expectation(description: "Markdown parsing must not deliver after disabling the setting")
+        disabledParse.isInverted = true
+        body.onMarkdownSpeechChange = { disabledParse.fulfill() }
+        publish()
+        XCTAssertEqual(body.speechText(for: result), "")
+
+        model.rendersCustomResultsAsMarkdown = false
+        publish()
+        result.text = "Latest [label](https://example.com)\n\n```text\ncode\n```"
+        result.markdownOutput?.status = .completed
+        result.phase = .success
+        publish()
+        XCTAssertEqual(body.speechText(for: result), result.text)
+        await fulfillment(of: [disabledParse], timeout: 0.4)
+        XCTAssertEqual(body.speechText(for: result), result.text)
+
+        let enabledParse = expectation(description: "Reenabling Markdown parses the latest result")
+        body.onMarkdownSpeechChange = { enabledParse.fulfill() }
+        model.rendersCustomResultsAsMarkdown = true
+        publish()
+        await fulfillment(of: [enabledParse], timeout: 2)
+        XCTAssertEqual(body.speechText(for: result), "Latest label")
     }
 
     func testMarkdownWideTableHasIndependentHorizontalScrollAndCopiesAcrossTheTable() async throws {
@@ -780,7 +818,7 @@ extension PanelBehaviorTests {
         XCTAssertTrue(intermediate)
         XCTAssertEqual(view.string, raw)
         XCTAssertFalse(view.isRevealing)
-        XCTAssertEqual(body.speechText(for: result), "")
+        XCTAssertTrue(body.speechText(for: result) == raw, "朗读降级结果时使用完整的纯文本")
     }
 
     func testMarkdownRestyleKeepsReadingLineAtViewportEdge() async throws {

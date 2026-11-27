@@ -7,6 +7,7 @@ struct ResultMarkdownRenderer {
     static let codeBlockAttribute = NSAttributedString.Key("SevenMarkdownCodeBlock")
     static let quoteDepthAttribute = NSAttributedString.Key("SevenMarkdownQuoteDepth")
     static let ruleAttribute = NSAttributedString.Key("SevenMarkdownRule")
+    private static let lineBreak = "\u{2028}"
     private static let minimumTableColumnWidth: CGFloat = 64
 
     func render(_ document: ResultMarkdownDocument, availableWidth: CGFloat? = nil) -> NSAttributedString {
@@ -60,6 +61,19 @@ struct ResultMarkdownRenderer {
             }
         }
         return output
+    }
+
+    static func plainText(in storage: NSAttributedString, range: NSRange) -> String {
+        let source = storage.string as NSString
+        var text = ""
+        storage.enumerateAttributes(in: range) { attributes, part, _ in
+            if let table = attributes[ResultMarkdownWideTable.attribute] as? ResultMarkdownWideTable {
+                text += table.plainText
+            } else if attributes[ruleAttribute] == nil, attributes[ResultMarkdownCodeHeader.attribute] == nil {
+                text += source.substring(with: part)
+            }
+        }
+        return text.replacingOccurrences(of: lineBreak, with: "\n")
     }
 
     private func appendCode(_ code: ResultMarkdownCode, index: Int, paragraph: NSParagraphStyle,
@@ -121,7 +135,7 @@ struct ResultMarkdownRenderer {
         if let marker { output.append(attributed(.init(text: marker + "\t"), paragraph: paragraph, size: size)) }
         for var run in runs {
             if run.text == "\n" {
-                run = .init(text: "\u{2028}", style: run.style, link: run.link, speaks: run.speaks)
+                run = .init(text: Self.lineBreak, style: run.style, link: run.link, speaks: run.speaks)
             }
             output.append(attributed(run, paragraph: paragraph, size: size, bold: bold))
         }

@@ -105,8 +105,8 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         rootStack.translatesAutoresizingMaskIntoConstraints = false
         documentView.addSubview(rootStack)
         NSLayoutConstraint.activate([
-            rootStack.leadingAnchor.constraint(equalTo: documentView.leadingAnchor, constant: Design.Space.l),
-            rootStack.trailingAnchor.constraint(equalTo: documentView.trailingAnchor, constant: -Design.Space.l),
+            rootStack.leadingAnchor.constraint(equalTo: documentView.leadingAnchor, constant: TranslationPanelSize.horizontalContentInset),
+            rootStack.trailingAnchor.constraint(equalTo: documentView.trailingAnchor, constant: -TranslationPanelSize.horizontalContentInset),
             rootStack.topAnchor.constraint(equalTo: documentView.topAnchor, constant: Self.topInset)
         ])
 
@@ -273,9 +273,9 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
     private var issueContentWidth: CGFloat {
         let stackWidth = rootStack.bounds.width
         if stackWidth.isFinite, stackWidth > 1 { return stackWidth }
-        let documentWidth = documentView.bounds.width - 2 * Design.Space.l
+        let documentWidth = documentView.bounds.width - 2 * TranslationPanelSize.horizontalContentInset
         if documentWidth.isFinite, documentWidth > 1 { return documentWidth }
-        return TranslationPanelSize.defaultWidth - 2 * Design.Space.l
+        return TranslationPanelSize.defaultContentWidth
     }
 
     private func issueHeightChanged(to height: CGFloat) {

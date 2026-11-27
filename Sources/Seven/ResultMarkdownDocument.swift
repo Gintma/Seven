@@ -39,6 +39,13 @@ struct ResultMarkdownDocument: Equatable, Sendable {
     let blocks: [Block]
     let speechText: String
 
+    var hasWidthDependentLayout: Bool {
+        blocks.contains { block in
+            if case .table = block.content { return true }
+            return false
+        }
+    }
+
     enum Fallback: String, Error, Equatable, Sendable {
         case sourceSize, complexity
     }
