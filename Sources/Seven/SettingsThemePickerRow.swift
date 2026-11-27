@@ -39,9 +39,7 @@ private struct SettingsThemeMenu: NSViewRepresentable {
         for preset in ThemePreset.choices(for: variant) {
             button.addItem(withTitle: preset.title)
             button.lastItem?.representedObject = preset.id
-            if preset.id != ThemePalette.systemID {
-                button.lastItem?.image = swatchImage(preset.swatch(for: variant))
-            }
+            button.lastItem?.image = swatchImage(preset.swatch(for: variant))
         }
         return button
     }
@@ -53,7 +51,21 @@ private struct SettingsThemeMenu: NSViewRepresentable {
         let systemPalette = theme.isSystem && theme.variant == variant ? theme : ThemeResolver.system(variant)
         let systemItem = button.itemArray.first { ($0.representedObject as? String) == ThemePalette.systemID }
         systemItem?.image = swatchImage(systemPalette.swatch)
-        button.select(button.itemArray.first { ($0.representedObject as? String) == selection } ?? systemItem)
+        button.select(selectedItem(in: button))
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView button: NSPopUpButton, context: Context) -> CGSize? {
+        guard let item = selectedItem(in: button) else { return nil }
+        // AppKit 默认按最长菜单项取宽度，用单项原生 cell 测量当前选项。
+        let cell = NSPopUpButtonCell(textCell: item.title, pullsDown: false)
+        cell.controlSize = button.controlSize
+        cell.font = button.font
+        cell.selectedItem?.image = item.image
+        return cell.cellSize
+    }
+
+    private func selectedItem(in button: NSPopUpButton) -> NSMenuItem? {
+        button.itemArray.first { ($0.representedObject as? String) == selection } ?? button.itemArray.first
     }
 
     private func swatchImage(_ colors: ThemePalette.Swatch) -> NSImage {
