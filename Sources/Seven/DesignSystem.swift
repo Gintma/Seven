@@ -5,7 +5,7 @@ import SwiftUI
 /// 浮窗（AppKit）与设置、历史（SwiftUI）都从这里取值；其他文件不要直接写字号或时长数字。
 /// 原则：
 /// 1. 内容是主角，工具退后：原文与结果用“内容”字号，按钮与耗时用次要色。
-/// 2. 强调色只表示状态（钉住、成功、选中、焦点），不做装饰；红色只表示错误，橙色只表示警告。
+/// 2. 交互强调色表示状态（钉住、成功、选中、焦点），错误和警告使用各自的语义色。品牌及功能图标可使用独立识别色。
 /// 3. 动效只回答“点上了吗”与“状态变了吗”。
 enum Design {
     enum Onboarding {
@@ -214,6 +214,15 @@ enum Design {
         static let logMinimumHeight: CGFloat = 240
         /// 关于页的现有应用图标展示尺寸。
         static let aboutIconSize: CGFloat = 80
+        /// 侧栏功能图标的连续圆角方块及内部符号。
+        static let sidebarIconSize: CGFloat = 20
+        static let sidebarIconRadius: CGFloat = 5.5
+        static let sidebarIconBorderWidth: CGFloat = 0.5
+        static let sidebarSymbolSize: CGFloat = 12
+        /// 放大图形较窄的书本和图钉，保持与其他符号的视觉重量接近。
+        static let sidebarLargeSymbolSize: CGFloat = 13
+        static let sidebarIconShadowRadius: CGFloat = 1.2
+        static let sidebarIconShadowOffset: CGFloat = 1
         static let navigationWidth: CGFloat = 180
         static let windowWidth: CGFloat = 820
         static let minimumHeight: CGFloat = 560

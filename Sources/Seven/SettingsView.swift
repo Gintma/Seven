@@ -57,20 +57,23 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 #endif
         }
     }
-    var icon: String {
+    var sidebarIcon: SettingsSidebarIcon {
         switch self {
-        case .translation: return "character.book.closed"
-        case .service: return "network"
-        case .speech: return "speaker.wave.2"
-        case .history: return "clock.arrow.circlepath"
-        case .screenshot: return "camera.viewfinder"
-        case .pin: return "pin"
-        case .toolbar: return "slider.horizontal.3"
-        case .ocr: return "text.viewfinder"
-        case .general: return "gearshape"
-        case .about: return "info.circle"
+        case .translation:
+            return SettingsSidebarIcon("character.book.closed.fill", tint: .blue, symbolSize: Design.Settings.sidebarLargeSymbolSize)
+        case .service: return SettingsSidebarIcon("globe")
+        case .speech: return SettingsSidebarIcon("speaker.wave.2.fill")
+        case .history: return SettingsSidebarIcon("clock.fill")
+        case .screenshot:
+            return SettingsSidebarIcon("camera.viewfinder", tint: Color(red: 0.10, green: 0.55, blue: 0.36))
+        case .pin: return SettingsSidebarIcon("pin.fill", symbolSize: Design.Settings.sidebarLargeSymbolSize)
+        case .toolbar: return SettingsSidebarIcon("slider.horizontal.3")
+        case .ocr:
+            return SettingsSidebarIcon("text.viewfinder", tint: Color(red: 0.80, green: 0.41, blue: 0.12))
+        case .general: return SettingsSidebarIcon("gearshape.fill")
+        case .about: return SettingsSidebarIcon("info.circle.fill")
 #if DEBUG || SEVEN_DEVELOPMENT
-        case .diagnostics: return "stethoscope"
+        case .diagnostics: return SettingsSidebarIcon("stethoscope")
 #endif
         }
     }
@@ -303,11 +306,18 @@ struct SettingsView: View {
         let language = L10n.language
         return List(selection: sidebarSelection) {
             ForEach(SettingsNavigationGroup.allCases) { group in
-                Section(group.title) {
+                Section {
                     ForEach(group.sections) { section in
-                        Label(section.sidebarTitle, systemImage: section.icon)
-                            .themeSidebarRow(selected: section == selection).tag(section)
+                        HStack(spacing: Design.Space.s) {
+                            section.sidebarIcon
+                            Text(section.sidebarTitle)
+                        }
+                        .themeSidebarRow(selected: section == selection).tag(section)
                     }
+                } header: {
+                    Text(group.title)
+                        .font(Design.Text.note.font)
+                        .foregroundStyle(ThemeStyle.nativeSecondary)
                 }
             }
         }
