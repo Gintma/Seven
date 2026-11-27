@@ -25,7 +25,7 @@ struct ResultMarkdownDocument: Equatable, Sendable {
         enum Content: Equatable, Sendable {
             case paragraph([Run])
             case heading(Int, [Run])
-            case code(String)
+            case code(ResultMarkdownCode)
             case rule
             case table([[[Run]]], [Alignment])
         }
@@ -105,7 +105,7 @@ struct ResultMarkdownDocument: Equatable, Sendable {
                 case let item as Paragraph:
                     content = .paragraph(try runs(item.children, depth: depth + 1, repairsLeadingLabels: true))
                 case let item as Heading: content = .heading(item.level, try runs(item.children, depth: depth + 1))
-                case let item as CodeBlock: content = .code(item.code)
+                case let item as CodeBlock: content = .code(ResultMarkdownCode(text: item.code, language: item.language))
                 case let item as HTMLBlock: content = .paragraph([Run(text: item.rawHTML, speaks: false)])
                 case is ThematicBreak: content = .rule
                 case let item as Table: content = try table(item, depth: depth + 1)

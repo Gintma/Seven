@@ -7,6 +7,7 @@ struct ResultMarkdownRenderer {
     static let codeBlockAttribute = NSAttributedString.Key("SevenMarkdownCodeBlock")
     static let quoteDepthAttribute = NSAttributedString.Key("SevenMarkdownQuoteDepth")
     static let ruleAttribute = NSAttributedString.Key("SevenMarkdownRule")
+    private static let minimumTableColumnWidth: CGFloat = 64
 
     func render(_ document: ResultMarkdownDocument, availableWidth: CGFloat? = nil) -> NSAttributedString {
         let output = NSMutableAttributedString()
@@ -27,11 +28,7 @@ struct ResultMarkdownRenderer {
                 paragraph.headIndent += Design.Space.s
                 paragraph.firstLineHeadIndent = paragraph.headIndent
                 paragraph.tailIndent = -Design.Space.s
-                let codeText = hasNextBlock && !code.hasSuffix("\n") ? code + "\n" : code
-                let codeRange = NSRange(location: output.length, length: (codeText as NSString).length)
-                output.append(attributed(.init(text: codeText, style: .code), paragraph: paragraph))
-                output.removeAttribute(.backgroundColor, range: codeRange)
-                output.addAttribute(Self.codeBlockAttribute, value: index, range: codeRange)
+                appendCode(code, index: index, paragraph: paragraph, hasNextBlock: hasNextBlock, to: output)
             case .rule:
                 let rule = NSMutableAttributedString(attributedString: attributed(.init(text: "\u{200B}"), paragraph: paragraph))
                 rule.addAttribute(Self.ruleAttribute, value: true, range: NSRange(location: 0, length: rule.length))
@@ -39,10 +36,11 @@ struct ResultMarkdownRenderer {
                 if hasNextBlock { output.append(attributed(.init(text: "\n"), paragraph: paragraph)) }
             case .table(let rows, let alignments):
                 let viewportWidth = availableWidth.map { $0 - paragraph.firstLineHeadIndent }
-                if let viewportWidth, let widths = overflowingColumnWidths(rows, count: alignments.count, viewportWidth: viewportWidth) {
+                let widths = preferredColumnWidths(rows, count: alignments.count)
+                if let viewportWidth, tableNeedsHorizontalScroll(widths, viewportWidth: viewportWidth) {
                     let contents = NSMutableAttributedString()
                     appendTable(rows, alignments: alignments, paragraph: NSMutableParagraphStyle(),
-                                separatesFollowingBlock: false, widths: widths, to: contents)
+                                separatesFollowingBlock: false, widths: widths, usesAbsoluteWidth: true, to: contents)
                     let plain = rows.map { row in row.map { $0.map(\.text).joined() }.joined(separator: "\t") }.joined(separator: "\n")
                     let width = widths.reduce(0, +) + 4
                     let table = ResultMarkdownWideTable(blockIndex: index, content: contents, plainText: plain, width: width)
@@ -51,7 +49,9 @@ struct ResultMarkdownRenderer {
                     output.append(attachment)
                     if hasNextBlock { output.append(attributed(.init(text: "\n"), paragraph: paragraph)) }
                 } else {
-                    appendTable(rows, alignments: alignments, paragraph: paragraph, separatesFollowingBlock: hasNextBlock, to: output)
+                    let fitted = viewportWidth.map { fitColumnWidths(widths, to: $0 * 0.99) } ?? widths
+                    appendTable(rows, alignments: alignments, paragraph: paragraph, separatesFollowingBlock: hasNextBlock,
+                                widths: fitted, to: output)
                 }
             }
             if block.quoteDepth > 0, output.length > blockStart {
@@ -60,6 +60,37 @@ struct ResultMarkdownRenderer {
             }
         }
         return output
+    }
+
+    private func appendCode(_ code: ResultMarkdownCode, index: Int, paragraph: NSParagraphStyle,
+                            hasNextBlock: Bool, to output: NSMutableAttributedString) {
+        let start = output.length
+        if !code.text.isEmpty, let headerStyle = paragraph.mutableCopy() as? NSMutableParagraphStyle {
+            headerStyle.minimumLineHeight = ResultMarkdownCodeHeader.height
+            headerStyle.paragraphSpacing = 0
+            headerStyle.lineSpacing = 0
+            let header = NSMutableAttributedString(attributedString: attributed(.init(text: "\u{200B}\n"), paragraph: headerStyle))
+            let content = ResultMarkdownCodeHeader.Content(blockIndex: index, language: code.language, code: code.text)
+            header.addAttribute(ResultMarkdownCodeHeader.attribute, value: content, range: NSRange(location: 0, length: header.length))
+            output.append(header)
+        }
+
+        let sourceStart = output.length
+        let codeText = hasNextBlock && !code.text.hasSuffix("\n") ? code.text + "\n" : code.text
+        output.append(attributed(.init(text: codeText, style: .code), paragraph: paragraph))
+        for token in code.tokens {
+            let color: ThemeToken = switch token.kind {
+            case .comment: .inkSecondary
+            case .string: .permissionGranted
+            case .number: .warning
+            case .keyword: .link
+            }
+            let range = NSRange(location: sourceStart + token.range.location, length: token.range.length)
+            output.addAttributes([.foregroundColor: palette[color], StreamingResultTextView.themeTokenAttribute: color.rawValue], range: range)
+        }
+        let block = NSRange(location: start, length: output.length - start)
+        output.removeAttribute(.backgroundColor, range: block)
+        output.addAttribute(Self.codeBlockAttribute, value: index, range: block)
     }
 
     private func style(for block: ResultMarkdownDocument.Block) -> NSMutableParagraphStyle {
@@ -116,11 +147,8 @@ struct ResultMarkdownRenderer {
         return NSAttributedString(string: run.text, attributes: attributes)
     }
 
-    private func overflowingColumnWidths(
-        _ rows: [[[ResultMarkdownDocument.Run]]], count: Int, viewportWidth: CGFloat
-    ) -> [CGFloat]? {
-        guard viewportWidth >= 80, count > 0 else { return nil }
-        var widths = Array(repeating: CGFloat(64), count: count)
+    private func preferredColumnWidths(_ rows: [[[ResultMarkdownDocument.Run]]], count: Int) -> [CGFloat] {
+        var widths = Array(repeating: Self.minimumTableColumnWidth, count: count)
         for (rowIndex, row) in rows.enumerated() {
             let font = NSFont.systemFont(ofSize: Design.Text.content.size, weight: rowIndex == 0 ? .semibold : .regular)
             for (column, runs) in row.prefix(count).enumerated() {
@@ -131,16 +159,31 @@ struct ResultMarkdownRenderer {
                 widths[column] = max(widths[column], width)
             }
         }
-        let equalColumnWidth = viewportWidth / CGFloat(count)
-        // Leave small tables in the main text view when the cells can wrap comfortably.
-        guard widths.reduce(0, +) > viewportWidth,
-              count >= 4 || widths.contains(where: { $0 > equalColumnWidth * 1.6 }) else { return nil }
         return widths
+    }
+
+    private func tableNeedsHorizontalScroll(_ widths: [CGFloat], viewportWidth: CGFloat) -> Bool {
+        guard viewportWidth >= 80, !widths.isEmpty, widths.reduce(0, +) > viewportWidth else { return false }
+        // Descriptions in small tables can wrap while the short columns stay readable.
+        return widths.count >= 4 || CGFloat(widths.count) * Self.minimumTableColumnWidth > viewportWidth
+    }
+
+    private func fitColumnWidths(_ widths: [CGFloat], to available: CGFloat) -> [CGFloat] {
+        guard !widths.isEmpty, available > 0 else { return widths }
+        let preferred = widths.reduce(0, +)
+        let count = CGFloat(widths.count)
+        if preferred <= available {
+            return widths.map { $0 + (available - preferred) / count }
+        }
+        let minimum = min(Self.minimumTableColumnWidth, available / count)
+        let excess = preferred - minimum * count
+        let scale = (available - minimum * count) / excess
+        return widths.map { minimum + ($0 - minimum) * scale }
     }
 
     private func appendTable(
         _ rows: [[[ResultMarkdownDocument.Run]]], alignments: [ResultMarkdownDocument.Alignment],
-        paragraph: NSMutableParagraphStyle, separatesFollowingBlock: Bool, widths: [CGFloat]? = nil,
+        paragraph: NSMutableParagraphStyle, separatesFollowingBlock: Bool, widths: [CGFloat], usesAbsoluteWidth: Bool = false,
         to output: NSMutableAttributedString
     ) {
         let table = NSTextTable()
@@ -148,15 +191,14 @@ struct ResultMarkdownRenderer {
         table.layoutAlgorithm = .fixedLayoutAlgorithm
         table.collapsesBorders = true
         // TextKit positions collapsed borders on half points outside the table width.
-        let totalWidth = widths?.reduce(0, +)
-        table.setValue(totalWidth ?? 99, type: totalWidth == nil ? .percentageValueType : .absoluteValueType, for: .width)
+        let totalWidth = widths.reduce(0, +)
+        table.setValue(usesAbsoluteWidth ? totalWidth : 99,
+                       type: usesAbsoluteWidth ? .absoluteValueType : .percentageValueType, for: .width)
         for (rowIndex, row) in rows.enumerated() {
             for (column, alignment) in alignments.enumerated() {
                 let cell = NSTextTableBlock(table: table, startingRow: rowIndex, rowSpan: 1,
                                            startingColumn: column, columnSpan: 1)
-                let percentage = if let widths, let totalWidth { widths[column] / totalWidth * 100 }
-                    else { 100 / CGFloat(alignments.count) }
-                cell.setValue(percentage, type: .percentageValueType, for: .width)
+                cell.setValue(widths[column] / totalWidth * 100, type: .percentageValueType, for: .width)
                 cell.setWidth(1, type: .absoluteValueType, for: .border)
                 cell.setWidth(Design.Space.s, type: .absoluteValueType, for: .padding)
                 cell.setBorderColor(palette.separator)

@@ -11,6 +11,7 @@ final class StreamingResultTextView: NSTextView {
     private var drawsMarkdownDecorations = false
     private var containsWideTables = false
     private var wideTables: [Int: ResultMarkdownTableScrollView] = [:]
+    private var codeHeaders: [Int: ResultMarkdownCodeHeader] = [:]
 
     override func draw(_ dirtyRect: NSRect) {
         if drawsMarkdownDecorations { ResultMarkdownDecoration.draw(in: self, dirtyRect: dirtyRect, palette: palette) }
@@ -20,6 +21,45 @@ final class StreamingResultTextView: NSTextView {
     override func layout() {
         super.layout()
         layoutWideTables()
+        layoutCodeHeaders()
+    }
+
+    private func layoutCodeHeaders() {
+        guard drawsMarkdownDecorations || !codeHeaders.isEmpty,
+              let storage = textStorage, let layout = layoutManager, let container = textContainer else { return }
+        var active = Set<Int>()
+        if drawsMarkdownDecorations {
+            layout.ensureLayout(for: container)
+            let origin = textContainerOrigin
+            storage.enumerateAttribute(ResultMarkdownCodeHeader.attribute, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
+                guard let content = value as? ResultMarkdownCodeHeader.Content else { return }
+                let glyph = layout.glyphIndexForCharacter(at: range.location)
+                let line = layout.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+                let paragraph = storage.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle
+                let x = origin.x + (paragraph?.firstLineHeadIndent ?? 0)
+                let header = codeHeaders[content.blockIndex] ?? ResultMarkdownCodeHeader()
+                if header.superview == nil { addSubview(header) }
+                let frame = NSRect(x: x, y: origin.y + line.minY, width: max(0, bounds.maxX - x - Design.Space.s),
+                                   height: ResultMarkdownCodeHeader.height)
+                header.apply(content, frame: frame, palette: palette)
+                codeHeaders[content.blockIndex] = header
+                active.insert(content.blockIndex)
+            }
+        }
+        for index in codeHeaders.keys.filter({ !active.contains($0) }) {
+            codeHeaders.removeValue(forKey: index)?.removeFromSuperview()
+        }
+    }
+
+    override func accessibilityChildren() -> [Any]? {
+        let existing = super.accessibilityChildren()
+        guard !codeHeaders.isEmpty else { return existing }
+        let controls = codeHeaders.keys.sorted().flatMap { codeHeaders[$0]?.accessibleControls ?? [] }
+        return (existing ?? []) + controls
+    }
+
+    func refreshMarkdownCodeLabels() {
+        for header in codeHeaders.values { header.refreshLanguage() }
     }
 
     private func layoutWideTables() {
@@ -244,7 +284,7 @@ final class StreamingResultTextView: NSTextView {
             }
         }
         textStorage?.setAttributedString(value)
-        if containsWideTables || !wideTables.isEmpty { needsLayout = true }
+        if markdown || !wideTables.isEmpty || !codeHeaders.isEmpty { needsLayout = true }
         if !anchors.isEmpty {
             let updated = value.string as NSString
             let ranges = anchors.map { $0.range(in: updated) }.sorted { $0.location < $1.location }
@@ -277,7 +317,8 @@ final class StreamingResultTextView: NSTextView {
             textStorage.enumerateAttributes(in: range) { attributes, part, _ in
                 if let table = attributes[ResultMarkdownWideTable.attribute] as? ResultMarkdownWideTable {
                     text += table.plainText
-                } else if attributes[ResultMarkdownRenderer.ruleAttribute] == nil {
+                } else if attributes[ResultMarkdownRenderer.ruleAttribute] == nil,
+                          attributes[ResultMarkdownCodeHeader.attribute] == nil {
                     text += source.substring(with: part)
                 }
             }

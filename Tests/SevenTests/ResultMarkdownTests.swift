@@ -85,6 +85,82 @@ final class ResultMarkdownTests: XCTestCase {
         XCTAssertTrue(text.contains("☑\tDone\n☐\tTodo"))
     }
 
+    func testFencedLanguageHighlightsCodeWithoutChangingItsCharacters() throws {
+        let source = #"""
+            ```python
+            # keep "quotes"
+            print("Seven # sample", 23)
+            ```
+            """#
+        let rendered = ResultMarkdownRenderer(palette: .system).render(try ResultMarkdownDocument.parse(source))
+        let text = rendered.string as NSString
+        func color(at token: String) throws -> NSColor {
+            let range = text.range(of: token)
+            guard range.location != NSNotFound else { throw CocoaError(.coderReadCorrupt) }
+            return try XCTUnwrap(rendered.attribute(.foregroundColor, at: range.location, effectiveRange: nil) as? NSColor)
+        }
+        XCTAssertTrue(rendered.string.hasSuffix("# keep \"quotes\"\nprint(\"Seven # sample\", 23)\n"))
+        XCTAssertNotEqual(try color(at: "# keep"), try color(at: "Seven # sample"))
+        XCTAssertNotEqual(try color(at: "23"), try color(at: "print"))
+    }
+
+    func testInlineTableLeavesMoreWidthForExplanationsThanShortLabels() throws {
+        let source = "| ID | Description |\n| --- | --- |\n| 2 | Water temperature after a seven-minute walk |"
+        let renderer = ResultMarkdownRenderer(palette: .system)
+        let rendered = renderer.render(try ResultMarkdownDocument.parse(source), availableWidth: 520)
+        let text = rendered.string as NSString
+        let storage = NSTextStorage(attributedString: rendered)
+        let layout = NSLayoutManager()
+        let container = NSTextContainer(containerSize: NSSize(width: 520, height: 1000))
+        container.lineFragmentPadding = 0
+        storage.addLayoutManager(layout)
+        layout.addTextContainer(container)
+        layout.ensureLayout(for: container)
+        func cellBounds(_ value: String) throws -> NSRect {
+            let range = text.range(of: value)
+            guard range.location != NSNotFound else { throw CocoaError(.coderReadCorrupt) }
+            let style = try XCTUnwrap(storage.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle)
+            let block = try XCTUnwrap(style.textBlocks.last as? NSTextTableBlock)
+            return layout.boundsRect(for: block, at: layout.glyphIndexForCharacter(at: range.location), effectiveRange: nil)
+        }
+        let short = try cellBounds("ID")
+        let long = try cellBounds("Description")
+        XCTAssertEqual(short.minY, long.minY, accuracy: 1)
+        XCTAssertGreaterThan(long.width, short.width + 50)
+        XCTAssertLessThanOrEqual(long.maxX, 520)
+
+        let narrow = renderer.render(try ResultMarkdownDocument.parse(source), availableWidth: 304)
+        XCTAssertTrue(narrow.string.contains("seven-minute walk"), "An ordinary two-column table should wrap its description inside the card")
+    }
+
+    func testCodeBlockActionCopiesOnlyThatBlocksCurrentCode() throws {
+        let renderer = ResultMarkdownRenderer(palette: .system)
+        let view = StreamingResultTextView(frame: NSRect(x: 0, y: 0, width: 300, height: 500))
+        view.copiesSelectionAsPlainText = true
+        let fence = "```"
+        func render(firstLine: String) throws {
+            let source = "Before\n\n\(fence)python\n\(firstLine)\n\n\(fence)\n\n\(fence)text\nsecond block\n\(fence)"
+            view.replace(with: renderer.render(try ResultMarkdownDocument.parse(source)), markdown: true)
+            view.layoutSubtreeIfNeeded()
+        }
+        try render(firstLine: "  print('initial')")
+        let header = try XCTUnwrap(view.subviews.compactMap { $0 as? ResultMarkdownCodeHeader }.first)
+        let copyButton = try XCTUnwrap(header.accessibleControls.compactMap { $0 as? NSButton }.first)
+        XCTAssertEqual(copyButton.accessibilityLabel(), L10n.text("copyCode"))
+        XCTAssertTrue(view.accessibilityChildren()?.contains { ($0 as? NSButton) === copyButton } ?? false)
+        let target = copyButton.convert(NSPoint(x: copyButton.bounds.midX, y: copyButton.bounds.midY), to: nil)
+        XCTAssertTrue(view.hitTest(target) === copyButton, "Code copy must receive clicks at its visible position")
+
+        try render(firstLine: "  print('🧪')")
+        let pasteboard = NSPasteboard(name: .init("SevenTests.CodeBlock.\(UUID())"))
+        defer { pasteboard.releaseGlobally() }
+        XCTAssertTrue(header.copyCode(to: pasteboard))
+        XCTAssertEqual(pasteboard.string(forType: .string), "  print('🧪')\n\n")
+        view.setSelectedRange(NSRange(location: 0, length: (view.string as NSString).length))
+        XCTAssertTrue(view.copyPlainSelection(to: pasteboard))
+        XCTAssertEqual(pasteboard.string(forType: .string), "Before\n  print('🧪')\n\nsecond block\n")
+    }
+
     func testMarkdownDoesNotAddEmptyLinesAtTheEnd() throws {
         let renderer = ResultMarkdownRenderer(palette: .system)
         let prose = try ResultMarkdownDocument.parse("第一行\n第二行\n第三行")
@@ -96,7 +172,7 @@ final class ResultMarkdownTests: XCTestCase {
         XCTAssertFalse(rendered.hasSuffix("\n\n"))
 
         let code = try ResultMarkdownDocument.parse("```text\n    code\n\n```")
-        XCTAssertEqual(renderer.render(code).string, "    code\n\n")
+        XCTAssertEqual(renderer.render(code).string, "\u{200B}\n    code\n\n")
     }
 
     func testNativeTablePaintBoundsFitTheBodyAtDifferentWidths() throws {

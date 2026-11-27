@@ -108,6 +108,7 @@
 "copyText" = "Copiar texto";
 "copyTheModelIDFromTheInference" = "Copia el ID del modelo desde el punto de conexión de inferencia en la consola de Volcengine Ark.";
 "copyTranslation" = "Copiar traducción";
+"copyCode" = "Copiar código";
 "copyright2026CrisSunAllRightsReserved" = "Copyright © 2026 cris_sun. Todos los derechos reservados.";
 "cornerRadius" = "Radio de esquina";
 "cornerRadius0Px" = "Radio de esquina: 0 px";

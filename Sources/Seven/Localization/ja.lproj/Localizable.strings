@@ -108,6 +108,7 @@
 "copyText" = "テキストをコピー";
 "copyTheModelIDFromTheInference" = "Volcengine Ark コンソールの推論エンドポイントからモデル ID をコピーしてください。";
 "copyTranslation" = "訳文をコピー";
+"copyCode" = "コードをコピー";
 "copyright2026CrisSunAllRightsReserved" = "Copyright © 2026 cris_sun. All rights reserved.";
 "cornerRadius" = "角の半径";
 "cornerRadius0Px" = "角の半径：0 px";

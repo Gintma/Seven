@@ -108,6 +108,7 @@
 "copyText" = "텍스트 복사";
 "copyTheModelIDFromTheInference" = "Volcengine Ark 콘솔의 추론 엔드포인트에서 모델 ID를 복사하세요.";
 "copyTranslation" = "번역문 복사";
+"copyCode" = "코드 복사";
 "copyright2026CrisSunAllRightsReserved" = "Copyright © 2026 cris_sun. 모든 권리 보유.";
 "cornerRadius" = "모서리 반경";
 "cornerRadius0Px" = "모서리 반경: 0 px";

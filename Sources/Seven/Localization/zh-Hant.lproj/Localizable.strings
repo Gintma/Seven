@@ -108,6 +108,7 @@
 "copyText" = "複製文字";
 "copyTheModelIDFromTheInference" = "模型 ID 請從火山方舟控制檯的推理接入點取得。";
 "copyTranslation" = "複製譯文";
+"copyCode" = "複製程式碼";
 "copyright2026CrisSunAllRightsReserved" = "Copyright © 2026 cris_sun 保留一切權利。";
 "cornerRadius" = "圓角半徑";
 "cornerRadius0Px" = "圓角：0 px";

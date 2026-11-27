@@ -109,6 +109,7 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
 
     func invalidateLocalizedActions() {
         actionSignature = ""
+        textView.refreshMarkdownCodeLabels()
     }
 
     func apply(_ result: TranslationServiceResult) {
