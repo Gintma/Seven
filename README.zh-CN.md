@@ -25,7 +25,12 @@
   <a href="README.md">English</a> · <strong>简体中文</strong>
 </p>
 
-<!-- 视觉预览图 / 演示动图预留位 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Docs/assets/hero-dark.png" />
+    <img src="Docs/assets/hero-light.png" width="840" alt="Seven 翻译浮窗，展示英文原文、西班牙语译文，以及含表格、列表和可复制代码块的 Markdown 结果" />
+  </picture>
+</p>
 
 ## 为什么选择 Seven
 
@@ -55,10 +60,18 @@
 - **滚动截取长图** —— 向上或向下滚动时实时拼接，边截边预览，保留完整分辨率。
 - **让参考内容留在眼前** —— 将截图、剪贴板图片或纯文字钉在其他窗口上方，可调节缩放和不透明度。
 
+<p align="center">
+  <img src="Docs/assets/screenshot-editor.png" width="840" alt="Seven 截图编辑器，展示浮动工具条，以及虚构仪表板上的箭头、序号标注和马赛克" />
+</p>
+
 ### 在本机提取文字
 
 - **对照原图处理文字** —— 直接在图上选字，对照原图编辑识别结果，再翻译或导出 TXT。静默 OCR 会将识别结果直接复制到剪贴板。
 - **从屏幕或图片开始** —— 框选屏幕区域，或通过 Finder、拖放、剪贴板将图片送入 OCR。
+
+<p align="center">
+  <img src="Docs/assets/ocr-window.png" width="840" alt="Seven 的 OCR 窗口，左侧为示例指南原图，右侧为可编辑的识别文本" />
+</p>
 
 ## 下载
 

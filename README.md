@@ -25,7 +25,12 @@
   <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
-<!-- Visual preview (hero screenshot / demo GIF) reserved here -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Docs/assets/hero-dark.png" />
+    <img src="Docs/assets/hero-light.png" width="840" alt="Seven's translation panel with English input, a Spanish translation, and a Markdown result with a table, list, and copyable code block" />
+  </picture>
+</p>
 
 ## Why Seven
 
@@ -55,10 +60,18 @@ Custom mode uses one prompt. `{{target}}` inserts the selected target language, 
 - **Capture long pages** — Scroll up or down to stitch a full-resolution screenshot with a live preview.
 - **Keep a reference in view** — Pin a screenshot, clipboard image, or plain text above other windows and adjust its zoom and opacity.
 
+<p align="center">
+  <img src="Docs/assets/screenshot-editor.png" width="840" alt="Seven's screenshot editor with a floating toolbar, an arrow, numbered callouts, and a pixelated run ID on a sample dashboard" />
+</p>
+
 ### Extract text on your Mac
 
 - **Work with text from images** — Select text directly on an image, edit it alongside the original, then translate it or export it as TXT. Silent OCR copies the result to your clipboard.
 - **Start from a region or an image** — Capture part of the screen or send an image to OCR from Finder, drag and drop, or the clipboard.
+
+<p align="center">
+  <img src="Docs/assets/ocr-window.png" width="840" alt="Seven's OCR window showing a sample field guide next to its editable recognized text" />
+</p>
 
 ## Download
 
