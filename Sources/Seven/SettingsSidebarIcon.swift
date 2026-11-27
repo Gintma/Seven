@@ -23,21 +23,28 @@ struct SettingsSidebarIcon: View {
         let isDark = theme.variant == .dark
         let plate = RoundedRectangle(cornerRadius: Design.Settings.sidebarIconRadius, style: .continuous)
         let appearanceTint = isDark ? darkTint ?? tint : tint
-        let fill = appearanceTint ?? Color(white: isDark ? 0.36 : 0.51)
+        let isGray = appearanceTint == nil
+        let gray = isDark ? 0.60 : 0.62
+        let fill = appearanceTint ?? Color(red: gray, green: gray, blue: gray + 0.02)
+        let topHighlight = isGray ? 0.15 : (isDark ? 0.20 : 0.25)
+        let bottomShade = isGray ? 0.10 : (isDark ? 0.24 : 0.19)
+        let upperEdge = isGray ? 0.24 : (isDark ? 0.26 : 0.37)
+        let lowerEdge = isGray ? 0.08 : (isDark ? 0.24 : 0.12)
+        let shadow = isGray ? 0.15 : (isDark ? 0.43 : 0.23)
         let shading = LinearGradient(
             stops: [
-                .init(color: .white.opacity(isDark ? 0.20 : 0.25), location: 0),
+                .init(color: .white.opacity(topHighlight), location: 0),
                 .init(color: .clear, location: 0.46),
-                .init(color: .black.opacity(isDark ? 0.24 : 0.19), location: 1),
+                .init(color: .black.opacity(bottomShade), location: 1),
             ],
             startPoint: .top,
             endPoint: .bottom
         )
         let edge = LinearGradient(
             stops: [
-                .init(color: .white.opacity(isDark ? 0.26 : 0.37), location: 0),
+                .init(color: .white.opacity(upperEdge), location: 0),
                 .init(color: .clear, location: 0.58),
-                .init(color: .black.opacity(isDark ? 0.24 : 0.12), location: 1),
+                .init(color: .black.opacity(lowerEdge), location: 1),
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -51,7 +58,7 @@ struct SettingsSidebarIcon: View {
             .background {
                 plate
                     .fill(fill)
-                    .shadow(color: .black.opacity(isDark ? 0.43 : 0.23),
+                    .shadow(color: .black.opacity(shadow),
                             radius: Design.Settings.sidebarIconShadowRadius,
                             y: Design.Settings.sidebarIconShadowOffset)
                     .overlay {
