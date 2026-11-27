@@ -60,12 +60,18 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     var sidebarIcon: SettingsSidebarIcon {
         switch self {
         case .translation:
-            return SettingsSidebarIcon("character.book.closed.fill", tint: .blue, symbolSize: Design.Settings.sidebarLargeSymbolSize)
+            return SettingsSidebarIcon(
+                "character.book.closed.fill",
+                tint: .blue,
+                darkTint: Color(red: 0.12, green: 0.48, blue: 0.79),
+                symbolSize: Design.Settings.sidebarLargeSymbolSize
+            )
         case .service:
             return SettingsSidebarIcon("globe", tint: Color(red: 0.05, green: 0.54, blue: 0.73))
         case .speech:
             return SettingsSidebarIcon("speaker.wave.2.fill", tint: Color(red: 0.57, green: 0.25, blue: 0.81))
-        case .history: return SettingsSidebarIcon("clock.fill", tint: .indigo)
+        case .history:
+            return SettingsSidebarIcon("clock.fill", tint: .indigo, darkTint: Color(red: 0.36, green: 0.32, blue: 0.70))
         case .screenshot:
             return SettingsSidebarIcon("camera.viewfinder", tint: Color(red: 0.10, green: 0.55, blue: 0.36))
         case .pin:

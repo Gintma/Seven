@@ -4,18 +4,26 @@ struct SettingsSidebarIcon: View {
     @Environment(\.theme) private var theme
     private let symbol: String
     private let tint: Color?
+    private let darkTint: Color?
     private let symbolSize: CGFloat
 
-    init(_ symbol: String, tint: Color? = nil, symbolSize: CGFloat = Design.Settings.sidebarSymbolSize) {
+    init(
+        _ symbol: String,
+        tint: Color? = nil,
+        darkTint: Color? = nil,
+        symbolSize: CGFloat = Design.Settings.sidebarSymbolSize
+    ) {
         self.symbol = symbol
         self.tint = tint
+        self.darkTint = darkTint
         self.symbolSize = symbolSize
     }
 
     var body: some View {
         let isDark = theme.variant == .dark
         let plate = RoundedRectangle(cornerRadius: Design.Settings.sidebarIconRadius, style: .continuous)
-        let fill = tint ?? Color(white: isDark ? 0.36 : 0.51)
+        let appearanceTint = isDark ? darkTint ?? tint : tint
+        let fill = appearanceTint ?? Color(white: isDark ? 0.36 : 0.51)
         let shading = LinearGradient(
             stops: [
                 .init(color: .white.opacity(isDark ? 0.20 : 0.25), location: 0),
