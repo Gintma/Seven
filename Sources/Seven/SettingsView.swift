@@ -57,20 +57,34 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 #endif
         }
     }
-    var icon: String {
+    var sidebarIcon: SettingsSidebarIcon {
         switch self {
-        case .translation: return "character.book.closed"
-        case .service: return "network"
-        case .speech: return "speaker.wave.2"
-        case .history: return "clock.arrow.circlepath"
-        case .screenshot: return "camera.viewfinder"
-        case .pin: return "pin"
-        case .toolbar: return "slider.horizontal.3"
-        case .ocr: return "text.viewfinder"
-        case .general: return "gearshape"
-        case .about: return "info.circle"
+        case .translation:
+            return SettingsSidebarIcon(
+                "character.book.closed.fill",
+                tint: .blue,
+                darkTint: Color(red: 0.12, green: 0.48, blue: 0.79),
+                symbolSize: Design.Settings.sidebarLargeSymbolSize
+            )
+        case .service:
+            return SettingsSidebarIcon("globe", tint: Color(red: 0.05, green: 0.54, blue: 0.73))
+        case .speech:
+            return SettingsSidebarIcon("speaker.wave.2.fill", tint: Color(red: 0.57, green: 0.25, blue: 0.81))
+        case .history:
+            return SettingsSidebarIcon("clock.fill", tint: .indigo, darkTint: Color(red: 0.36, green: 0.32, blue: 0.70))
+        case .screenshot:
+            return SettingsSidebarIcon("camera.viewfinder", tint: Color(red: 0.10, green: 0.55, blue: 0.36))
+        case .pin:
+            return SettingsSidebarIcon("pin.fill", tint: Color(red: 0.82, green: 0.30, blue: 0.31),
+                                       symbolSize: Design.Settings.sidebarLargeSymbolSize)
+        case .toolbar:
+            return SettingsSidebarIcon("slider.horizontal.3", tint: Color(red: 0.07, green: 0.53, blue: 0.53))
+        case .ocr:
+            return SettingsSidebarIcon("text.viewfinder", tint: Color(red: 0.80, green: 0.41, blue: 0.12))
+        case .general: return SettingsSidebarIcon("gearshape.fill")
+        case .about: return SettingsSidebarIcon("info.circle.fill")
 #if DEBUG || SEVEN_DEVELOPMENT
-        case .diagnostics: return "stethoscope"
+        case .diagnostics: return SettingsSidebarIcon("stethoscope")
 #endif
         }
     }
@@ -303,11 +317,18 @@ struct SettingsView: View {
         let language = L10n.language
         return List(selection: sidebarSelection) {
             ForEach(SettingsNavigationGroup.allCases) { group in
-                Section(group.title) {
+                Section {
                     ForEach(group.sections) { section in
-                        Label(section.sidebarTitle, systemImage: section.icon)
-                            .themeSidebarRow(selected: section == selection).tag(section)
+                        HStack(spacing: Design.Space.s) {
+                            section.sidebarIcon
+                            Text(section.sidebarTitle)
+                        }
+                        .themeSidebarRow(selected: section == selection).tag(section)
                     }
+                } header: {
+                    Text(group.title)
+                        .font(Design.Text.note.font)
+                        .foregroundStyle(ThemeStyle.nativeSecondary)
                 }
             }
         }
