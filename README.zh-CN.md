@@ -27,8 +27,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="Docs/assets/hero-dark.png" />
-    <img src="Docs/assets/hero-light.png" width="840" alt="Seven 翻译浮窗，展示英文原文、西班牙语译文，以及含表格、列表和可复制代码块的 Markdown 结果" />
+    <source media="(prefers-color-scheme: dark)" srcset="Docs/assets/hero-dark-zh-CN.png" />
+    <img src="Docs/assets/hero-light-zh-CN.png" width="840" alt="Seven 翻译浮窗，展示英文原文、简体中文译文，以及含表格、列表和可复制代码块的 Markdown 结果" />
   </picture>
 </p>
 
@@ -40,9 +40,12 @@
 
 ### 跨应用翻译与改写
 
-- **在手头的应用里翻译** —— 划词、输入或截图即可翻译，也可以用「翻译并替换」将结果写回原输入框。
-- **自选翻译服务** —— 支持 Apple 翻译、有道、Google 和可下载的离线英汉词典，也可用自己的 API Key 接入 OpenAI、Claude、Gemini 等服务或自定义兼容接口，流式查看结果。
-- **AI 自定义结果的原生 Markdown 排版（已进入 `main`）** —— 在结果卡片中直接阅读表格、引用和列表，单个代码块可一键复制。Markdown 排版下按纯文本朗读，跳过代码块和链接地址。
+- **跨应用划词与输入翻译** —— 在其他应用选中文字后按 `⌥D`，或按 `⌥A` 打开输入浮窗。目标语言可自动按第一、第二语言选择，也可手动指定。
+- **截图翻译** —— 按 `⌥S` 框选网页图片、视频字幕等无法直接选取的文字。Seven 先在本机识别，再把文字送入翻译浮窗。
+- **翻译并替换** —— 在可编辑的输入框选中文字后按 `⌃⌥T`。Seven 核对原输入框及选区后，将结果写回原处。
+- **翻译服务与朗读** —— 支持 Apple 翻译、有道、Google 和可下载的离线英汉词典。也可用自己的 API Key 接入 OpenAI、Claude、Gemini、DeepSeek 等流式服务或兼容接口。原文和结果均可复制及朗读。
+- **AI 自定义提示词（Markdown 排版已进入 `main`）** —— 用同一个浮窗总结、改写或提取要点。结果卡片原生显示表格、引用和列表，代码块可一键复制。按纯文本朗读时跳过代码块和链接地址。
+- **历史和收藏** —— 按原文或译文搜索多服务记录，把常用结果单独收藏，并将当前集合导出为 JSON 或 Markdown。
 
 <details>
 <summary>自定义提示词变量与消息发送规则</summary>
@@ -56,22 +59,44 @@
 
 ### 截图、标注与钉图
 
-- **选准画面再标注** —— 冻结屏幕后框选区域或点选窗口，添加箭头、形状、序号或马赛克，再按原始分辨率导出。
-- **滚动截取长图** —— 向上或向下滚动时实时拼接，边截边预览，保留完整分辨率。
-- **让参考内容留在眼前** —— 将截图、剪贴板图片或纯文字钉在其他窗口上方，可调节缩放和不透明度。
+- **区域、整窗与智能选区** —— 冻结屏幕后拖选区域或点选窗口，也可组合多个窗口、恢复上次选区或复制 HEX 色值。开启智能选区后可选取窗口里的控件。
+- **无损标注** —— 添加箭头、形状、序号、文字、马赛克或聚焦高亮。可撤销、重做，并按原始分辨率导出 PNG/JPG 或通过 macOS 分享。
 
 <p align="center">
-  <img src="Docs/assets/screenshot-editor.png" width="840" alt="Seven 截图编辑器，展示浮动工具条，以及虚构仪表板上的箭头、序号标注和马赛克" />
+  <img src="Docs/assets/screenshot-editor.png" width="840" alt="Seven 截图编辑器，展示公开科普网页上的箭头、矩形和序号标注，以及浮动工具条" />
+</p>
+
+#### 滚动长截图
+
+向上或向下滚动时实时拼接并预览。完成后可继续标注、复制、保存、分享、钉图或提取文字。
+
+<p align="center">
+  <img src="Docs/assets/scroll-capture-zh-CN.png" width="840" alt="向下滚动后的网页选区、Seven 的完整长截图预览及中文拼接状态" />
+</p>
+
+#### 悬浮钉图
+
+将截图、剪贴板图片或文字固定在其他窗口上方。可调整缩放和不透明度，也可在原处重新标注。
+
+<p align="center">
+  <img src="Docs/assets/floating-pin.png" width="840" alt="珊瑚照片悬浮在原网页正文上方，方便边阅读边对照" />
 </p>
 
 ### 在本机提取文字
 
-- **对照原图处理文字** —— 直接在图上选字，对照原图编辑识别结果，再翻译或导出 TXT。静默 OCR 会将识别结果直接复制到剪贴板。
-- **从屏幕或图片开始** —— 框选屏幕区域，或通过 Finder、拖放、剪贴板将图片送入 OCR。
+- **本机 OCR 与智能排版** —— Vision 在设备上识别文字。识别后可在原图中直接选择文字，在旁边编辑、整理段落、翻译或导出 TXT。
+- **静默 OCR 与图片导入** —— 将识别结果直接复制到剪贴板，或通过 Finder「打开方式」、拖放和剪贴板导入图片。也可直接导入本地图片进行标注。
 
 <p align="center">
-  <img src="Docs/assets/ocr-window.png" width="840" alt="Seven 的 OCR 窗口，左侧为示例指南原图，右侧为可编辑的识别文本" />
+  <img src="Docs/assets/ocr-window-zh-CN.png" width="840" alt="Seven 的 OCR 窗口，左侧为公开科普网页截取的原图，右侧为可编辑的识别文本" />
 </p>
+
+截图素材来自 [NOAA 国家海洋局的珊瑚科普文章](https://oceanservice.noaa.gov/facts/coral.html)。
+
+### 按自己的习惯设置
+
+- 在设置中调整常用语言、翻译服务顺序、全局快捷键和截图工具条。浮窗可跟随鼠标或记住位置，也可钉住。
+- 支持系统外观、浅色和深色主题、减弱动态效果以及六种界面语言（简中、繁中、英、日、韩、西）。
 
 ## 下载
 
