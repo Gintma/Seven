@@ -78,6 +78,42 @@ final class ResultMarkdownTests: XCTestCase {
         XCTAssertLessThanOrEqual(count.maxX, 260)
     }
 
+    func testModelGeneratedBoldLabelsRenderWithoutStandardDelimiterSpacing() throws {
+        let source = """
+            **翻译：**The train is late.
+
+            **意思：**这里说明火车会晚到。
+            **说明： **星号前留了空格。
+
+            ```text
+            **翻译： **代码需要保留星号和空格。
+            ```
+            """
+        let document = try ResultMarkdownDocument.parse(source)
+        let result = ResultMarkdownRenderer(palette: .system).render(document)
+        let displayed = result.string as NSString
+        XCTAssertTrue(result.string.hasPrefix("翻译：The train is late.\n"))
+        XCTAssertTrue(result.string.contains("意思：这里说明火车会晚到。"))
+        XCTAssertTrue(result.string.contains("说明： 星号前留了空格。"))
+        XCTAssertTrue(result.string.contains("**翻译： **代码需要保留星号和空格。"))
+        XCTAssertTrue(document.speechText.hasPrefix("翻译：The train is late."))
+        for label in ["翻译：", "意思：", "说明："] {
+            let range = displayed.range(of: label)
+            let font = try XCTUnwrap(result.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont)
+            XCTAssertTrue(NSFontManager.shared.traits(of: font).contains(.boldFontMask), label)
+        }
+    }
+
+    func testLeadingLabelCompatibilityKeepsEscapedAndInlineCodeStarsLiteral() throws {
+        let source = #"""
+            \*\*翻译： **刻意显示星号。
+            `**意思： **` 是行内代码。
+            """#
+        let result = ResultMarkdownRenderer(palette: .system).render(try ResultMarkdownDocument.parse(source))
+        XCTAssertTrue(result.string.hasPrefix("**翻译： **刻意显示星号。"))
+        XCTAssertTrue(result.string.contains("**意思： ** 是行内代码。"))
+    }
+
     func testSpeechKeepsProseAndLabelsWithoutCodeBlocksOrURLs() throws {
         let result = try ResultMarkdownDocument.parse("""
             # Title

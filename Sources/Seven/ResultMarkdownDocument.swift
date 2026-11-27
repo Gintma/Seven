@@ -48,7 +48,10 @@ struct ResultMarkdownDocument: Equatable, Sendable {
     static func parse(_ source: String) throws -> Self {
         guard source.utf8.prefix(maximumSourceBytes + 1).count <= maximumSourceBytes else { throw Fallback.sourceSize }
         let document = Document(parsing: source)
-        var parser = Parser()
+        let sourceLines = source.contains("**") ? source.split(omittingEmptySubsequences: false) {
+            $0 == "\n" || $0 == "\r" || $0 == "\r\n"
+        } : []
+        var parser = Parser(sourceLines: sourceLines)
         let blocks = try parser.blocks(document.children)
         return Self(blocks: blocks, speechText: spokenText(blocks))
     }
@@ -83,6 +86,8 @@ struct ResultMarkdownDocument: Equatable, Sendable {
     }
 
     private struct Parser {
+        private static let boldLabel = #/^\*\*([\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N}\p{Zs}]{0,23}[:：])([\p{Zs}\t]*)\*\*/#
+        let sourceLines: [Substring]
         var remainingNodes = 3500
         var remainingCells = 360
 
@@ -97,7 +102,8 @@ struct ResultMarkdownDocument: Equatable, Sendable {
                 try checkBudget(depth)
                 let content: Block.Content
                 switch node {
-                case let item as Paragraph: content = .paragraph(try runs(item.children, depth: depth + 1))
+                case let item as Paragraph:
+                    content = .paragraph(try runs(item.children, depth: depth + 1, repairsLeadingLabels: true))
                 case let item as Heading: content = .heading(item.level, try runs(item.children, depth: depth + 1))
                 case let item as CodeBlock: content = .code(item.code)
                 case let item as HTMLBlock: content = .paragraph([Run(text: item.rawHTML, speaks: false)])
@@ -148,13 +154,22 @@ struct ResultMarkdownDocument: Equatable, Sendable {
             return .table(rows, alignments)
         }
 
-        mutating func runs(_ nodes: MarkupChildren, style: Style = [], depth: Int) throws -> [Run] {
+        mutating func runs(
+            _ nodes: MarkupChildren, style: Style = [], depth: Int, repairsLeadingLabels: Bool = false
+        ) throws -> [Run] {
             var runs: [Run] = []
+            var isAtLineStart = repairsLeadingLabels
             for node in nodes {
                 try checkBudget(depth)
+                let repairLabel = isAtLineStart
+                isAtLineStart = repairsLeadingLabels && (node is SoftBreak || node is LineBreak)
                 switch node {
                 case let value as Markdown.Text:
-                    runs.append(Run(text: value.string, style: style))
+                    if repairLabel, let label = repairedBoldLabel(value, style: style) {
+                        runs += label
+                    } else {
+                        runs.append(Run(text: value.string, style: style))
+                    }
                 case let value as InlineCode:
                     runs.append(Run(text: value.code, style: style.union(.code)))
                 case let value as InlineHTML:
@@ -182,6 +197,23 @@ struct ResultMarkdownDocument: Equatable, Sendable {
                 }
             }
             return runs
+        }
+
+        /// Model responses sometimes leave a space inside the closing stars or omit the
+        /// separator after a bold label. Only repair literal prose with unescaped source markers.
+        private func repairedBoldLabel(_ value: Markdown.Text, style: Style) -> [Run]? {
+            let text = value.string
+            guard text.hasPrefix("**"), let match = text.prefixMatch(of: Self.boldLabel),
+                  let start = value.range?.lowerBound,
+                  sourceLines.indices.contains(start.line - 1), start.column > 0,
+                  sourceLines[start.line - 1].utf8.dropFirst(start.column - 1)
+                    .starts(with: text[match.range].utf8) else { return nil }
+            let remainder = text[match.range.upperBound...]
+            guard remainder.first != "*" else { return nil }
+            return [
+                Run(text: String(match.output.1), style: style.union(.bold)),
+                Run(text: String(match.output.2) + remainder, style: style)
+            ]
         }
     }
 }
