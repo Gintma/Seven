@@ -167,12 +167,9 @@ enum Design {
         static let toolbarKeyWidth: CGFloat = 100
         static let toolbarVisibilityWidth: CGFloat = 48
 
-        static let themeSwatchWidth: CGFloat = 28
-        static let themeSwatchHeight: CGFloat = 20
-        static let themeChoiceColumns = 3
-        static let themeChoiceHeight: CGFloat = 46
-        static let themePickerWidth: CGFloat = 390
-        static let themePickerMaximumHeight: CGFloat = 340
+        /// 原生主题菜单中的色样图标尺寸。
+        static let themeSwatchWidth: CGFloat = 24
+        static let themeSwatchHeight: CGFloat = 16
 
         /// 首选语言式原生紧凑列表行高。
         static let commonLanguageRowHeight: CGFloat = 24
