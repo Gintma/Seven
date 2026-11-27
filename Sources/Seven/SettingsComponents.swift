@@ -1579,39 +1579,36 @@ private struct SettingsHoverBackground: NSViewRepresentable {
     func updateNSView(_ view: SettingsHoverFeedbackView, context: Context) { view.isEnabled = isEnabled }
 }
 
-final class SettingsHoverFeedbackView: NSView, ThemeApplying {
+private final class SettingsHoverFeedbackView: NSView, ThemeApplying {
     private var palette = ThemePalette.system
     func applyTheme(_ palette: ThemePalette) { self.palette = palette; needsDisplay = true }
     var isEnabled = true {
         didSet { if !isEnabled { hovered = false } }
     }
     private var hovered = false { didSet { if oldValue != hovered { needsDisplay = true } } }
+    private var hoverTracking: NSTrackingArea?
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         ThemeManager.shared.register(self)
         identifier = NSUserInterfaceItemIdentifier("settingsHoverFeedback")
         setAccessibilityElement(false)
-        clipsToBounds = true
-        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-                                       owner: self))
     }
     required init?(coder: NSCoder) { nil }
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
-        // 滚动可以移走指针下的行，即使 AppKit 没有发送退出事件。
-        if hovered, !containsPointer { hovered = false }
+        if let hoverTracking { removeTrackingArea(hoverTracking) }
+        let tracking = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self)
+        addTrackingArea(tracking)
+        hoverTracking = tracking
     }
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         if window == nil { hovered = false }
     }
-    override func mouseEntered(with event: NSEvent) { hovered = isEnabled && containsPointer }
+    override func mouseEntered(with event: NSEvent) { hovered = isEnabled }
     override func mouseExited(with event: NSEvent) { hovered = false }
-    private var containsPointer: Bool {
-        guard let window else { return false }
-        return isMousePoint(convert(window.mouseLocationOutsideOfEventStream, from: nil), in: visibleRect)
-    }
     override func draw(_ dirtyRect: NSRect) {
         guard hovered, isEnabled else { return }
         palette.controlHoverFill.setFill()
@@ -1768,131 +1765,5 @@ private struct SettingsColorSelection:NSViewRepresentable {
         view.onColorChange=nil
         view.color=Design.ScreenshotShadow.color(rgb:ScreenshotShadowPreferences.rgb(hex),alpha:1)
         view.onColorChange={color in hex=ScreenshotShadowPreferences.hex(color)}
-    }
-}
-
-/// 浅色和深色各自从同一目录选取，色样按该变体预览。
-struct SettingsThemePickerRow: View {
-    let variant: ThemeVariant
-    let manager: ThemeManager
-    @State private var showingChoices = false
-
-    private var title: String { variant == .light ? "浅色主题" : "深色主题" }
-    private var selectedID: String { manager.themeID(for: variant) }
-
-    var body: some View {
-        let current = ThemePreset.resolve(selectedID, for: variant)
-        return HStack(spacing: Design.Space.m) {
-            Text(title).font(Design.Settings.rowFont)
-            Spacer(minLength: Design.Space.s)
-            Button { showingChoices.toggle() } label: {
-                HStack(spacing: Design.Space.s) {
-                    ThemeSwatch(preset: current, variant: variant)
-                    Text(current.title).lineLimit(1)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(Design.Text.note.font)
-                        .foregroundStyle(ThemeStyle.inkSecondary)
-                }
-                .padding(.horizontal, Design.Space.xs)
-                .frame(height: Design.Settings.controlHeight)
-            }
-            .buttonStyle(.borderless)
-            .modifier(SettingsHoverStyle())
-            .accessibilityLabel(title)
-            .accessibilityValue(current.title)
-            .settingsSmartTarget("AXPopUpButton")
-            .fixedSize()
-            .popover(isPresented: $showingChoices, arrowEdge: .trailing) {
-                SettingsThemeChoices(title: title, variant: variant, selectedID: selectedID) { choice in
-                    manager.selectTheme(choice, for: variant)
-                    showingChoices = false
-                }
-            }
-        }
-    }
-}
-
-private struct SettingsThemeChoices: View {
-    @Environment(\.theme) private var theme
-    let title: String
-    let variant: ThemeVariant
-    let selectedID: String
-    let select: (String) -> Void
-
-    var body: some View {
-        let choices = ThemePreset.choices(for: variant)
-        let listHeight = CGFloat(choices.count) * Design.Settings.themeChoiceHeight
-            + CGFloat(max(0, choices.count - 1)) * Design.Space.xs
-        return VStack(alignment: .leading, spacing: Design.Space.s) {
-            Text(title).font(Design.Settings.groupFont).foregroundStyle(ThemeStyle.ink)
-            ScrollView {
-                LazyVStack(spacing: Design.Space.xs) {
-                    ForEach(choices) { choice in
-                        choiceButton(choice)
-                    }
-                }
-            }
-            .frame(height: min(listHeight, Design.Settings.themePickerMaximumHeight))
-            .settingsOverlayScrollbars()
-        }
-        .padding(Design.Space.m)
-        .frame(width: Design.Settings.themePickerWidth)
-        .themeDetailSurface()
-    }
-
-    private func choiceButton(_ choice: ThemePreset) -> some View {
-        let selected = choice.id == selectedID
-        return Button { select(choice.id) } label: {
-            HStack(spacing: Design.Space.s) {
-                ThemeSwatch(preset: choice, variant: variant)
-                Text(choice.title).font(Design.Settings.rowFont)
-                    .lineLimit(1)
-                    .foregroundStyle(ThemeStyle.ink)
-                Spacer(minLength: 0)
-                if selected {
-                    Image(systemName: "checkmark").font(Design.Text.note.font)
-                        .foregroundStyle(ThemeStyle.accentInk)
-                        .accessibilityHidden(true)
-                }
-            }
-            .padding(.horizontal, Design.Space.s)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: Design.Settings.themeChoiceHeight)
-            .contentShape(Rectangle())
-            .background(selected ? theme.swiftUI.controlHoverFill : ThemePalette.transparent,
-                        in: RoundedRectangle(cornerRadius: Design.Radius.control))
-        }
-        .overlay {
-            if selected {
-                RoundedRectangle(cornerRadius: Design.Radius.control)
-                    .strokeBorder(theme.swiftUI.focusStroke)
-                    .allowsHitTesting(false)
-            }
-        }
-        .buttonStyle(.borderless)
-        .modifier(SettingsHoverStyle())
-        .accessibilityLabel(choice.title)
-        .accessibilityAddTraits(selected ? .isSelected : [])
-        .help(choice.title)
-    }
-}
-
-private struct ThemeSwatch: View {
-    @Environment(\.theme) private var theme
-    let preset: ThemePreset
-    let variant: ThemeVariant
-
-    var body: some View {
-        let previewsActiveSystem = preset.id == ThemePalette.systemID && theme.isSystem && theme.variant == variant
-        let colors = previewsActiveSystem ? theme.swatch : preset.swatch(for: variant)
-        Text("Aa")
-            .font(Design.Text.label.font)
-            .foregroundStyle(colors.accent)
-            .frame(width: Design.Settings.themeSwatchWidth, height: Design.Settings.themeSwatchHeight)
-            .background(colors.surface, in: RoundedRectangle(cornerRadius: Design.Radius.control))
-            .overlay {
-                RoundedRectangle(cornerRadius: Design.Radius.control).strokeBorder(colors.border)
-            }
-            .accessibilityHidden(true)
     }
 }

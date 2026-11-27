@@ -75,17 +75,17 @@ struct ThemePalette: Equatable {
     }
 
     struct Swatch {
-        let surface: Color
-        let accent: Color
-        let border: Color
+        let surface: NSColor
+        let accent: NSColor
+        let border: NSColor
 
         init(surface: NSColor, ink: NSColor, accent: NSColor) {
-            self.surface = Color(nsColor: surface)
-            self.accent = Color(nsColor: accent)
+            self.surface = surface
+            self.accent = accent
             if let base = ThemeColor(nsColor: surface), let text = ThemeColor(nsColor: ink) {
-                border = Color(nsColor: base.mixed(with: text.withOpacity(1), fraction: 0.16).nsColor)
+                border = base.mixed(with: text.withOpacity(1), fraction: 0.16).nsColor
             } else {
-                border = Color(nsColor: ink)
+                border = ink
             }
         }
     }
