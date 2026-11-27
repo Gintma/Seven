@@ -15,6 +15,7 @@ Seven 是原生 macOS 效率套件，融合 AI 翻译、屏幕截图与本机 OC
 | 改冻结选区、标注、钉图、保存或系统共享 | [截图与钉图](Docs/modules/截图与钉图.md) |
 | 改滚动采集、拼接或长图编辑 | [长截图](Docs/modules/长截图.md) |
 | 改 OCR、图片导入、菜单栏项目或图片快捷键 | [OCR 与图片输入](Docs/modules/OCR与图片输入.md) |
+| 签名、公证、制作 DMG 或发布更新 | [发版与公证](Docs/Release.md) |
 
 ## 常用命令
 
