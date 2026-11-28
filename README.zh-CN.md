@@ -68,6 +68,14 @@
 
 支持 **macOS 14.0（Sonoma）及以上版本**，兼容 Apple 芯片和 Intel Mac。
 
+**使用 Homebrew 安装：**
+
+```sh
+brew install --cask crismakes/tap/seven
+```
+
+**或直接下载安装包：**
+
 1. 在 **Assets** 中下载并打开 `.dmg`，也可以下载并解压 `.zip`。 [GitHub 最新版本](https://github.com/crismakes/Seven/releases/latest)
 2. 将 **Seven** 拖入 **Applications（应用程序）**，再从应用程序文件夹打开。
 
@@ -132,4 +140,4 @@ Seven 的应用更新使用 [Sparkle](https://sparkle-project.org/)，原生 Mar
 
 ## 开源协议与反馈
 
-Seven 采用 [MIT 协议](LICENSE)开源。欢迎在 [GitHub Issues](https://github.com/crismakes/Seven/issues) 反馈问题或提出功能建议。
+Seven 采用 [MIT 协议](LICENSE)开源。欢迎在 [GitHub Issues](https://github.com/crismakes/Seven/issues) 反馈问题或建议，在 [Discussions](https://github.com/crismakes/Seven/discussions) 交流用法与自定义 AI 提示词；安全或隐私漏洞请按 [SECURITY.md](SECURITY.md) 私密提交。

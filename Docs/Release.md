@@ -38,7 +38,7 @@ export SEVEN_NOTARY_PROFILE=seven-notary
 
 ## 4. 发布 GitHub Release 和更新源
 
-将 `dist/v<version>/` 中的 `Seven-<version>.zip` 和生成的可选 `Seven-<version>.dmg` 上传到 GitHub Release `v<version>`。确认 Release 已公开且 ZIP 可下载，再通过项目的合并流程将脚本更新的 [appcast.xml](../appcast.xml) 发布到 `main`，让 Sparkle 读到可用的下载链接。发布后可在先前安装的正式版中通过「设置 → 关于」检查更新。
+将 `dist/v<version>/` 中的 `Seven-<version>.zip` 和生成的可选 `Seven-<version>.dmg` 上传到 GitHub Release `v<version>`。确认 Release 已公开且 ZIP 可下载，再通过项目的合并流程将脚本更新的 [appcast.xml](../appcast.xml) 发布到 `main`，让 Sparkle 读到可用的下载链接。若本次发布了 DMG，同时在 `crismakes/homebrew-tap` 更新 `Casks/seven.rb` 的 `version` 与 `sha256`（`shasum -a 256 dist/v<version>/Seven-<version>.dmg`）。发布后可在先前安装的正式版中通过「设置 → 关于」检查更新。
 
 ## 预览 DMG 安装窗口
 

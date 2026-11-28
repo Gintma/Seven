@@ -68,6 +68,14 @@ Read a foreign-language document, reply in another language, or mark up a screen
 
 Seven runs on **macOS 14.0 (Sonoma) or later** on Apple Silicon and Intel.
 
+**Install with Homebrew:**
+
+```sh
+brew install --cask crismakes/tap/seven
+```
+
+**Or download directly:**
+
 1. Under **Assets**, download and open the `.dmg`, or download and unzip the `.zip`. [Latest GitHub Release](https://github.com/crismakes/Seven/releases/latest)
 2. Drag **Seven** into **Applications**, then open it from there.
 
@@ -132,4 +140,4 @@ Its workflow is also inspired by great macOS utilities such as Bob, Easydict, an
 
 ## License & Feedback
 
-Seven is open source under the [MIT License](LICENSE). Bug reports and feature ideas are welcome on [GitHub Issues](https://github.com/crismakes/Seven/issues).
+Seven is open source under the [MIT License](LICENSE). Report bugs or request features on [GitHub Issues](https://github.com/crismakes/Seven/issues), share custom AI prompts and questions in [Discussions](https://github.com/crismakes/Seven/discussions), or see [SECURITY.md](SECURITY.md) for private security reporting.
