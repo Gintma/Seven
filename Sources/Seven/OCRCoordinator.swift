@@ -1,6 +1,6 @@
 import AppKit
 
-/// 两个独立框选入口共用本机识别；不读取或保存截图内容，不自动翻译。
+/// Both standalone region-selection entry points share on-device recognition; screenshot content is never stored or auto-translated.
 enum OCRMode:String,CaseIterable,Identifiable {
     case standard,silent
     var id:Self {self}

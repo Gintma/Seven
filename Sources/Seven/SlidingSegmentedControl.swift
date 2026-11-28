@@ -1,6 +1,6 @@
 import AppKit
 
-/// 通用分段控件。沿用 NSSegmentedControl 的点击、键盘及无障碍行为，支持文字、图标或两者组合。
+/// Reusable segmented control preserving NSSegmentedControl click, keyboard, and accessibility behavior, supporting text, icons, or both.
 final class SlidingSegmentedControl: NSSegmentedControl, ThemeApplying {
     private var palette = ThemePalette.system
     enum WidthMode { case equal, content }
@@ -14,7 +14,7 @@ final class SlidingSegmentedControl: NSSegmentedControl, ThemeApplying {
         didSet { invalidateIntrinsicContentSize(); needsLayout = true; content.needsDisplay = true }
     }
     var onSelectionChange: ((Int) -> Void)?
-    /// 选中背景与外框的间距；文字和图标的留白由 size 独立控制。
+    /// Inset between the selection pill and the outer border; text and icon padding are controlled independently by size.
     var thumbInset: CGFloat = Design.Segmented.thumbInset {
         didSet {
             selection.radius = max(0, size.radius - thumbInset)
@@ -48,7 +48,7 @@ final class SlidingSegmentedControl: NSSegmentedControl, ThemeApplying {
     }
     override func setAccessibilityLabel(_ label: String?) {
         super.setAccessibilityLabel(label)
-        // NSSegmentedControl 的实际 radioGroup 由 cell 暴露，不会继承外壳标题。
+        // NSSegmentedControl's actual radioGroup is exposed by its cell and does not inherit the outer control's title.
         cell?.setAccessibilityLabel(label)
     }
     override func setWidth(_ width: CGFloat, forSegment segment: Int) {
@@ -77,7 +77,7 @@ final class SlidingSegmentedControl: NSSegmentedControl, ThemeApplying {
 
     private var animatesSelectionChanges = true
     override var selectedSegment: Int { didSet { updateSelection(animated: animatesSelectionChanges) } }
-    /// 恢复偏好不播放选择动画；相同值不打断用户刚触发的滑动。
+    /// Restoring preferences skips selection animation; setting the same value does not interrupt an in-flight user slide.
     func setSelectedSegment(_ index: Int, animated: Bool) {
         guard selectedSegment != index else { return }
         animatesSelectionChanges = animated
@@ -106,12 +106,12 @@ final class SlidingSegmentedControl: NSSegmentedControl, ThemeApplying {
     }
     override func layout() {
         super.layout()
-        // 同步系统命中区与自定义外观，避免按内容适配时点击错位。
+        // Keep system hit-test regions synced with the custom appearance to prevent click misalignment when sizing to content.
         let sizes = widths
         for index in sizes.indices { super.setWidth(sizes[index], forSegment: index) }
         content.frame = bounds
-        // 原生 cell 可能先改变选择并触发布局，再发送 action；此处不能提前跳到终点。
-        // 初次布局、同一选项的尺寸变化和显式恢复仍由 updateSelection 的条件直接定位。
+        // The native cell may update selection and trigger layout before sending its action; do not snap to the end position early here.
+        // Initial layout, size changes on the same segment, and explicit restores are still positioned directly via updateSelection's conditions.
         updateSelection(animated: true)
     }
     private func updateSelection(animated: Bool) {
@@ -170,7 +170,7 @@ final class SlidingSegmentedControl: NSSegmentedControl, ThemeApplying {
                 let size = CGSize(width: configured.size.width * ratio, height: configured.size.height * ratio)
                 let target = backingAlignedRect(CGRect(x: x + (iconWidth - size.width) / 2,
                     y: rect.midY - size.height / 2, width: size.width, height: size.height), options: .alignAllEdgesNearest)
-                // 保留 SF 矢量表示，让 AppKit 按当前屏幕倍率栅格化；不把低分辨率 CGImage 拉伸成蒙版。
+                // Keep the SF vector representation so AppKit rasterizes at the current display scale instead of stretching a low-resolution CGImage into a mask.
                 let context = NSGraphicsContext.current?.cgContext
                 context?.saveGState()
                 context?.beginTransparencyLayer(auxiliaryInfo: nil)

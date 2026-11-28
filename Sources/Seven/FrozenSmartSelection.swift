@@ -1,8 +1,8 @@
 import AppKit
 import ApplicationServices
 
-/// 读取结构、角色与边界，不读取标题、文本、输入值或执行控件动作。
-/// 必要时按会话请求目标应用发布完整AX树，结束后恢复原状态。
+/// Reads structure, roles, and bounds only; never reads titles, text, or input values, and never performs control actions.
+/// Requests the target app to expose its full AX tree per session when needed, and restores the prior state afterward.
 protocol FrozenSmartSelecting: Sendable {
     func finishSession()
     func regions(at point: CGPoint, in window: FrozenWindowCandidate, geometry: FrozenSmartGeometry) async -> FrozenSmartSelectionResult
@@ -10,7 +10,7 @@ protocol FrozenSmartSelecting: Sendable {
 
 extension FrozenSmartSelecting { func finishSession() {} }
 
-/// 自身窗口只走已布局的原生几何；不能再对自己的 PID 发系统 AX 查询。
+/// Seven's own windows use laid-out native geometry only; never issue system AX queries against our own PID.
 struct SystemFrozenSmartSelection: FrozenSmartSelecting {
     private let remote: any FrozenSmartSelecting
     init(remote: any FrozenSmartSelecting = SystemFrozenRemoteSmartSelection()) { self.remote = remote }

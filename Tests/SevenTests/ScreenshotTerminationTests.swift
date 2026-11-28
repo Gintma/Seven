@@ -4,7 +4,7 @@ import XCTest
 import os
 @testable import Seven
 
-/// 只在恢复读操作上阻塞，所有属性均保存在内存中。
+/// Blocks only on the restore read operation; all properties are stored in memory.
 private final class TerminationAccessibilityMock: FrozenSmartAccessibilityAttributes, @unchecked Sendable {
     private let restoring = DispatchSemaphore(value: 0)
     let release = DispatchSemaphore(value: 0)
@@ -38,7 +38,7 @@ final class ScreenshotTerminationTests: XCTestCase {
         let prepared = await Task.detached { session.prepare(1) }.value
         XCTAssertTrue(prepared)
         backend.blockRestoration()
-        // 截图此前已经关闭，调用方没有保存 finish 返回的任务。
+        // Screenshot capture was already closed, and the caller did not retain the task returned by finish.
         session.finish()
         let entered = await Task.detached { backend.waitUntilRestoring() }.value
         XCTAssertEqual(entered, .success)
@@ -53,7 +53,7 @@ final class ScreenshotTerminationTests: XCTestCase {
         let decision = delegate.applicationShouldTerminate?(NSApplication.shared) ?? .terminateNow
         XCTAssertEqual(decision, .terminateLater, "已关闭截图的恢复仍被阻塞时，退出必须先延期")
         XCTAssertEqual(delegate.applicationShouldTerminate?(NSApplication.shared), .terminateLater)
-        // 恢复仍被阻塞，但 MainActor 可以继续执行；不得提前回复。
+        // Restoration is still blocked while MainActor can proceed; must not reply early.
         try await Task.sleep(for: .milliseconds(30))
         XCTAssertTrue(replies.isEmpty)
         XCTAssertTrue(backend.isEnabled)

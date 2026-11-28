@@ -45,7 +45,7 @@ enum ThemeToken: String, CaseIterable {
     case hudHighlight
 }
 
-/// 同一套颜色同时供 AppKit 和 SwiftUI 使用。
+/// Shared color set used by both AppKit and SwiftUI.
 struct ThemePalette: Equatable {
     let id: String
     let variant: ThemeVariant
@@ -173,7 +173,7 @@ struct ThemePalette: Equatable {
     var pinCloseFill: NSColor { isSystem ? .white : self[.surfaceRaised] }
     var menuSelectedText: NSColor { isSystem ? .selectedMenuItemTextColor : self[.onAccent] }
 
-    /// 每次取色时读取系统语义色，派生颜色也以当前值为基准。
+    /// Reads system semantic colors on each access, deriving secondary colors from their current values.
     private static let nativeColors: [ThemeToken: () -> NSColor] = [
         .surface: { .windowBackgroundColor },
         .surfaceRaised: { .controlBackgroundColor },
@@ -220,7 +220,7 @@ struct ThemePalette: Equatable {
         isSystem ? Self.scaled(color, by: factor, name: name) : color.withAlphaComponent(color.alphaComponent * factor)
     }
 
-    /// 保留系统颜色原有的透明度。
+    /// Preserves the original alpha of the system color.
     private static func scaled(_ color: NSColor, by factor: CGFloat, name: String) -> NSColor {
         NSColor(name: name) { appearance in
             var resolved = color

@@ -4,12 +4,12 @@ class FlippedView: NSView {
     override var isFlipped: Bool { true }
 }
 
-/// 带底色、描边与圆角的区块。颜色在绘制时按当前外观解析，切换浅色与深色时自动更新。
+/// Rounded container with fill and border. Colors resolve against the current appearance at draw time and update automatically between Light and Dark Mode.
 class LayerBackedView: FlippedView {
     var fillColor: NSColor = ThemePalette.clear { didSet { needsDisplay = true } }
     var strokeColor: NSColor = ThemePalette.clear { didSet { needsDisplay = true } }
     var cornerRadius: CGFloat = 0 { didSet { needsDisplay = true } }
-    /// 外观切换后调用，供需要自行着色的子视图更新颜色。
+    /// Called after appearance changes so subviews that manage their own tinting can refresh colors.
     var onEffectiveAppearanceChange: (() -> Void)?
 
     override var wantsUpdateLayer: Bool { true }
@@ -81,7 +81,7 @@ extension NSButton {
 
 
 extension NSButton {
-    /// 原生按钮文字在自定义色板下使用同一前景色。
+    /// Native button titles use the same foreground color under custom palettes.
     func applyTheme(_ palette: ThemePalette, title: String) {
         if palette.isSystem {
             self.title = title
@@ -103,7 +103,7 @@ extension NSTextView {
     }
 }
 
-/// 绘制型视图共用同一套失效机制。颜色留在 AppKit 绘制环境内解析。
+/// Drawing-based views share the same invalidation path. Colors remain resolved within the AppKit drawing context.
 class ThemedDrawingView: NSView, ThemeApplying {
     private(set) var theme = ThemePalette.system
 

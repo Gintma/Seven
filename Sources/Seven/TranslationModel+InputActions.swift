@@ -1,9 +1,9 @@
 import AppKit
 
 extension TranslationModel {
-    // MARK: 输入准备与界面操作
+    // MARK: Input Preparation & UI Actions
 
-    /// 独立的原地替换会话只请求一个已启用且未暂停的翻译服务，不修改服务开关。
+    /// An isolated in-place replacement session queries a single enabled, non-paused translation service without modifying service toggles.
     func beginInputReplacement(_ text: String) throws -> TranslationProviderID {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw InputReplacementError.empty }
         guard text.count <= 20_000 else { throw InputReplacementError.tooLong }
@@ -17,7 +17,7 @@ extension TranslationModel {
         return placeholder.id
     }
 
-    /// 返回是否实际复制了内容，供按钮显示确认反馈。
+    /// Returns whether content was actually copied so the button can show confirmation feedback.
     @discardableResult
     func copyResult(_ provider: TranslationProviderID) -> Bool {
         guard let value = serviceResults.first(where: { $0.id == provider })?.text, !value.isEmpty else { return false }

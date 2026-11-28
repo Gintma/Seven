@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// 红色关闭按钮与 ⌘W 共用 performClose；拦截后由保存/放弃动作重新发起关闭。
+/// Both the red close button and ⌘W go through performClose; after interception, the save/discard action re-initiates closing.
 final class SettingsCloseConfirmingWindow: NSWindow {
     var permitsClose: (() -> Bool)?
     var onClose: (() -> Void)?

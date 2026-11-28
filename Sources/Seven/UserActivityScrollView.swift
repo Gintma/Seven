@@ -1,7 +1,7 @@
 import AppKit
 
 final class UserActivityScrollView: NSScrollView {
-    /// 开始操作时暂停跟随；只有原生滚轮/滚动条操作结束后按实际位置恢复。
+    /// Pauses auto-follow when interaction begins; resumes based on actual position only after native scroll wheel or scrollbar interaction ends.
     var onUserScroll: ((_ isAtBottom: Bool) -> Void)?
     private var indicatorHideWorkItem: DispatchWorkItem?
     private var userIndicatorActive = false

@@ -21,7 +21,7 @@ final class HistoryStoreTests: XCTestCase {
             XCTAssertEqual(store.records.count, 1)
             XCTAssertEqual(reads, 1)
             var refreshes = 0
-            // 模拟已关闭但保留的托管视图消费 revision，并从一次布局的多个位置读取记录。
+            // Simulates a closed yet retained hosting view consuming revision and reading records from multiple points in a single layout pass.
             let observer = store.$revision.dropFirst().sink { [weak store] _ in
                 refreshes += 1
                 _ = store?.records

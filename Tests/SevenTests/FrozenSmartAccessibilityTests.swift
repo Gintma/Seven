@@ -42,7 +42,7 @@ final class FrozenSmartAccessibilityTests: XCTestCase {
         XCTAssertFalse(backend.read(.enhanced, in: 1) == true)
     }
     func testEnhancedModeFallbackUsesReadbackAndRestoresRuntimeState() async {
-        // 模拟原生桥接：manual不可读；enhanced写入的真实状态可回读，不能依赖setter返回码。
+        // Simulates the native bridge: manual is unreadable; real state written to enhanced can be read back instead of relying on the setter return code.
         let backend = SmartAccessibilityAttributesMock([9: [.enhanced: false]])
         let session = FrozenSmartAccessibilitySession(attributes: backend)
         XCTAssertTrue(session.prepare(9))
@@ -123,7 +123,7 @@ extension FrozenSmartAccessibilityTests {
     }
 }
 
-/// 用信号量模拟不响应的外部应用，不访问系统AX或真实应用。
+/// Uses a semaphore to simulate an unresponsive external app without touching system AX or real apps.
 private final class BlockingSmartAccessibilityMock: FrozenSmartAccessibilityAttributes, @unchecked Sendable {
     let backend = SmartAccessibilityAttributesMock([1: [.manual: false]])
     let entered = DispatchSemaphore(value: 0)

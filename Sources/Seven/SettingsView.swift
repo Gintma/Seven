@@ -4,7 +4,7 @@ import Combine
 import CoreGraphics
 import Observation
 
-/// 当前设置页面的一次性反馈，和已保存配置及系统状态分别持有。
+/// One-shot feedback for the current settings pane, held separately from saved configuration and system state.
 @MainActor @Observable
 final class SettingsPageFeedback {
     enum ServiceOperation {
@@ -339,7 +339,7 @@ struct SettingsView: View {
                 SettingsUpdateShortcut(updater: updater)
             }
         }
-        // 语言变化时重建原生列表的标题和行，选中的页面由设置窗口持有。
+        // Rebuild the native list's titles and rows when the language changes; the selected pane is owned by the settings window.
         .id(language)
         .navigationSplitViewColumnWidth(
             min: Design.Settings.navigationWidth,
@@ -351,7 +351,7 @@ struct SettingsView: View {
 
     private var detailContent: some View {
         let title = selection.title
-        // 透明标题栏不遮挡滚动内容，详情区在自身边界内裁切。
+        // Transparent title bar does not obscure scrolled content, and the detail area clips to its own bounds.
         return detail.clipped().themeDetailSurface().navigationTitle(title)
             .settingsOverlayScrollbars()
             .toolbar {

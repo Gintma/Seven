@@ -1,7 +1,7 @@
 import AppKit
 
 extension NSImage {
-    /// 图形实际墨迹的宽度（去掉 SF 符号两侧的留白），用于按可见宽度排列图标。
+    /// Width of the image's actual inked bounds (excluding SF Symbol side bearings), used to lay out icons by visible width.
     var inkWidth: CGFloat {
         let scale: CGFloat = 2
         let pixelsWide = Int(ceil(size.width * scale)), pixelsHigh = Int(ceil(size.height * scale))

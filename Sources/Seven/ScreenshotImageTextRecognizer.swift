@@ -2,7 +2,7 @@ import AppKit
 import Vision
 import CoreImage
 
-/// 截图 OCR：本机二维码优先；Vision accurate 识别正文并保留行框供智能排版。
+/// Screenshot OCR: prioritizes local QR detection; uses Vision accurate mode for text while preserving line boxes for smart layout.
 struct ScreenshotImageTextRecognizer: TextRecognizing {
     var language: String = LanguageCatalog.automatic
     func recognizeText(in image: CGImage) async throws -> RecognizedOCRText {
@@ -44,7 +44,7 @@ struct ScreenshotImageTextRecognizer: TextRecognizing {
     }
 }
 
-/// 在开始任务时快照 OCR 偏好；静默入口与结果窗口使用同一识别语言。
+/// Snapshots OCR preferences when starting a task so silent capture and the result window share the same recognition languages.
 struct OCRPreferredTextRecognizer: TextRecognizing {
     func recognizeText(in image: CGImage) async throws -> RecognizedOCRText {
         let language = UserDefaults.standard.string(forKey: OCRRecognitionLanguages.preferenceKey) ?? LanguageCatalog.automatic

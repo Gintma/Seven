@@ -1,4 +1,4 @@
-// 内置主题预设的基础色、表面色和控件配色。
+// Base, surface, and control colors for built-in theme presets.
 extension ThemePreset {
     static let imported: [ThemePreset] = [
         .init(id: "absolutely", title: "Absolutely",

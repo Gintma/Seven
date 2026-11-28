@@ -1,8 +1,8 @@
 import AppKit
 
-/// 用同一套文字属性绘制标注的原生编辑、预览与导出。
+/// Uses one shared set of text attributes across native editing, preview, and export rendering.
 @MainActor enum ScreenshotEditorTextRendering {
-    /// 当前标注直接绘制到屏幕/导出上下文，避免先生成位图再缩放引起字形模糊。
+    /// Draws annotations directly into the screen or export context to avoid blurry glyphs from rasterizing and scaling.
     static func drawBackdrop(_ stroke: ScreenshotEditorStroke) {
         guard let style=stroke.textBackdropStyle,let frame=stroke.textBackdropFrame else{return}
         let inset=style == .background ? 0:Design.AnnotationEditor.textBorderInset

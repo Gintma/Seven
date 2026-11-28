@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 
-/// 每张冻结图对应一个屏幕，框选完成后按该屏幕的像素坐标从原图裁剪。
+/// Each frozen image corresponds to one display; once selection finishes, crop the source image in that display's pixel coordinates.
 struct FrozenScreenshotFrame: Sendable {
     let screenFrame: CGRect
     let image: CGImage
@@ -33,7 +33,7 @@ struct FrozenScreenshotFrame: Sendable {
     }
 }
 
-/// 翻译/识别沿用同一框选器，但不暴露截图专用操作，也不借改全局偏好实现。
+/// Translation and OCR reuse the same region selector without exposing screenshot-only actions or mutating global preferences.
 enum FrozenCapturePurpose: String {
     case screenshot, translation, ocr, scroll
     var isTextSelection: Bool { self == .translation || self == .ocr }
@@ -48,7 +48,7 @@ enum FrozenCapturePurpose: String {
     }
 }
 
-/// 截图辅助键分别为 R 恢复上次区域、F 全屏和 C 拷贝当前 HEX 色值。
+/// Screenshot helper keys: R restores the last region, F captures full screen, and C copies the current HEX color.
 enum FrozenSelectionCommand: Equatable {
     case cancel, fullScreen, previousArea, copyColor
     init?(keyCode: UInt16) {
@@ -93,7 +93,7 @@ final class FrozenScreenshotCaptureCoordinator {
     private var cursorIsPushed = false
     private(set) var lastCaptureRect: CGRect?
     private(set) var lastCaptureScreenFrame: CGRect?
-    /// 仅在截图成功回调内供编辑器接管，整屏像素由会话或编辑器持有。
+    /// Handed off to the editor only inside the successful capture callback; full-screen pixel buffers stay owned by the session or editor.
     private(set) var lastSelectionContext: FrozenSelectionContext?
     var isCapturing: Bool { captureGeneration != nil }
 
@@ -206,13 +206,13 @@ final class FrozenScreenshotCaptureCoordinator {
         }
     }
 
-    /// 导出时保存上次区域，取消编辑时保留已保存的区域。
+    /// Saves the last region on export and preserves the previously saved region if editing is cancelled.
     func rememberArea(_ globalRect: CGRect, on screenFrame: CGRect) {
         let local = globalRect.offsetBy(dx: -screenFrame.minX, dy: -screenFrame.minY)
         defaults.set(NSStringFromRect(local), forKey: Self.previousAreaKey)
     }
 
-    /// 在当前屏幕复用上次区域，超出边界时移动原点并保留尺寸。
+    /// Reuses the last region on the current display, clamping its origin inside bounds while preserving size.
     static func previousArea(_ rect: CGRect, fitting size: CGSize) -> CGRect {
         var adjusted = rect
         if adjusted.maxX > size.width { adjusted.origin.x = size.width - adjusted.width }
@@ -250,7 +250,7 @@ final class FrozenScreenshotCaptureCoordinator {
 
     private func prepareCapture(_ completion: Completion) -> Bool {
         cancel()
-        // 取消回调可以同步开启另一会话。
+        // The cancel callback may synchronously start another session.
         guard captureGeneration == nil else { completion(.failure(.cancelled)); return false }
         guard hasPermission() else { completion(.failure(.permissionDenied)); return false }
         return true
@@ -300,7 +300,7 @@ final class FrozenScreenshotCaptureCoordinator {
         for panel in panels { (panel.contentView as? FrozenSelectionView)?.selectedWindows = selected }
     }
 
-    /// 与交互共用的多窗口捕获入口，便于隔离后端验证错误和取消。
+    /// Multi-window capture entry point shared with interactive flows, allowing isolated backend testing of errors and cancellation.
     func captureWindows(_ candidates: [FrozenWindowCandidate], on screenFrame: CGRect, completion: @escaping Completion) {
         guard prepareCapture(completion) else { return }
         guard !candidates.isEmpty else { completion(.failure(.captureFailed)); return }
@@ -312,7 +312,7 @@ final class FrozenScreenshotCaptureCoordinator {
 
     private func captureSelectedWindows(_ candidates: [FrozenWindowCandidate], screenFrame: CGRect, backgroundImage: CGImage?, token: UUID) {
         guard windowCaptureTask == nil, !candidates.isEmpty else { return }
-        // 独立窗口后端按 WindowID 采集，无需隐藏覆盖层；一直保留冻结桌面到编辑器接手。
+        // The standalone window backend captures by WindowID without hiding overlays; keep the frozen desktop visible until the editor takes over.
         panels.forEach { ($0.contentView as? FrozenSelectionView)?.beginWindowCapture() }
         windowCaptureTask = Task { [weak self] in
             guard let self else { return }
@@ -355,11 +355,11 @@ final class FrozenScreenshotCaptureCoordinator {
         if cursorIsPushed { NSCursor.pop(); cursorIsPushed = false }
         switch result {
         case .success(let image):
-            // 先显示编辑器再关闭选择层，避免交接时桌面曝光。
+            // Show the editor before closing the selection overlay so the desktop does not flash during handoff.
             deliver(image, editorContext: editorContext, to: callback)
             oldPanels.forEach { $0.close() }
         case .failure:
-            // 错误回调可能显示模态提示，先移除位于最上层的选择窗口。
+            // Error callbacks may present a modal alert; dismiss the topmost selection window first.
             oldPanels.forEach { $0.close() }
             callback?(result)
         }
@@ -477,7 +477,7 @@ final class FrozenSelectionView: ThemedDrawingView {
         hovered = candidate
         if !smartSelectionEnabled || commandHeld || changedWindow || candidate?.ownerPID == nil { selection = hoverFallbackRect }
         else if let smartRect { selection = smartRect }
-        // 同窗口内保留当前显示，等新命中一次性替换，避免先闪回整窗。
+        // Keep the current highlight within the same window and swap atomically on the next hit to avoid flashing back to the whole window.
         updateMagnifier(at:point)
         needsDisplay = true
         requestSmartSelection()
@@ -485,7 +485,7 @@ final class FrozenSelectionView: ThemedDrawingView {
     private var windowRect: CGRect {
         hovered?.frame.offsetBy(dx: -screenFrame.minX, dy: -screenFrame.minY).intersection(bounds) ?? .zero
     }
-    /// 桌面不是普通窗口：没有窗口命中时选当前屏幕，多窗口模式中桌面不作为目标。
+    /// The desktop is not a normal window: fall back to the current screen when no window is hit, and exclude the desktop as a target in multi-window mode.
     private var hoverFallbackRect: CGRect {
         if hovered != nil { return windowRect }
         return !commandHeld && pointer.map(bounds.contains) == true ? bounds : .zero
@@ -556,7 +556,7 @@ final class FrozenSelectionView: ThemedDrawingView {
     override func draw(_ dirtyRect: NSRect) {
         var revealed = selectedWindows.map { $0.frame.offsetBy(dx: -screenFrame.minX, dy: -screenFrame.minY).intersection(bounds) }
         if !selection.isEmpty { revealed.append(selection) }
-        // 窗口点选保留窗口轮廓；拖出的区域从首帧起应用输出圆角。
+        // Window clicks keep the window contour; dragged regions apply output corner rounding from the first frame.
         let pixels = ScreenshotGeometry.displayRect(for: selection, screenSize: screenFrame.size,
             displaySpaceSize: CGSize(width: sourceImage.width, height: sourceImage.height)).size
         let showingElement = hovered != nil && !selection.isEmpty && selection != windowRect
@@ -571,7 +571,7 @@ final class FrozenSelectionView: ThemedDrawingView {
             theme.captureAccent.setStroke()
             let border = NSBezierPath(rect: selected); border.lineWidth = Design.ScreenshotCapture.cornerWidth; border.stroke()
         }
-        // 选区为直角且宽高均超过最小尺寸时，绘制四个 L 形角。
+        // Draw four L-shaped corner handles when the selection has square corners and exceeds the minimum width and height.
         if radii == .zero, selection.width > Design.ScreenshotCapture.cornerMinimumSize,
            selection.height > Design.ScreenshotCapture.cornerMinimumSize {
             let outside = Design.ScreenshotCapture.cornerOutside
@@ -594,7 +594,7 @@ final class FrozenSelectionView: ThemedDrawingView {
         guard !awaitingWindowCapture else { return }
         commandHeld = purpose == .screenshot && event.modifierFlags.contains(.command)
         mouseMoved(with: event)
-        // 等待识别时保留的旧框仅作视觉延续，不能作为新位置的截图结果。
+        // The stale rect kept while awaiting recognition is for visual continuity only and must not be used as the capture result for the new location.
         if !commandHeld, smartRect == nil { selection = hoverFallbackRect }
         anchor = convert(event.locationInWindow, from: nil)
         dragged = false

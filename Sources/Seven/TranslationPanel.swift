@@ -28,11 +28,11 @@ final class TranslationPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
-    /// 浮窗高度随内容变化，缩放没有意义；同时屏蔽双击标题栏触发的缩放。
+    /// Panel height tracks content, so zooming is meaningless; also blocks double-clicking the title bar from zooming.
     override func zoom(_ sender: Any?) {}
 
-    /// 只保留关闭按钮：最小化本就不可用，缩放对随内容变高的浮窗没有意义。
-    /// 关闭按钮主要服务于钉住状态（此时点击外部不会隐藏浮窗）。
+    /// Keep only the close button: minimize is unsupported, and zoom makes no sense for a content-sized panel.
+    /// The close button is primarily for the pinned state, where clicking outside does not hide the panel.
     func configureWindowButtons() {
         standardWindowButton(.miniaturizeButton)?.isHidden = true
         standardWindowButton(.zoomButton)?.isHidden = true

@@ -146,7 +146,7 @@ enum TranslationError: LocalizableIssue, Equatable {
     case empty
     case incomplete
     case transport(LocalizedMessage)
-    /// 服务不支持这次的语言：卡片以灰色“已跳过”显示说明，不算错误。
+    /// Service does not support this language: card shows a gray "Skipped" notice rather than an error.
     case unsupportedLanguage(LocalizedMessage)
 
     var issue: LocalizedMessage {
@@ -201,7 +201,7 @@ final class CompatibleTranslationService: TranslationServing {
         else {
             let config = URLSessionConfiguration.ephemeral
             config.timeoutIntervalForRequest = 60
-            // 与实例超时上限一致，避免用户设为300秒仍被会话的旧90秒上限提前截断。
+            // Match the instance timeout cap so a user-configured 300s timeout is not truncated early by the session's old 90s limit.
             config.timeoutIntervalForResource = 300
             config.httpCookieStorage = nil
             config.urlCache = nil
@@ -265,7 +265,7 @@ final class CompatibleTranslationService: TranslationServing {
             var rendered = ""
             var cursor = template.startIndex
             var includesText = false
-            // 只遍历模板里的匹配。插入的原文保留原样。
+            // Only iterate over matches within the template; inserted source text is preserved verbatim.
             for match in template.matches(of: #/\{\{(?:target|firstLanguage|text)\}\}/#) {
                 let token = String(template[match.range])
                 rendered += template[cursor..<match.range.lowerBound]

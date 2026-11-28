@@ -11,7 +11,7 @@ enum ThemeResolver {
                                   surface: surface, ink: seed.ink)
         let raised = seed.tokens[.surfaceRaised] ?? surface.mixed(with: seed.ink, fraction: 0.04 + contrast * 0.1)
         let inset = seed.tokens[.surfaceInset] ?? surface.mixed(with: seed.ink, fraction: 0.03 + contrast * 0.06)
-        // 两种外观都用凹暗轨道和较亮的滑块，分别适配卡片与工具条底色。
+        // Both appearances use a recessed dark track and a lighter thumb, adapted to card and toolbar backgrounds.
         let segmentTrack = variant == .dark
             ? surface.mixed(with: 0x000000, fraction: 0.24)
             : surface.mixed(with: seed.ink, fraction: 0.10)
@@ -26,7 +26,7 @@ enum ThemeResolver {
         let accentFill = seed.tokens[.accentFill] ?? accent
         let preferredOnAccent = seed.tokens[.onAccent] ?? (variant == .dark ? 0x000000 : 0xFFFFFF)
         let onAccent = readable(preferredOnAccent, on: [accentFill], minimum: 4.5)
-        // 次级按钮的悬停底色也作为侧栏选中底色的默认值。
+        // Secondary button hover background also serves as the default sidebar selection background.
         let controlHoverFill = seed.tokens[.controlHoverFill] ?? ink.withOpacity(0.07)
         let selection = seed.tokens[.selectionFill] ?? accent.withOpacity(0.25)
         let link = readable(seed.tokens[.accentInk] ?? accent, on: backgrounds, minimum: 4.5)
@@ -59,12 +59,12 @@ enum ThemeResolver {
         return ThemePalette(id: id, variant: variant, colors: resolved.mapValues(\.nsColor))
     }
 
-    /// 页底与内容卡片只差不到一个可见色阶时，用同色系补出层级。
+    /// When the page background and content cards differ by less than one visible tone step, add contrast within the same hue family.
     private static func distinctPanel(_ panel: ThemeColor, surface: ThemeColor, ink: ThemeColor) -> ThemeColor {
         panel.contrast(against: surface) < 1.025 ? surface.mixed(with: ink, fraction: 0.035) : panel
     }
 
-    /// 保留原色，必要时只混入足够的黑或白，保证文字跨各实色表面可读。
+    /// Preserves the base color, mixing in only enough black or white when needed to keep text legible across solid surfaces.
     private static func readable(_ original: ThemeColor, on backgrounds: [ThemeColor], minimum: Double) -> ThemeColor {
         func contrast(_ color: ThemeColor) -> Double {
             backgrounds.map { color.contrast(against: $0) }.min() ?? minimum

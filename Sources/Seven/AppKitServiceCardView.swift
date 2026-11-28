@@ -119,7 +119,7 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
         copyButton.alphaValue = showsActions ? 1 : 0
         speechButton.isEnabled = showsActions
         copyButton.isEnabled = showsActions
-        // 同一个“>”绕中心旋转 90° 指向下方；首次显示不做动画。
+        // Rotate the same ">" 90° around its center to point downward; skip animation on initial display.
         chevronButton.setRotation(degrees: showsBody ? 90 : 0, animated: window != nil)
         chevronButton.updateLocalizedLabel(visibleExpanded ? L10n.text("collapseTranslation") : L10n.text("expandTranslation"))
         header.toolTip = canToggle ? chevronButton.toolTip : L10n.text("enterTextToUseThisService")
@@ -233,7 +233,7 @@ final class AppKitServiceCardView: LayerBackedView, ThemeApplying {
             speechButton.heightAnchor.constraint(equalToConstant: Design.Icon.cardActionSize),
             copyButton.widthAnchor.constraint(equalToConstant: Design.Icon.cardActionSize),
             copyButton.heightAnchor.constraint(equalToConstant: Design.Icon.cardActionSize),
-            // 箭头字形很窄，按钮收窄到 16，使其右边缘与朗读、复制图标一致（约 13），与左侧图标的 12 对称。
+            // The chevron glyph is narrow; shrink button width to 16 so its trailing edge matches the speak/copy icons (~13), symmetric with the 12 pt leading icon.
             chevronButton.widthAnchor.constraint(equalToConstant: 16),
             chevronButton.heightAnchor.constraint(equalToConstant: 26)
         ])

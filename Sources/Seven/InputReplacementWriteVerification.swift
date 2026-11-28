@@ -1,17 +1,17 @@
 import Foundation
 
-/// 写回后优先核验插入范围；不要求富文本编辑器的整框 AXValue 等于纯文本拼接结果。
+/// Verifies the inserted range first after writeback; does not require a rich-text editor's full AXValue to match plain-text concatenation.
 enum InputReplacementWriteVerification {
     static func matches(translated: String, before: InputReplacementSnapshot, wholeInput: Bool,
                         insertedText: String?, currentValue: String?, currentDocument: String?) -> Bool {
         let normalized = normalize(translated)
         guard !normalized.isEmpty else { return false }
-        // 文档范围 API 与原生选区在相同坐标系中，能直接确认目标位置的文字。
+        // Document range APIs share the same coordinate space as native selections and can directly verify text at the target range.
         if let insertedText, normalize(insertedText) == normalized { return true }
         if wholeInput {
             return [currentValue, currentDocument].compactMap { $0 }.contains { normalize($0) == normalized }
         }
-        // 只有没有范围文本可用时，才尝试旧的整框拼接校验。
+        // Fall back to legacy whole-field concatenation verification only when range text is unavailable.
         guard let expected = before.replacing(with: translated) else { return false }
         return [currentValue, currentDocument].compactMap { $0 }.contains { normalize($0) == normalize(expected) }
     }

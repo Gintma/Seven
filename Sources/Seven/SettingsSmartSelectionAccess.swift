@@ -25,13 +25,13 @@ final class SettingsSmartSelectionAccess {
     }
 
     func refresh() {
-        // 先完成已获授权的开启请求，再让用户操作刷新后的开关。
+        // Complete the already-authorized enable request first before letting the user interact with the refreshed toggle.
         refreshPermissionRequest()
         isGranted = isTrusted()
     }
 
     func binding(for preference: Binding<Bool>) -> Binding<Bool> {
-        // 在构建绑定时登记权限状态的 Observation 依赖。
+        // Register the Observation dependency on permission state while constructing the binding.
         let _ = isGranted
         return Binding(get: { self.isGranted && preference.wrappedValue }, set: { enabled in
             self.refresh()

@@ -2,7 +2,7 @@ import AppKit
 import XCTest
 @testable import Seven
 
-// 保持设置迁移、服务排序和历史配置走生产入口，偏好值只存在内存中。
+// Keeps settings migration, service ordering, and history setup on production entry points while storing preferences in memory only.
 final class ReproDefaults: UserDefaults {
     private var values: [String: Any] = [:]
 
@@ -49,7 +49,7 @@ final class ReproGate {
     private var released = false
     private var continuation: CheckedContinuation<Void, Never>?
 
-    // 同一个开关只暂停第一次调用；重试可以照常运行。
+    // The same gate pauses only the first call; retries proceed normally.
     func pause() async {
         guard !entered else { return }
         entered = true

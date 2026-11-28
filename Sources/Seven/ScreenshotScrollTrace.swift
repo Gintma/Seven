@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-/// 用户主动开启的滚动截图诊断。只能记录几何、时序和固定分类，不接收图像或文字。
+/// Opt-in scrolling-screenshot diagnostics. Records only geometry, timings, and fixed categories; never accepts images or text.
 struct ScreenshotScrollTrace: Sendable {
     static let enabledKey = "screenshotScrollDiagnostics.v1"
     static let directory = URL(filePath: "/tmp/seven-scroll-diagnostics", directoryHint: .isDirectory)
@@ -49,6 +49,6 @@ struct ScreenshotScrollTrace: Sendable {
             do { try handle.seekToEnd();try handle.write(contentsOf:line) } catch { }
         }
     }
-    /// 只供等待诊断落盘，避免关闭后读取文件时遗漏队尾事件。
+    /// Used only to await diagnostic flush so trailing events are not missed when reading the file after closing.
     func flushed() async { await withCheckedContinuation { continuation in queue.async { continuation.resume() } } }
 }

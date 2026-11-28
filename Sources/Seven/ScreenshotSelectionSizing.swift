@@ -16,9 +16,9 @@ enum ScreenshotAspectRatio: String, CaseIterable {
     }
 }
 
-/// 数值以输出像素为准；选区几何仍使用当前屏幕的逻辑坐标。
+/// Values are in output pixels; selection geometry remains in the current display's logical coordinates.
 enum ScreenshotSelectionSizing {
-    /// 框选预览与编辑器共用像素圆角换算；小选区不超过短边的一半。
+    /// Shares pixel corner-radius conversion between selection preview and editor, capping at half the shorter edge for small selections.
     static func cornerRadii(_ radius: CGFloat, logicalSize: CGSize, pixelSize: CGSize) -> CGSize {
         guard radius > 0, pixelSize.width > 0, pixelSize.height > 0 else { return .zero }
         let clamped = min(radius, (min(pixelSize.width, pixelSize.height) / 2).rounded(.down))

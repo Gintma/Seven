@@ -82,7 +82,7 @@ enum ScreenshotToolbarAction: String, CaseIterable, Identifiable, Codable {
 
 }
 
-/// 编辑区按键与按钮可见性；不保存图像、文字或编辑文档。nil默认值供隔离测试使用。
+/// Editor shortcuts and button visibility; never saves images, text, or edited documents. A nil default is used for isolated tests.
 @MainActor final class ScreenshotToolbarPreferences: ObservableObject {
     static let shared = ScreenshotToolbarPreferences(defaults:.standard)
     static let changed = Notification.Name("Seven.ScreenshotToolbarChanged")
@@ -94,7 +94,7 @@ enum ScreenshotToolbarAction: String, CaseIterable, Identifiable, Codable {
         self.defaults=defaults
         if let data=defaults?.data(forKey:Self.storageKey),let saved=try? JSONDecoder().decode([String:Item].self,from:data) {
             items=saved
-            // 旧版允许留空；新增默认键后，重复的旧覆盖值退回各自默认值。
+            // Older versions allowed leaving shortcuts blank; after adding default keys, duplicate legacy overrides fall back to their respective defaults.
             for _ in ScreenshotToolbarAction.allCases {
                 var changed=false
                 for action in ScreenshotToolbarAction.allCases where action.acceptsKey {

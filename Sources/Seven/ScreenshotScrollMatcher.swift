@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 import ScrollRegistrationCore
 
-/// 截图专用的 RGBA/灰度帧；像素只在内存中参与拼接，不写入诊断。
+/// Screenshot-specific RGBA/grayscale frame; pixels are used only for in-memory stitching and never written to diagnostics.
 struct ScreenshotScrollFrame {
     let image: CGImage
     let width: Int
@@ -42,7 +42,7 @@ enum ScreenshotScrollSample: Equatable {
     case addedPixels(Int)
 }
 
-/// 诊断只传递数值、固定分类和相对坐标，不包含截图像素或页面文字。
+/// Diagnostics pass only numbers, fixed categories, and relative coordinates; never screenshot pixels or page text.
 struct ScreenshotScrollMatchInfo: Codable, Sendable {
     enum Reason: String, Codable { case initial, identical, sizeChanged, noFeatures, noCandidate, overlapRejected, withinRange, extendedTop, extendedBottom, pixelLimit, allocationFailed }
     enum Reference: String, Codable { case previousFrame, collectedImage, collectedViewport }
@@ -74,8 +74,8 @@ struct ScreenshotScrollMatchInfo: Codable, Sendable {
     var upper = 0
 }
 
-/// 按变化区域、掩码评分和逐级剪枝匹配滚动帧，再将新画面接合到已有图块。
-/// 原始截图像素只在内存保留。
+/// Matches scroll frames via changed regions, mask scoring, and staged pruning, then stitches new frames onto existing strips.
+/// Raw screenshot pixels are kept in memory only.
 struct ScreenshotScrollMatcher {
     private struct Tile {
         let origin: Int
@@ -109,8 +109,8 @@ struct ScreenshotScrollMatcher {
             frame.gray.withUnsafeBufferPointer { next in seven_scroll_match(old.baseAddress,next.baseAddress,Int32(frame.width),Int32(frame.height)) }
         }
         var referencePosition = position
-        // 重复行有时会给上一帧一个“看似合格”的错误位移；同时比较历史视口，
-        // 优先精确回看或更低误差的已采集位置，不只在上一帧完全失败时找回。
+        // Repeating rows can give the previous frame a plausible but wrong offset; also compare against historical viewports,
+        // preferring exact revisits or lower-error captured positions rather than recovering only after the previous frame fails outright.
         if found.status != 0, found.score > 0,
            let relocated = references.locate(frame),
            found.status != 1 || relocated.match.status == 0 || relocated.match.score < found.score {
@@ -132,7 +132,7 @@ struct ScreenshotScrollMatcher {
         matchInfo.roiWidth=Int(found.roi_width);matchInfo.roiHeight=Int(found.roi_height)
         matchInfo.overlap=max(0,Int(found.roi_height)-abs(Int(found.offset)))
         if found.score.isFinite,found.score<Float.greatestFiniteMagnitude {matchInfo.bestMismatch=Double(found.score)}
-        // 内核比较A[y]与B[y+d]；视口逻辑位置的增量取反。拒绝也记录该候选，不能混用另一参考的误差/overlap。
+        // The kernel compares A[y] with B[y+d], so the logical viewport delta is negated. Record rejected candidates too without mixing error/overlap from another reference.
         let next = referencePosition - Int(found.offset)
         let movement = next - position
         matchInfo.displacement = -Int(found.offset)
@@ -164,7 +164,7 @@ struct ScreenshotScrollMatcher {
         if movement != 0 {acceptedFrames+=1}
         return added>0 ? .addedPixels(added):.movedWithinRange
     }
-    /// 逐段覆盖相同逻辑行，保留两侧未覆盖部分；禁止凭空填补间隙。
+    /// Overwrites matching logical row ranges segment by segment while preserving uncovered flanks; never fabricates gaps.
     private func contact(_ incoming:Tile)->[Tile]? {
         var result:[Tile]=[]
         for tile in tiles {
@@ -207,12 +207,12 @@ struct ScreenshotScrollMatcher {
     }
 }
 
-/// 采样节奏与图像预算是采集策略，不是外观参数。
+/// Sampling cadence and image budgets are capture policy, not visual styling.
 enum ScreenshotScrollPolicy {
     static let sampleInterval:TimeInterval=0.10
-    /// 周期以采样开始计时；处理108ms后立即取最新画面，不能再等下一个200ms刻度。
+    /// Cadence is timed from sample start; after 108ms of processing, capture the latest frame immediately instead of waiting for the next 200ms tick.
     static func delayUntilNextSample(elapsed:TimeInterval)->TimeInterval { max(0,sampleInterval-elapsed) }
     static let activityTimeout:TimeInterval=3
-    static let failureNoticeDelay:TimeInterval=3 // 持续匹配失败达到此时长后，显示行内找回位置提示。
+    static let failureNoticeDelay:TimeInterval=3 // After continuous match failures reach this duration, show the inline recovery prompt.
     static let maximumPixels=80_000_000
 }

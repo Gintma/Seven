@@ -103,7 +103,7 @@ enum LocalLanguageDetector {
     private static let kana = try? NSRegularExpression(pattern: #"[\p{sc=Hiragana}\p{sc=Katakana}]"#)
     private static let hangul = try? NSRegularExpression(pattern: #"\p{sc=Hangul}"#)
 
-    // 这些字形在简繁中都有合法用途。单字转写会改变其中一些字，不能据此投票。
+    // These glyphs are valid in both Simplified and Traditional Chinese; single-character transliteration alters some of them, so they cannot be used to vote.
     private static let ambiguousHanForms: Set<Character> = Set("后面台干乾里于余丑只系制征范愿谷云叶松舍斗丰周")
 
     static func detect(_ text: String, primary: String, secondary: String) -> LocalLanguageDetection {
@@ -204,7 +204,7 @@ enum LocalLanguageDetector {
         let characters = han?.matches(in: text, range: NSRange(location: 0, length: source.length)).map {
             source.substring(with: $0.range)
         } ?? []
-        // 单字加分隔符，避免双向转写把词语或专名的上下文当成字形证据。
+        // Separate individual characters with delimiters so round-trip transliteration does not treat phrase or proper-noun context as glyph evidence.
         let distinct = characters.filter { $0.first.map { !ambiguousHanForms.contains($0) } ?? false }
             .joined(separator: " ")
         let hasTraditional = distinct.applyingTransform(StringTransform("Hant-Hans"), reverse: false)

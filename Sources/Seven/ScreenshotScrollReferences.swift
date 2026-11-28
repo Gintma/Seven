@@ -1,7 +1,7 @@
 import Foundation
 import ScrollRegistrationCore
 
-/// 仅在内存保留灰度视口，不保留额外的原尺寸RGBA截图。粗图只排序，最终仍由原内核验证。
+/// Retains only grayscale viewports in memory, with no extra full-size RGBA copies. Coarse thumbnails only rank candidates; the full kernel still validates final matches.
 struct ScreenshotScrollReferences {
     private struct Snapshot {
         let position: Int
@@ -19,7 +19,7 @@ struct ScreenshotScrollReferences {
     init(width: Int, height: Int) {
         self.width = min(512, width); self.height = height
         sketchWidth = min(32, width); sketchHeight = min(64, height)
-        // 24MiB灰度预算、最多64个参照；按位置稀疏保留，两端始终保留。
+        // 24MiB grayscale budget and at most 64 references; thin sparsely by position while always keeping both endpoints.
         capacity = min(64, 24 * 1024 * 1024 / max(1, self.width * height + sketchWidth * sketchHeight))
     }
     private func reduced(_ gray: [UInt8], sourceWidth: Int, targetWidth: Int) -> [UInt8] {
@@ -49,7 +49,7 @@ struct ScreenshotScrollReferences {
         guard !snapshots.contains(where: { $0.position == position }) else { return }
         let spacing = max(1, height / 4)
         if snapshots.contains(where: { abs($0.position - position) < spacing }) {
-            // 端点单独跟到最新位置；与前一个固定参照足够远后，旧端点成为中间参照。
+            // Track the endpoint separately to the latest position; once far enough from the previous anchor, promote the old endpoint to an intermediate reference.
             if position == upper {
                 if snapshots.count > 1, snapshots[snapshots.count-1].position - snapshots[snapshots.count-2].position < spacing { snapshots.removeLast() }
             } else if position == lower {
@@ -70,7 +70,7 @@ struct ScreenshotScrollReferences {
     func locate(_ frame: ScreenshotScrollFrame) -> (position: Int, match: SevenScrollMatch)? {
         guard !snapshots.isEmpty else { return nil }
         let gray = reduced(frame.gray, sourceWidth: frame.width, targetWidth: width)
-        // 原样回看先精确命中，不让固定页头或粗级剪枝误选其他位移。
+        // Match exact revisits first so sticky headers or coarse pruning cannot pick a false offset.
         if let exact = snapshots.first(where: { $0.gray == gray }) {
             let match = SevenScrollMatch()
             return (exact.position, match)
@@ -84,7 +84,7 @@ struct ScreenshotScrollReferences {
             }
             return (snapshot, score)
         }.sorted { $0.1 < $1.1 }
-        // 小图不决定位置，只挑三个候选，避免一次失败串行扫描几十张全高图。
+        // Thumbnails do not decide the final offset; they pick only three candidates to avoid serially scanning dozens of full-height frames on a miss.
         var best: (position: Int, match: SevenScrollMatch)?
         for (snapshot, _) in ranked.prefix(3) {
             let match = snapshot.gray.withUnsafeBufferPointer { old in
@@ -92,8 +92,8 @@ struct ScreenshotScrollReferences {
                     seven_scroll_match(old.baseAddress, next.baseAddress, Int32(width), Int32(height))
                 }
             }
-            // 同一视口的光标/滚动条闪动可产生很小ROI；沿用内核的零位移判据，
-            // 不能因为不是逐字节相等就丢掉这个已经采集的位置。
+            // Cursor or scrollbar flicker in the same viewport can create a tiny ROI; reuse the kernel's zero-offset check,
+            // so an already-captured position is not discarded merely because pixels are not byte-identical.
             guard match.status == 0 || match.status == 1 else { continue }
             if match.score < (best?.match.score ?? .greatestFiniteMagnitude) {
                 best = (snapshot.position - Int(match.offset), match)

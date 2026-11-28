@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// 不激活原应用、不显示原文译文；同一会话位置固定，仅状态胶囊自身宽度变化。
+/// Never activates the source app or displays source/translated text; stays anchored for the session while only the status pill width changes.
 @MainActor
 final class InputReplacementHUD: ThemeApplying {
     private var palette = ThemePalette.system
@@ -62,7 +62,7 @@ final class InputReplacementHUD: ThemeApplying {
         label.toolTip = serviceHint?.text
     }
 
-    /// 原生写回期间保留当前外观，只停止接受取消，避免一次极短的中间状态闪现。
+    /// Keeps the current visual state during native writeback and only disables cancellation to avoid flashing a brief intermediate state.
     func prepareForWrite() {
         action = nil
         dismissButton.isEnabled = false
@@ -169,7 +169,7 @@ final class InputReplacementHUD: ThemeApplying {
     @objc private func dismiss() { action?() }
 }
 
-/// 实色表面与细边框都按实际外观解析；不采样桌面或背后窗口的颜色。
+/// Resolves both solid surface and hairline border against the effective appearance; never samples the desktop or underlying windows.
 @MainActor
 final class InputReplacementSurface: ThemedDrawingView {
     override init(frame frameRect: NSRect) {

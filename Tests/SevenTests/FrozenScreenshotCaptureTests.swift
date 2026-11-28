@@ -49,7 +49,7 @@ final class FrozenScreenshotCaptureTests: XCTestCase {
         XCTAssertEqual(FrozenSelectionGeometry.resized(original, handle: .topRight, to: CGPoint(x: 105.9, y: 93.9), within: bounds), CGRect(x: 20, y: 30, width: 80, height: 63))
         XCTAssertEqual(FrozenSelectionGeometry.resized(original, handle: .bottomLeft, to: CGPoint(x: -4.5, y: -2.8), within: bounds), CGRect(x: 0, y: 0, width: 60, height: 80))
         XCTAssertEqual(FrozenSelectionGeometry.resized(original, handle: .left, to: CGPoint(x: 85.8, y: 40), within: bounds), CGRect(x: 60, y: 30, width: 25, height: 50))
-        // 同一手势继续越过对边时仍以mouseDown的original为基准，不把上一规范化rect累加。
+        // When the same drag crosses the opposite edge, keep referencing the original rect from mouseDown instead of accumulating the previous normalized rect.
         XCTAssertEqual(FrozenSelectionGeometry.resized(original, handle: .left, to: CGPoint(x: 90, y: 40), within: bounds), CGRect(x: 60, y: 30, width: 30, height: 50))
     }
 
@@ -202,7 +202,7 @@ final class FrozenScreenshotCaptureTests: XCTestCase {
                 provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent))
             let magnifier = FrozenMagnifierView()
             for (x, y) in [(0, height / 2), (width - 1, height / 2), (width / 2, 0), (width / 2, height - 1), (width / 2, height / 2)] {
-                // y是AppKit底部起算的物理像素行；原图数据为顶部起算。
+                // y is a bottom-origin physical pixel row in AppKit; source image data is top-origin.
                 magnifier.update(image: source, point: CGPoint(x: CGFloat(x) / CGFloat(scale), y: CGFloat(y) / CGFloat(scale)), screenSize: CGSize(width: 100, height: 80))
                 let color = try XCTUnwrap(magnifier.sampledColor?.usingColorSpace(.deviceRGB))
                 XCTAssertEqual(Int((color.redComponent * 255).rounded()), x, "\(scale)x x=\(x), y=\(y)")

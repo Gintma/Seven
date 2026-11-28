@@ -1,7 +1,7 @@
 import AppKit
 import Vision
 
-/// 返回图片内归一化的文字行边界；仅在截图画笔中使用，不影响翻译 OCR。
+/// Returns normalized text line bounds within the image; used only by the screenshot highlighter without affecting translation OCR.
 protocol ScreenshotTextLineRecognizing {
     func lines(in image: CGImage) async throws -> [CGRect]
 }

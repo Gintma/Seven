@@ -324,7 +324,7 @@ extension ScreenshotEditorTests {
         let bitmap = try XCTUnwrap(NSBitmapImageRep(data: try XCTUnwrap(ScreenshotEditorRenderer.image(base: base, strokes: [mark]).tiffRepresentation)))
         let sample = try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)?.usingColorSpace(.deviceRGB))
         XCTAssertEqual(sample.redComponent, 1, accuracy: 0.02)
-        // 颜色管理会改变混合后的数值；验证透底和文字对比度，不绑定显示器色彩配置。
+        // Color management alters blended channel values; verify translucency and text contrast without tying to a display color profile.
         XCTAssertGreaterThan(sample.greenComponent, 0.2)
         XCTAssertLessThan(sample.greenComponent, 0.95)
         let text = try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide * 85 / 240, y: bitmap.pixelsHigh / 2)?.usingColorSpace(.deviceRGB))

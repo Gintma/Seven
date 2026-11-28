@@ -16,7 +16,7 @@ struct AppUpdateConfiguration {
 
     init(bundleIdentifier: String?, isDevelopmentBuild: Bool, version: String?, feed: String?, publicKey: String?) {
         let releases = Self.repositoryURL.appendingPathComponent("releases")
-        // 只有正式主包可以进入 Sparkle，任何其他包均使用发布列表。
+        // Only the official main bundle uses Sparkle; all other builds fall back to the releases list.
         let development = isDevelopmentBuild || bundleIdentifier != AppDataPaths.bundleIdentifier
         let releaseURL: URL
         if !development, let version, version.range(of: #"^[0-9]+(\.[0-9]+){1,2}$"#, options: .regularExpression) != nil {
@@ -178,7 +178,7 @@ private final class SparkleUpdateBackend: NSObject, AppUpdateBackend, SPUUpdater
     }
 
     func start() throws {
-        // 直接启动底层 updater，以便配置错误走关于页的状态提示。
+        // Start the underlying updater directly so configuration errors surface in the About pane status banner.
         try controller.updater.start()
         checkObservation = controller.updater.observe(\.canCheckForUpdates, options: [.new]) { [weak self] _, _ in
             Task { @MainActor in
@@ -195,7 +195,7 @@ private final class SparkleUpdateBackend: NSObject, AppUpdateBackend, SPUUpdater
     }
 
     func checkForUpdates() {
-        // Sparkle 会恢复已经下载的更新，或让已有安装提示回到前台。
+        // Sparkle resumes an already-downloaded update or brings an existing install prompt to the front.
         controller.updater.checkForUpdates()
     }
 

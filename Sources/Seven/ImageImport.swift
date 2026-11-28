@@ -2,7 +2,7 @@ import AppKit
 import ImageIO
 import UniformTypeIdentifiers
 
-/// 导入只读用户主动选择的本地图片或剪贴板图片；不采屏、不写文件、不记录路径或内容。
+/// Import reads only user-selected local images or clipboard images; no screen capture, file writes, or logging of paths or contents.
 enum ImageImportError: LocalizedError {
     case noImage, unreadable, tooLarge, multipleFiles
     var errorDescription: String? {
@@ -26,7 +26,7 @@ enum ImageImportError: LocalizedError {
               let height = metadata[kCGImagePropertyPixelHeight] as? NSNumber else { throw ImageImportError.unreadable }
         guard width.doubleValue > 0, height.doubleValue > 0,
               width.doubleValue * height.doubleValue <= Double(ScreenshotScrollPolicy.maximumPixels) else { throw ImageImportError.tooLarge }
-        // 首帧，按EXIF旋转到正确方向；保持原像素，不把打印DPI当作编辑画布尺寸。
+        // First frame rotated to proper EXIF orientation; keep raw pixels rather than treating print DPI as canvas size.
         let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
             kCGImageSourceThumbnailMaxPixelSize: max(width.intValue, height.intValue)]
@@ -37,8 +37,8 @@ enum ImageImportError: LocalizedError {
         pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
     }
     static func clipboard(_ pasteboard: NSPasteboard, preservingLogicalSize: Bool = false) throws -> NSImage {
-        // Finder同时提供文件地址和图标位图，NSImage的通用读取会挑到图标。
-        // 文件引用必须先解析；打不开时报告错误，不能退回图标或文件路径文字。
+        // Finder puts both the file URL and its icon bitmap on the pasteboard; generic NSImage reading picks the icon.
+        // Resolve file references first; report an error if unreadable rather than falling back to the icon or file path text.
         let files = clipboardFileURLs(pasteboard)
         if !files.isEmpty {
             guard files.count == 1, let url = files.first else { throw ImageImportError.multipleFiles }
@@ -51,7 +51,7 @@ enum ImageImportError: LocalizedError {
     }
 }
 
-/// 快捷入口沿用同一注册/冲突/持久化规则；默认不占用任何全局组合键。
+/// Shortcut entry shares the same registration, conflict, and persistence rules; claims no global hotkey by default.
 @MainActor final class ImageEntryShortcuts {
     let scroll: HotKeyManager
     let file: HotKeyManager

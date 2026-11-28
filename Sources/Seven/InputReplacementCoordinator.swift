@@ -1,7 +1,7 @@
 import AppKit
 import Combine
 
-/// 与普通翻译浮窗隔离的原地替换会话；同一时间只允许一个写回任务。
+/// In-place replacement session isolated from the standard translation popover; allows only one writeback task at a time.
 @MainActor
 final class InputReplacementCoordinator {
     typealias FocusInterruptionMonitor = @MainActor (@escaping @MainActor () -> Void) -> @MainActor () -> Void
@@ -157,14 +157,14 @@ final class InputReplacementCoordinator {
     }
 
     func cancel() {
-        // 写回及核验期间保留剪贴板租约和辅助功能会话。
+        // Hold both the clipboard lease and the accessibility session through writeback and verification.
         guard !writing else { return }
         clearSession()
         hud.close()
     }
 
     func terminate() {
-        // 退出屏障取快照前登记辅助功能状态恢复。
+        // Register accessibility state restoration before the quit barrier captures its snapshot.
         if writing {
             finishAccessibilitySession()
         } else {

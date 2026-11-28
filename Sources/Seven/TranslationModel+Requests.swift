@@ -1,7 +1,7 @@
 import AppKit
 
 extension TranslationModel {
-    // MARK: 翻译请求与结果生命周期
+    // MARK: Translation Request & Result Lifecycle
 
     func translate() {
         let originalText = input
@@ -12,7 +12,7 @@ extension TranslationModel {
         cancel()
         historyRound = nil
         if needsOnlineDetection(for: text) {
-            // 识别完成后再翻译；同一段原文正在联网识别时不重复请求。
+            // Wait for detection to finish before translating; avoid duplicate requests when online detection is already running for the same text.
             translateAfterDetection = true
             isLoading = true
             status = "正在识别语言…"
@@ -97,7 +97,7 @@ extension TranslationModel {
         guard !text.isEmpty, text.count <= 20_000 else { return }
 
         speech.stop()
-        // 与 translate() 共用识别等待：识别完成后只启动这个服务，不重启全部服务。
+        // Shares the detection wait with translate(): once detection finishes, starts only this service without restarting all services.
         if needsOnlineDetection(for: text) {
             if !retryAfterDetection.contains(provider) { retryAfterDetection.append(provider) }
             serviceResults[index].phase = .loading
@@ -184,14 +184,14 @@ extension TranslationModel {
         refreshOverallState(generation: id)
     }
 
-    /// 英汉词典只查英文：原文不是单词或短语，或源语言已知（手动选择或检测得出）且不是英语时跳过。
+    /// English-Chinese dictionary only queries English: skips if the input is not a word/phrase or the known source language (manual or detected) is not English.
     private func dictionaryApplies(to text: String) -> Bool {
         guard ECDictionaryService.normalizedQuery(text) != nil else { return false }
         let source = requestSource == LanguageCatalog.automatic ? detectedLanguage(for: text) : requestSource
         return source == nil || source == "en"
     }
 
-    /// 计算本次请求的源语和目标语，并同步浮窗的目标语。
+    /// Computes source and target languages for this request and syncs the floating panel's target language.
     private func beginRequestLanguages(for text: String) -> (source: String, target: String) {
         let source = effectiveSource(for: text)
         let requestTarget = LanguageRouting.resolvedTarget(
@@ -205,7 +205,7 @@ extension TranslationModel {
         return (source, requestTarget)
     }
 
-    /// 该服务不支持本次源语言或目标语言时的说明（显示为灰色“已跳过”，不发请求）；只在翻译模式下判断。
+    /// Explanation when the service does not support the source or target language (shown as gray "Skipped" without sending a request); checked in translation mode only.
     private func unsupportedLanguageMessage(
         _ result: TranslationServiceResult,
         text: String,
@@ -225,7 +225,7 @@ extension TranslationModel {
         return .key("translation.unsupportedLanguage", service, .language(code))
     }
 
-    /// Apple 翻译需要明确的源语言；检测失败时取语言对中的另一端。
+    /// Apple Translate requires an explicit source language; falls back to the other side of the language pair when detection fails.
     private func appleTranslationSource(for text: String, target requestTarget: String) -> String {
         guard requestSource == LanguageCatalog.automatic else { return requestSource }
         return detectedLanguage(for: text) ?? (requestTarget == primaryLanguage ? secondaryLanguage : primaryLanguage)
@@ -246,7 +246,7 @@ extension TranslationModel {
         )
     }
 
-    /// 启动单个服务。调用方负责事先检查可用性；自备密钥服务需传入已准备好的请求。
+    /// Starts a single service. Caller checks availability beforehand; BYOK services must pass a prepared request.
     private func startService(
         _ provider: TranslationProviderID,
         text: String,
@@ -301,7 +301,7 @@ extension TranslationModel {
     }
 
     func cancel() {
-        // 只取消“识别后自动翻译 / 启动服务”，识别本身照常完成，用于更新语言栏。
+        // Cancel only post-detection auto-translation / service launches; let detection itself finish to update the language bar.
         translateAfterDetection = false
         retryAfterDetection = []
         generation = nil
@@ -371,13 +371,13 @@ extension TranslationModel {
             serviceResults[index].phase = .success
             saveHistoryResult(serviceResults[index])
         case .success(nil):
-            // 未收录不是错误，重试也不会有结果：灰色说明，不带重试。
+            // Missing dictionary entry is not an error and retrying will not help: show gray notice without retry.
             serviceResults[index].phase = .skipped
             serviceResults[index].issue = Self.dictionaryMissIssue
         case .failure(let error):
             serviceResults[index].phase = .failure
             serviceResults[index].issue = .key("couldNotReadTheOfflineDictionaryDelete")
-            // 按 AGENTS.md 只记录错误类型，不记录错误说明或查询词。
+            // Per AGENTS.md, log only the error type, never error descriptions or query text.
             let reason = (error as? ECDictionaryError)?.diagnosticCategory
                 ?? String(describing: type(of: error))
             Task { await logger.record(.warning, "dictionary_query_failed", metadata: ["reason": reason]) }
@@ -458,7 +458,7 @@ extension TranslationModel {
                     "characters": String(request.text.count)
                 ])
             } catch {
-                // 已取消的请求（例如服务被停用后又重新启用）迟到的错误不能覆盖新请求的状态。
+                // Late errors from cancelled requests (e.g., disabling and re-enabling a service) must not overwrite the new request's state.
                 guard self.generation == id, !Task.isCancelled else { return }
                 if !(error is CancellationError) {
                     self.failResult(provider, error: error, generation: id)
@@ -504,7 +504,7 @@ extension TranslationModel {
                     "characters": String(request.text.count)
                 ])
             } catch {
-                // 已取消的请求（例如服务被停用后又重新启用）迟到的错误不能覆盖新请求的状态。
+                // Late errors from cancelled requests (e.g., disabling and re-enabling a service) must not overwrite the new request's state.
                 guard self.generation == id, !Task.isCancelled,
                       let index = self.resultIndex(provider),
                       self.serviceResults[index].markdownOutput?.requestID == markdown?.requestID else { return }
@@ -548,7 +548,7 @@ extension TranslationModel {
 
         let successful = serviceResults.filter { $0.phase == .success }
         if successful.isEmpty {
-            // 只取真正失败的结果；“已跳过”（不支持该语言、未收录等）不是错误。
+            // Collect only actual failures; "Skipped" states (unsupported language, missing entry, etc.) are not errors.
             let failures = serviceResults.filter { $0.phase == .failure }
             let primaryError = primaryResultID
                 .flatMap { provider in failures.first(where: { $0.id == provider })?.issue }

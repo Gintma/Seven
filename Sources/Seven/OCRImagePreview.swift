@@ -1,7 +1,7 @@
 import AppKit
 import VisionKit
 
-/// 原图只在内存中显示：滚轮围绕指针缩放，左键平移，右键恢复适应面板。
+/// Displays the original image in memory only: scroll wheel zooms around the pointer, left-drag pans, and right-click resets to fit the panel.
 final class OCRImagePreview: NSView, ImageAnalysisOverlayViewDelegate {
     private(set) var image: NSImage?
     private let imageSize: NSSize
@@ -81,7 +81,7 @@ final class OCRImagePreview: NSView, ImageAnalysisOverlayViewDelegate {
         analysisGeneration = token; isAnalyzing = true
         analysisTask = Task { [weak self, analyzer] in
             do {
-                // 大图原件只在准备副本期间使用。VisionKit 即使延迟响应取消，也只会持有副本。
+                // The full-size original is only used while preparing the copy, so even a delayed VisionKit cancellation only retains the copy.
                 let input = try await self?.prepareAnalysisInput()
                 try Task.checkCancellation()
                 let analysis: ImageAnalysis?
@@ -94,7 +94,7 @@ final class OCRImagePreview: NSView, ImageAnalysisOverlayViewDelegate {
             } catch {
                 guard let self, self.analysisGeneration == token else { return }
                 self.analysisTask = nil; self.isAnalyzing = false
-                // 失败保留图片查看能力；不记录系统可能包含识别内容的错误正文。
+                // Keep image viewing available on failure; do not log system error descriptions that might contain recognized text.
             }
         }
     }
@@ -122,7 +122,7 @@ final class OCRImagePreview: NSView, ImageAnalysisOverlayViewDelegate {
         updateImageGeometry()
         beginAnalysisIfNeeded()
     }
-    /// 系统处理文字命中与选择；空白区域、滚轮和右键仍交给图片视口。
+    /// The system handles text hit-testing and selection; empty areas, scroll wheel, and right-click stay with the image viewport.
     override func hitTest(_ point: NSPoint) -> NSView? {
         let local = convert(point, from: superview)
         guard bounds.contains(local), !isHidden else { return nil }
@@ -136,8 +136,8 @@ final class OCRImagePreview: NSView, ImageAnalysisOverlayViewDelegate {
         }
         return self
     }
-    /// VisionKit 的图像命中点以左上为原点；AppKit 视口以左下为原点。
-    /// 只转换查询坐标，鼠标事件和原生选择层仍沿用AppKit自己的坐标转换。
+    /// VisionKit image hit points use a top-left origin, whereas the AppKit viewport uses a bottom-left origin.
+    /// Convert only query coordinates; mouse events and the native selection overlay continue using AppKit's own coordinate transforms.
     func analysisPoint(from point: CGPoint) -> CGPoint {
         let local = textOverlay.convert(point, from: self)
         return textOverlay.isFlipped ? local : CGPoint(x: local.x, y: textOverlay.bounds.height - local.y)
@@ -149,7 +149,7 @@ final class OCRImagePreview: NSView, ImageAnalysisOverlayViewDelegate {
         addTrackingArea(area); pointerTracking = area
     }
     override func resetCursorRects() {
-        // 分析后的文字由系统提供 I-beam，空白由cursorUpdate提供小手。
+        // Analyzed text gets the system I-beam cursor, while empty areas get a hand cursor from cursorUpdate.
         if textOverlay.analysis == nil { addCursorRect(bounds, cursor: .openHand) }
     }
     override func cursorUpdate(with event: NSEvent) {
@@ -176,7 +176,7 @@ final class OCRImagePreview: NSView, ImageAnalysisOverlayViewDelegate {
         overlayView.hasText(at: point) || overlayView.hasActiveTextSelection
     }
     func overlayView(_ overlayView: ImageAnalysisOverlayView, shouldShowMenuForEvent event: NSEvent, atPoint point: CGPoint) -> Bool {
-        reset(); return false // 保留用户已确认的右键复原，不另加上下文菜单。
+        reset(); return false // Keep right-click reset-to-fit as confirmed; do not attach a context menu.
     }
     func overlayView(_ overlayView: ImageAnalysisOverlayView, willOpen menu: NSMenu) { onMenuTrackingChange?(true) }
     func overlayView(_ overlayView: ImageAnalysisOverlayView, didClose menu: NSMenu) { onMenuTrackingChange?(false) }
@@ -217,7 +217,7 @@ final class OCRImagePreview: NSView, ImageAnalysisOverlayViewDelegate {
     func reset() { zoom = 1; offset = .zero; updateImageGeometry() }
 }
 
-/// 两块圆角面板之间留白；保留 NSSplitView 原生拖动分栏，不额外画分隔线。
+/// Gap between the two rounded panels; keeps native NSSplitView divider dragging without drawing an extra separator line.
 final class OCRResultSplitView: NSSplitView, ThemeApplying {
     private var palette = ThemePalette.system
 

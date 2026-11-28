@@ -71,7 +71,7 @@ import UniformTypeIdentifiers
         window.title = L10n.text("recognizeText"); window.titleVisibility = .hidden; window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
         window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        // NSPanel 默认 true 会绕过点击外部关闭逻辑，导致钉住后切到别的应用仍消失。
+        // NSPanel's default true bypasses click-outside dismissal, causing a pinned window to vanish when switching to another app.
         window.hidesOnDeactivate = false
         window.minSize = Design.OCR.minimumSize
         window.standardWindowButton(.zoomButton)?.isHidden = true
@@ -197,12 +197,12 @@ import UniformTypeIdentifiers
         guard !isPinned, !menuTracking, window?.isVisible == true, window?.attachedSheet == nil,
               NSApp.modalWindow == nil else { return }
         if let clickedWindow, clickedWindow === window || clickedWindow.parent === window { return }
-        // 原生菜单跟踪期间不收起，也不把本窗口按钮产生的事件当作外部点击。
+        // Do not dismiss during native menu tracking or treat events from this window's own buttons as outside clicks.
         close()
     }
     func menuWillOpen(_ menu: NSMenu) { menuTracking = true }
     func menuDidClose(_ menu: NSMenu) { menuTracking = false }
-    /// 新图片会替换结果窗口，但钉住是窗口会话选择，不能随着识别内容被清空。
+    /// A new image replaces the result window's content, but pinning is a window-session state and must not be cleared with the content.
     func inheritPinState(from previous: ScreenshotOCRWindowController?) {
         if let previous, previous !== self, previous.isPinned != isPinned { togglePin() }
     }
@@ -233,7 +233,7 @@ import UniformTypeIdentifiers
         guard let window else { return }
         restoringGeometry = true
         defer { restoringGeometry = false }
-        // 旧版分开记单栏/双栏；只在首次恢复时读取旧值，切换不再套用另一个外框。
+        // Legacy versions stored single/split frames separately; read legacy keys only on initial restore and stop swapping frames on mode toggle.
         let legacyKey = showsOriginal ? OCRWindowPreferences.comparisonFrame : OCRWindowPreferences.textFrame
         if let saved = defaults?.string(forKey: OCRWindowPreferences.frame) ?? defaults?.string(forKey: legacyKey) {
             window.setFrame(NSRectFromString(saved), display: false)
@@ -401,14 +401,14 @@ import UniformTypeIdentifiers
         exportButton.isEnabled = !textView.string.isEmpty; layoutButton.isEnabled = !isRecognizing
         statusRow.isHidden = progressLabel.stringValue.isEmpty
     }
-    /// 用户关闭只是收起；当前原图、编辑文字、撤销历史和钉住状态留在本次应用会话中。
+    /// Closing only hides the window; the current image, edited text, undo history, and pin state remain for the app session.
     override func close() {
         saveGeometry(); window?.orderOut(nil); stopOutsideMonitoring()
         imagePreview?.setPresentationActive(false)
         scheduleImageCompression()
     }
     func windowShouldClose(_ sender: NSWindow) -> Bool { close(); return false }
-    /// 新识别结果替换旧窗口、或应用退出时才真正释放任务与窗口。
+    /// Tasks and window resources are actually released only when a new recognition result replaces the window or the app terminates.
     func dispose() {
         cancelImageCompression()
         imagePreview?.replaceDisplayedImage(nil)
@@ -477,7 +477,7 @@ private final class OCRMenuItem: NSMenuItem {
     @objc private func choose() { handler() }
 }
 
-/// 无常驻应用菜单栏时也支持原生文字编辑快捷键，不截获输入法组合按键。
+/// Supports native text-editing shortcuts without a persistent app menu bar while leaving IME composition keys untouched.
 final class OCRResultTextView: NSTextView {
     var onOpenFiles: (([URL]) -> Void)?
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
@@ -514,11 +514,11 @@ final class OCRResultTextView: NSTextView {
     }
 }
 
-/// 仅记窗口几何、视图选择与分栏比例，不保存图片或识别正文。
+/// Persists only window geometry, view mode, and split ratio; never saves images or recognized text.
 enum OCRWindowPreferences {
     static let showOriginal = "ocr.showOriginal.v1"
     static let frame = "ocr.windowFrame.v1"
-    // 只用于读取旧版本的窗口几何。
+    // Used only for reading legacy window geometry.
     static let textFrame = "ocr.windowFrame.text.v1"
     static let comparisonFrame = "ocr.windowFrame.comparison.v1"
     static let splitRatio = "ocr.splitRatio.v1"

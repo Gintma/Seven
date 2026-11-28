@@ -1,6 +1,6 @@
 import AppKit
 
-/// 仅在状态胶囊显示且加载时运行；隐藏、停止、离开窗口立即释放计时器。
+/// Runs only while the status pill is visible and loading; immediately releases the timer when hidden, stopped, or removed from the window.
 @MainActor
 final class SolvingOrbView: ThemedDrawingView {
     private var timer: Timer?

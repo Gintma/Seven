@@ -35,7 +35,7 @@ final class SystemLaunchAtLoginService: LaunchAtLoginServicing {
 
     func setEnabled(_ enabled: Bool) throws {
         if enabled {
-            // 新安装的 mainApp 在首次注册前也会返回 notFound。
+            // A freshly installed mainApp also returns notFound before its first registration.
             let status = service.status
             guard status != .enabled && status != .requiresApproval else { return }
             try service.register()

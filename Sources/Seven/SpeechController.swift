@@ -1,7 +1,7 @@
 import AVFoundation
 import Foundation
 
-/// 朗读按钮的身份。各翻译服务卡片分别带上服务标识，避免一张卡片播放时其他卡片也显示为播放中。
+/// Identity of a speech toggle button. Each translation service card carries its own service ID so playing on one card does not mark others as playing.
 enum SpeechContent: Hashable {
     case source
     case translation(TranslationProviderID)
@@ -11,7 +11,7 @@ enum SpeechContent: Hashable {
     case dictionaryUK
     case history(recordID: UUID, provider: TranslationProviderID?)
 
-    /// 某个翻译服务卡片上朗读按钮对应的身份。
+    /// Identity corresponding to the speech button on a given translation service card.
     static func result(of provider: TranslationProviderID) -> SpeechContent {
         switch provider {
         case .ecdict: return .dictionary
@@ -23,7 +23,7 @@ enum SpeechContent: Hashable {
 
 enum SpeechPlaybackState: Equatable {
     case idle
-    /// 正在下载在线朗读音频；再次点击同一内容会取消。
+    /// Downloading online speech audio; clicking the same item again cancels it.
     case loading
     case speaking
     case paused
@@ -34,23 +34,23 @@ enum SpeechPlaybackDecision: Equatable {
     case pause
     case resume
     case cancel
-    /// 短内容播放中再次点击：从头重读。
+    /// Clicking again while short content is playing restarts from the beginning.
     case restart
 }
 
-/// 朗读按钮的外观，由播放状态与内容长短共同决定。
+/// Visual appearance of a speech button, determined by both playback state and content length.
 enum SpeechButtonAppearance: Equatable {
     case idle
-    /// 下载超过 300 毫秒仍未开始播放时才显示，避免一闪而过。
+    /// Shown only when downloading exceeds 300 ms without starting playback, avoiding brief flicker.
     case loading
-    /// 单词、短语：播放时显示动态喇叭，再点从头重读。
+    /// Words and phrases: shows an animated speaker while playing; clicking again restarts from the beginning.
     case playingShort
-    /// 句子、段落：播放时显示暂停，再点暂停。
+    /// Sentences and paragraphs: shows a pause icon while playing; clicking again pauses.
     case playingLong
     case paused
 }
 
-/// 能被词典收录的长度视为短内容：非中日韩文字不超过 4 个词且不超过 80 字符；中日韩文字不超过 6 个字。
+/// Lengths eligible for dictionary lookup count as short: at most 4 words and 80 characters for non-CJK text, or at most 6 characters for CJK text.
 enum SpeechLengthPolicy {
     static let maximumShortCJKCharacters = 6
     static let maximumShortWords = 4
@@ -92,11 +92,11 @@ enum SpeechPlaybackPolicy {
 }
 
 enum SpeechLanguageResolver {
-    /// 词典的美式、英式发音按钮使用的标识。
+    /// Identifiers used by the dictionary's US and UK pronunciation buttons.
     static let englishUS = "en-US"
     static let englishUK = "en-GB"
 
-    /// 把朗读文字归到Seven支持的语言代码，供在线服务判断是否支持；无法判断时返回 nil。
+    /// Maps spoken text to a Seven-supported language code so online services can check support; returns nil if undetermined.
     static func languageName(for text: String, declaredLanguage: String?, primary: String = LanguageCatalog.defaultPrimary, secondary: String = LanguageCatalog.defaultSecondary) -> String? {
         if let declaredLanguage {
             if declaredLanguage == englishUS || declaredLanguage == englishUK { return "en" }
@@ -105,7 +105,7 @@ enum SpeechLanguageResolver {
         return LanguageCatalog.detectedCode(for: text, primary: primary, secondary: secondary)
     }
 
-    /// 词典的美式、英式发音按钮自带口音，优先于设置。
+    /// The dictionary's US and UK pronunciation buttons carry an explicit accent that overrides user settings.
     static func explicitAccent(declaredLanguage: String?) -> SpeechEnglishAccent? {
         switch declaredLanguage {
         case englishUS: return .us
@@ -122,7 +122,7 @@ enum SpeechPlaybackEnd: Equatable {
 
 @MainActor
 protocol SpeechPlaybackBackend: AnyObject {
-    /// 当前这次播放结束时调用；已被 stop() 或新播放替换的旧播放不会触发。
+    /// Invoked when the current playback finishes; stale playbacks replaced by stop() or a new playback do not trigger it.
     var onEnd: ((SpeechPlaybackEnd) -> Void)? { get set }
     func pause() -> Bool
     func resume() -> Bool
@@ -136,7 +136,7 @@ protocol SystemSpeechBackend: SpeechPlaybackBackend {
 
 @MainActor
 protocol AudioDataBackend: SpeechPlaybackBackend {
-    /// `rate` 为倍速（1 为原速），播放时保持音调。
+    /// `rate` is the playback speed multiplier (1 is normal speed) while preserving pitch.
     func play(_ data: Data, rate: Float) throws
 }
 
@@ -261,7 +261,7 @@ final class SpeechController: NSObject, ObservableObject {
         }
     }
 
-    /// 静态图标；加载转圈与喇叭的逐帧动画由按钮自行绘制（见 SpeechToggleButton）。
+    /// Static icon; the loading spinner and frame-by-frame speaker animation are drawn by the button itself (see SpeechToggleButton).
     func icon(for content: SpeechContent) -> String {
         switch appearance(for: content) {
         case .idle, .loading: return "speaker.wave.2"
@@ -326,7 +326,7 @@ final class SpeechController: NSObject, ObservableObject {
         playbackID = id
         activeContent = content
         activeIsShort = SpeechLengthPolicy.isShort(text)
-        // 新的一次朗读重新等待 300 毫秒再显示转圈，不沿用上一次已显示的转圈。
+        // Wait a fresh 300 ms before showing the spinner for a new playback instead of reusing a spinner from the previous one.
         loadingIndicatorVisible = false
 
         let language = SpeechLanguageResolver.languageName(for: text, declaredLanguage: declaredLanguage, primary: settings.primaryLanguage, secondary: settings.secondaryLanguage)
@@ -354,7 +354,7 @@ final class SpeechController: NSObject, ObservableObject {
             playbackRate: OnlineSpeechURLBuilder.playbackRate(engine: online, rate: rate),
             excluded: excluding.union([online])
         )
-        // 有道地址含时间戳签名，按内容而不是按地址缓存。百度语速在服务端合成，需计入缓存键。
+        // Youdao URLs include a timestamp signature, so cache by content rather than URL. Baidu synthesizes speed server-side, so include rate in the cache key.
         let cacheKey = SpeechAudioCacheKey(
             engine: online, text: text, language: language, accent: accent,
             serverRate: online == .baidu ? rate : nil
@@ -417,7 +417,7 @@ final class SpeechController: NSObject, ObservableObject {
         audioBackend.onEnd = { [weak self] end in
             guard let self, self.playbackID == id else { return }
             guard end == .failed else { return self.finishIfCurrent(id) }
-            // 解码失败后只尝试确实支持此语言的替代服务。
+            // After a decode failure, only fall back to alternative services that actually support this language.
             self.record(.warning, "speech_fallback", engine: engine, extra: ["reason": "playback"])
             self.fallbackAfterAudio(playback)
         }
@@ -463,7 +463,7 @@ final class SpeechController: NSObject, ObservableObject {
         )
     }
 
-    /// 停止正在进行的下载与播放，但不改动对外状态；旧播放的结束回调会因 playbackID 变化而被忽略。
+    /// Stops any active download and playback without altering external state; completion callbacks from stale playbacks are ignored via playbackID.
     private func haltPlayback() {
         playbackID = UUID()
         loadTask?.cancel()
@@ -501,7 +501,7 @@ final class SpeechController: NSObject, ObservableObject {
 
 // MARK: - System backends
 
-/// 仅用于在回调与主线程之间传递对象身份做比较，不访问其内容。
+/// Used solely to pass object identity across callbacks and the main thread for comparison, without accessing its contents.
 private struct ObjectReference<Object: AnyObject>: @unchecked Sendable {
     let object: Object
 }
@@ -542,7 +542,7 @@ final class AVSystemSpeechBackend: NSObject, SystemSpeechBackend {
         _ = synthesizer.stopSpeaking(at: .immediate)
     }
 
-    /// 只有当前这句话结束才通知；被打断的旧句子迟到的回调会被忽略。
+    /// Notifies only when the current utterance finishes; late callbacks from interrupted earlier utterances are ignored.
     func utteranceEnded(_ utterance: AVSpeechUtterance) {
         guard let currentUtterance, currentUtterance === utterance else { return }
         self.currentUtterance = nil
@@ -600,7 +600,7 @@ final class AVAudioDataBackend: NSObject, AudioDataBackend {
         player = nil
     }
 
-    /// 只有当前播放器结束才通知；已停止或被替换的播放器迟到的回调会被忽略。
+    /// Notifies only when the current player finishes; late callbacks from stopped or replaced players are ignored.
     func playerEnded(_ endedPlayer: AVAudioPlayer, end: SpeechPlaybackEnd) {
         guard let player, player === endedPlayer else { return }
         self.player = nil

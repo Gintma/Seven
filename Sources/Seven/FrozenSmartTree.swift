@@ -1,6 +1,6 @@
 import Foundation
 
-/// 以可替换的系统边界读取树；测试使用内存节点。
+/// Reads the tree behind a replaceable system boundary; tests inject in-memory nodes.
 protocol FrozenSmartTreeReading {
     associatedtype Node: Hashable
     func windows() -> [Node]
@@ -39,7 +39,7 @@ struct FrozenSmartTree<Reader: FrozenSmartTreeReading> {
             guard let region=snapshot(node) else{return false}
             return FrozenSmartRegion.matchesWindow(region.frame,target)
         }
-        // sheet/独立popover不一定出现在AXWindows顶层；仅匹配真实窗口表面，不能拿同框控件冒充原窗口。
+        // Sheets and standalone popovers may not appear in top-level AXWindows; match only real window surfaces and never mistake a same-frame control for the window.
         if matched == nil {
             var queue=windows.map{($0,0)},visited=Set<Node>(),index=0
             while index<queue.count,visited.count<64,withinBudget() {
@@ -53,7 +53,7 @@ struct FrozenSmartTree<Reader: FrozenSmartTreeReading> {
         }
         guard let root=matched else { return FrozenSmartSelectionResult() }
 
-        // 坐标命中可能落到同进程的截图覆盖层，只有确属原窗口才采用。
+        // Coordinate hit-testing may land on our own capture overlay in the same process; accept only hits belonging to the original window.
         var path: [Node] = []
         if let hit = reader.hit(at: point) {
             var node: Node? = hit
@@ -67,8 +67,8 @@ struct FrozenSmartTree<Reader: FrozenSmartTreeReading> {
         }
         if path.isEmpty { path = [root] }
 
-        // 仅从角色和几何判断紧贴文字的内容容器，不读取文字、标题或输入值。
-        // 同框包装继续穿透；不同段落间的大空白不能合成一整条消息。
+        // Infer tight text content containers solely from roles and geometry; never read text, titles, or input values.
+        // Continue descending through identical-frame wrappers; do not merge wide gaps between paragraphs into one message.
         var textBlockCache:[Node:Bool]=[:]
         func textLeaves(_ node:Node,depth:Int=0,visited:Set<Node>=[])->[CGRect]? {
             guard depth<16,!visited.contains(node),withinBudget(),let region=snapshot(node),region.hasValidFrame else{return nil}
@@ -89,7 +89,7 @@ struct FrozenSmartTree<Reader: FrozenSmartTreeReading> {
             guard let region=snapshot(node),region.role == "AXGroup" else{return false}
             textBlockCache[node]=false
             let items=children(node)
-            // 有不同边界的子内容块时保留其层级，不把整张消息/会话抬高成一个段落。
+            // Preserve hierarchy when child content blocks have distinct bounds instead of promoting an entire message or conversation into one paragraph.
             guard items.contains(where:{child in
                 guard let value=snapshot(child) else{return false}
                 if value.role == "AXStaticText" {return true}
@@ -120,7 +120,7 @@ struct FrozenSmartTree<Reader: FrozenSmartTreeReading> {
         }
         func result(_ path: [Node], _ ancestry: [FrozenSmartRegion]) -> FrozenSmartSelectionResult {
             var siblings: [FrozenSmartRegion] = []
-            // 从已确认目标向上找同级控件，收集可见行边界；不保存 AX 对象。
+            // Walk upward from the confirmed target to find sibling controls and collect visible row bounds without retaining AX objects.
             for index in path.indices.dropFirst() {
                 guard withinBudget() else { break }
                 let parent = path[index]
@@ -144,8 +144,8 @@ struct FrozenSmartTree<Reader: FrozenSmartTreeReading> {
         var bestElement = FrozenSmartRegion.preferred(FrozenSmartRegion.candidates(at: point, in: target, ancestry: best))
         if let bestElement, bestElement.priority <= 1 { return result(path, best) }
 
-        // 从命中的容器继续向下找；叶控件直接停止，避免把按钮的图标拆出来。
-        // 不理想的命中分支可能是空包装节点；同时保留原窗口的补查入口。
+        // Continue descending from the matched container; stop at leaf controls to avoid splitting out a button's icon.
+        // A suboptimal hit branch may be an empty wrapper node; keep a fallback entry on the original window.
         var stack: [[Node]] = path == [root] ? [path] : [[root], path]
         var explored: Set<Node> = []
         while let currentPath = stack.popLast(), explored.count < 256, withinBudget() {
@@ -166,7 +166,7 @@ struct FrozenSmartTree<Reader: FrozenSmartTreeReading> {
                 if region.role == "AXScrollArea" || FrozenSmartRegion.surfaces.contains(region.role) || !region.isContainer {
                     return region.frame.contains(point)
                 }
-                // 分组常用内容边界，容许其子输入框的原生边框略微溢出。
+                // Groups often report content bounds, so allow native borders of child text fields to slightly overhang.
                 let margin = FrozenSmartRegion.windowMatchTolerance
                 return region.frame.insetBy(dx: -margin, dy: -margin).contains(point)
             }.sorted { (snapshot($0)?.area ?? .infinity) > (snapshot($1)?.area ?? .infinity) }

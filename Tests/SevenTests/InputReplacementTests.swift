@@ -316,7 +316,7 @@ final class InputReplacementTests: XCTestCase {
             guard let coordinator else { return }
             XCTAssertTrue(backend.enabled)
             action(coordinator)
-            // 等待此前已提交的恢复，避免用时序猜测取消是否提前释放了模式。
+            // Await the previously submitted restoration instead of guessing by timing whether cancellation released the mode early.
             await restorations.beginTermination().value
             XCTAssertEqual(backend.enabled, expectedEnabled)
         }
@@ -365,7 +365,7 @@ final class InputReplacementTests: XCTestCase {
         let coordinator = InputReplacementCoordinator(capture: { _ in target }, makeModel: { model })
         coordinator.start(pid: 1)
         try await settle { model.serviceResults.first?.phase == .loading }
-        // 等到模拟服务确实挂起后再改变输入目标。
+        // Wait until the mock service is actually suspended before switching the input target.
         for _ in 0..<100 {
             if await service.calls > 0 { break }
             try await Task.sleep(for: .milliseconds(5))
@@ -503,7 +503,7 @@ final class InputReplacementTests: XCTestCase {
         let snapshot = try InputReplacementSnapshot(value: placeholder, range: NSRange(location: 0, length: 0))
         XCTAssertThrowsError(try snapshot.validateContent(characterCount: 0))
         XCTAssertThrowsError(try snapshot.validateContent(placeholder: placeholder))
-        // 真正输入了与占位文案相同的文字，并有正字符数作证时，仍允许翻译。
+        // Still allow translation when the user genuinely typed text matching the placeholder, evidenced by a positive character count.
         XCTAssertNoThrow(try snapshot.validateContent(characterCount: placeholder.utf16.count, placeholder: placeholder))
         let regular = try InputReplacementSnapshot(value: "actual text", range: NSRange(location: 0, length: 0))
         XCTAssertNoThrow(try regular.validateContent(placeholder: placeholder))
@@ -577,7 +577,7 @@ final class InputReplacementTests: XCTestCase {
             }, checkTarget: {}, pause: {})
             XCTFail("复制与 AX 内容不一致不能翻译")
         } catch { XCTAssertEqual(error as? InputReplacementError, .contentChanged) }
-        // 不把不属于本次预期复制的剪贴板变化覆盖回旧值。
+        // Do not overwrite pasteboard changes that did not come from this expected copy back to the old value.
         XCTAssertEqual(board.string(forType: .string), "actual current value")
     }
 
@@ -691,7 +691,7 @@ final class InputReplacementTests: XCTestCase {
         XCTAssertEqual(native, copied)
         XCTAssertEqual(board.string(forType: .string), "user clipboard")
         XCTAssertNil(board.data(forType: .html))
-        // AX 自身前后出现真实改动仍会拒绝，不因剪贴板格式兼容而放松。
+        // Genuine before/after AX changes are still rejected and not relaxed for pasteboard format compatibility.
         let before = try InputReplacementSnapshot(value: expected, range: NSRange(location: 0, length: 4))
         let changed = try InputReplacementSnapshot(value: "确认发送\n读取失败", range: before.range)
         XCTAssertThrowsError(try InputReplacementSelection.validate(changed, against: before))
@@ -733,7 +733,7 @@ final class InputReplacementTests: XCTestCase {
     func testNativeSelectAllUsesReturnedLinkRangeAsBaselineRatherThanDisplayedLength() async throws {
         let value = "正文 示例文件.pdf 附件说明"
         let original = try InputReplacementSnapshot(value: value, range: NSRange(location: 0, length: 0))
-        // 模拟链接 chip 在原生坐标中占一位，AXValue 却展开成多个字符。
+        // Simulates a link chip occupying one unit in native coordinates while AXValue expands into multiple characters.
         let selected = try InputReplacementSnapshot(value: value, range: NSRange(location: 0, length: 5),
                                                     nativeCharacterCount: 5, selectedText: value)
         var current = original
@@ -791,7 +791,7 @@ final class InputReplacementTests: XCTestCase {
         coordinator.start(pid: 1)
         try await settle { model.isLoading }
         XCTAssertTrue(panel.isVisible)
-        // 新任务显示进度，旧提示的过期定时器不能将其关闭。
+        // A new task is showing progress; the expiration timer from an older notice must not dismiss it.
         try await Task.sleep(for: .seconds(Design.ReplacementHUD.resultHold + 0.15))
         XCTAssertTrue(coordinator.isRunning)
         XCTAssertTrue(panel.isVisible)

@@ -15,9 +15,9 @@ final class TranslationModel: ObservableObject {
     @Published var input = "" {
         didSet { if input != oldValue { inputDidChange() } }
     }
-    /// 自动检测出的原文语言（输入停顿后更新）；没有原文或检测不出时为 nil。
+    /// Auto-detected source language (updated after input pauses); nil when input is empty or undetermined.
     @Published var detectedSource: String?
-    /// 原文语言的识别方式；联网方式只在系统识别结果不可信时、于翻译前使用。
+    /// Source language detection method; online detection is only used before translation when system detection is untrusted.
     @Published var languageDetectionMode: LanguageDetectionMode {
         didSet {
             settings.languageDetectionMode = languageDetectionMode
@@ -25,19 +25,19 @@ final class TranslationModel: ObservableObject {
         }
     }
     internal let languageDetectors: [LanguageDetectionMode: OnlineLanguageDetecting]
-    /// 联网确认过的原文语言，只对同一段原文有效；nil 代码表示联网也未能识别出目录内的语言。
+    /// Online-confirmed source language valid only for the same source text; a nil code means online detection also found no catalog language.
     internal var confirmedDetection: (text: String, code: String?)?
-    /// 复用当前原文和语言偏好的本机结果，供显示、复核和各翻译服务读取。
+    /// Reuses the local detection result for the current source text and language preferences across display, verification, and translation services.
     internal var localDetectionCache: (text: String, primary: String, secondary: String, result: LocalLanguageDetection)?
-    /// 停止输入约 1 秒后再识别并更新语言栏。
+    /// Waits about 1 second after typing stops before detecting and updating the language bar.
     internal let languageDetectionDelay: Duration
     internal var detectionTask: Task<Void, Never>?
-    /// 正在识别的原文及是否已进入联网阶段。
+    /// Source text currently being detected and whether online detection has started.
     internal var detectingText: String?
     internal var isDetectingOnline = false
-    /// 按回车时识别尚未完成：识别结束后自动开始翻译。
+    /// Enter pressed while detection is still running: automatically start translation once detection completes.
     internal var translateAfterDetection = false
-    /// 重试、展开或新启用服务时识别尚未完成：识别结束后只启动这些服务。
+    /// Retrying, expanding, or enabling services while detection is still running: launch only those services once detection completes.
     internal var retryAfterDetection: [TranslationProviderID] = []
     @Published var source = LanguageCatalog.automatic { didSet { settings.sourceLanguage = source } }
     @Published var target = LanguageRouting.automaticTarget { didSet { settings.targetLanguage = target } }
@@ -56,7 +56,7 @@ final class TranslationModel: ObservableObject {
     @Published var serviceInstances: [ServiceInstance]
     @Published var recoveryAction: RecoveryAction?
     @Published var primaryLanguage: String
-    /// 语言栏菜单直接列出的常用语言（只在设置中手动修改，菜单不会自己变）。
+    /// Common languages listed directly in the language bar menu (only changed manually in Settings; never mutated by menu selection).
     @Published var commonLanguages: [String]
     @Published var secondaryLanguage: String
     @Published var resolvedTarget: String?
@@ -96,7 +96,7 @@ final class TranslationModel: ObservableObject {
     internal var configurationTestTask: Task<Void, Never>?
     internal var generation: UUID?
     internal var primaryResultID: TranslationProviderID?
-    /// 与浮窗这一轮结果同寿命。请求结束后仍供单服务重试更新已有记录。
+    /// Shares the lifetime of the floating panel's current result round; kept after completion so single-service retries can update the existing record.
     internal var historyRound: HistoryRound?
     internal var systemTranslationBridgeAvailable = false
     var onHide: (() -> Void)?
@@ -159,7 +159,7 @@ final class TranslationModel: ObservableObject {
         )
     }
 
-    // MARK: 请求不变量
+    // MARK: Request Invariants
 
     internal static let noServicesIssue = LocalizedMessage.key("noTranslationServicesAreAvailableEnableOne")
     internal static let pausedServiceIssue = LocalizedMessage.key("translationIsPausedExpandThisResultTo")

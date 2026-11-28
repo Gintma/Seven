@@ -1,6 +1,6 @@
 import AppKit
 
-/// 选区左上方的小型尺寸面板，只编辑输出宽高与比例。
+/// Compact size HUD above the selection's top-left corner for editing output width, height, and aspect ratio.
 @MainActor final class ScreenshotSelectionSizeToolbar: NSView, NSTextFieldDelegate, ThemeApplying {
     private let separator = NSTextField(labelWithString: "×")
     var onWidthChange: ((Int) -> Void)?
@@ -51,7 +51,7 @@ import AppKit
         let divider = ScreenshotToolbarDivider(); divider.boxType = .separator
         let row = NSStackView(views: [widthField, separator, heightField, ratioMenu, divider, cornerIcon, corner])
         row.orientation = .horizontal; row.alignment = .centerY; row.spacing = Design.Space.xs
-        // 原生菜单自身带左侧留白，移到箭头右侧，使可见间距平衡。
+        // Offset to the right of the arrow to balance the native menu's built-in leading inset.
         row.setCustomSpacing(0, after: heightField)
         row.setCustomSpacing(Design.Space.s, after: ratioMenu)
         NSLayoutConstraint.activate([
@@ -210,7 +210,7 @@ private final class ScreenshotRatioMenu: NSPopUpButton, ThemeApplying {
     override func accessibilityValue() -> Any? { ratioName }
 }
 
-/// 绘制与原生编辑共用居中的文字区域，避免无边框 cell 默认靠上绘制。
+/// Shares a vertically centered text rect between drawing and native editing so borderless cells do not top-align.
 private final class ScreenshotSizeFieldCell: NSTextFieldCell {
     override func drawingRect(forBounds rect: NSRect) -> NSRect {
         var text = super.drawingRect(forBounds: rect)

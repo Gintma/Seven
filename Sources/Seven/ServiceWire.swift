@@ -1,7 +1,7 @@
 import Foundation
 
-/// 四种格式的正文和流事件适配。只解析输出文字，忽略推理/工具调用内容。
-/// 协议核对：2026-11-04。
+/// Adapts request bodies and stream events across all four wire formats. Parses output text only, ignoring reasoning and tool-call payloads.
+/// Protocol verified: 2026-11-04.
 enum ServiceWire {
     static func request(_ input: TranslationRequest) throws -> URLRequest {
         let style = input.configuration.apiStyle
@@ -64,8 +64,8 @@ enum ServiceWire {
     }
 }
 
-/// AsyncBytes.lines 会跳过空行；SSE 必须保留空行才能正确分隔事件。
-/// 在完整行形成后解码 UTF-8，避免网络分片截断多字节字符。
+/// AsyncBytes.lines skips blank lines; SSE must preserve blank lines to delimit events properly.
+/// Decodes UTF-8 only after a complete line is assembled so network chunk boundaries cannot split multi-byte characters.
 struct ServiceStreamLineDecoder {
     private var buffer: [UInt8] = []
     private var skipLF = false
@@ -120,7 +120,7 @@ struct ServiceStreamDecoder {
         let json = try ServiceWire.object(Data(payload.utf8))
         switch style {
         case .openAICompatible:
-            // 部分服务的最后一帧只有 usage，不能当成损坏的正文。
+            // Some services send a final frame containing only usage; do not treat it as a corrupted payload.
             guard let first = (json["choices"] as? [[String: Any]])?.first else { return "" }
             let reason = first["finish_reason"] as? String
             try ServiceWire.checkFinish(reason)
@@ -160,7 +160,7 @@ struct ServiceStreamDecoder {
 }
 
 extension URL {
-    /// 服务地址验证与流式请求都接受末尾斜线，保留单独的根路径。
+    /// Both endpoint verification and streaming requests accept a trailing slash while preserving a standalone root path.
     var servicePath: String {
         let decoded = path(percentEncoded: false)
         guard let last = decoded.lastIndex(where: { $0 != "/" }) else {

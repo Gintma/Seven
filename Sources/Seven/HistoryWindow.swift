@@ -53,7 +53,7 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate, Theme
         super.init(window: nil)
     }
 
-    // 声明按需加载身份；loadWindow 直接构建窗口，不读取 nib 文件。
+    // Declare lazy-loading identity; loadWindow builds the window directly without loading a nib.
     override var windowNibName: NSNib.Name? { NSNib.Name("HistoryWindow") }
 
     override func loadWindow() {

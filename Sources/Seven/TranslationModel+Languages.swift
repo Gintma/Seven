@@ -1,26 +1,26 @@
 import AppKit
 
 extension TranslationModel {
-    // MARK: 语言栏选择与交换
+    // MARK: Language Bar Selection & Swap
 
-    /// 不在常用语言里的其余语言，按语言目录顺序，显示在菜单的“更多语言”中。
+    /// Remaining languages outside pinned common languages, shown in catalog order under "More Languages" in the menu.
     var otherLanguages: [String] {
         LanguageCatalog.codes.filter { !commonLanguages.contains($0) }
     }
 
     var automaticTargetTitle: String { L10n.format("auto2", String(describing: LanguageCatalog.name(primaryLanguage)), String(describing: LanguageCatalog.name(secondaryLanguage))) }
 
-    /// 本次请求的源语言：固定语言或自动检测。
+    /// Source language for this request: either a fixed language or auto-detect.
     var requestSource: String {
         source
     }
 
-    /// 语言栏显示用的实际源语言；自动且检测不出时为 nil。
+    /// Effective source language displayed in the language bar; nil when set to auto and undetermined.
     var displaySource: String? {
         requestSource == LanguageCatalog.automatic ? detectedSource : requestSource
     }
 
-    /// 语言栏显示用的实际目标语言；没有原文且目标为自动时为 nil。
+    /// Effective target language displayed in the language bar; nil when there is no source text and target is auto.
     var displayTarget: String? {
         guard target == Self.automaticTarget else { return target }
         guard hasInputText else { return nil }
@@ -32,7 +32,7 @@ extension TranslationModel {
 
     func setSource(_ code: String) {
         guard code != source else { return }
-        // 源语言已改变，旧联网识别不得继续写回；普通取消翻译仍保留识别任务。
+        // Source language changed, so stale online detection must not write back; normal translation cancellation preserves the detection task.
         detectionTask?.cancel()
         detectionTask = nil
         detectingText = nil
@@ -47,7 +47,7 @@ extension TranslationModel {
         languageDidChange()
     }
 
-    /// 交换时用作新原文的结果：排在最上面的、成功的翻译结果。
+    /// Result used as the new source text on swap: the topmost successful translation result.
     var swapCandidate: TranslationServiceResult? {
         serviceResults.first { $0.isTranslation && instance($0.id)?.mode != .custom && $0.phase == .success && !$0.text.isEmpty }
     }
@@ -61,9 +61,9 @@ extension TranslationModel {
         swapCandidate.map { L10n.format("swapWithTheTranslationFrom", String(describing: $0.title)) } ?? L10n.text("swapLanguages")
     }
 
-    /// 交换后的源语言与目标语言：自动的一方保持自动，固定的一方换成另一方的实际语言。
+    /// Swapped source and target languages: any auto side stays auto, while a fixed side adopts the other side's effective language.
     private func swappedLanguages() -> (source: String, target: String)? {
-        // 按当前原文实时判断，不用语言栏上延迟更新的显示值。
+        // Evaluate live from the current source text instead of the debounced display value in the language bar.
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let currentSource = requestSource == LanguageCatalog.automatic
             ? (text.isEmpty ? nil : detectedLanguage(for: text)) : requestSource
@@ -88,7 +88,7 @@ extension TranslationModel {
         languageDidChange()
     }
 
-    /// 语言改变后：有原文就立即重新翻译。
+    /// Immediately re-translates on language change if source text is present.
     private func languageDidChange() {
         if hasInputText {
             translate()

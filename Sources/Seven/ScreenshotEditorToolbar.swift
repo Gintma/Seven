@@ -1,6 +1,6 @@
 import AppKit
 
-/// 主栏只放工具/动作；第二张浮动条只显示当前工具的选项。
+/// The primary bar holds only tools and actions; the secondary floating bar shows options for the active tool.
 final class ScreenshotEditorToolbar: NSStackView {
     let primary = NSStackView()
     let options = NSStackView()
@@ -87,7 +87,7 @@ class ScreenshotToolbarButton: NSButton, ThemeApplying {
         needsDisplay = true
     }
 
-    // 工具图标没有系统按钮边框；不能让原生对齐边距把正方形 frame 撑高。
+    // Tool icons have no system button bezel; prevent native alignment insets from stretching the square frame.
     override var alignmentRectInsets: NSEdgeInsets { NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0) }
     init(symbol: String, title: String, target: AnyObject?, action: Selector?) {
         super.init(frame: .zero)
@@ -123,7 +123,7 @@ final class ScreenshotToolbarDragButton: ScreenshotToolbarButton {
     var onDragEnded: (() -> Void)?
     private var origin = CGPoint.zero
     init() {
-        // 打包后的 App 使用 SVG 模板资源，命令行与测试构建使用原生占位图。
+        // Bundled app builds use SVG template assets; CLI and test builds fall back to native placeholder icons.
         super.init(symbol: "circle.grid.3x3.fill", title: L10n.text("dragToolbar"), target: nil, action: nil)
         if let asset = NSImage(named: NSImage.Name(Design.Icon.screenshotDrag)), let icon = asset.copy() as? NSImage {
             let scale = Design.ScreenshotEditor.toolbarSymbolSize / max(icon.size.width, icon.size.height)
@@ -239,7 +239,7 @@ final class ScreenshotValueBubble: NSView {
         let symbol = Design.Icon.symbol(style.symbol, description: style.title)?
             .withSymbolConfiguration(.init(pointSize: Design.Segmented.iconSize, weight: style == .solid ? .bold : .regular))
         guard style != .openHead, let symbol else { return symbol }
-        // 旋转官方向上箭头，字形仍来自 SF Symbols。
+        // Rotate the standard upward arrow while keeping the glyph from SF Symbols.
         return NSImage(size: symbol.size, flipped: false) { rect in
             NSGraphicsContext.saveGraphicsState()
             let transform = NSAffineTransform()
@@ -251,7 +251,7 @@ final class ScreenshotValueBubble: NSView {
         }
     }
     static func text(_ style: ScreenshotEditorTextStyle) -> NSImage {
-        // withLocale 固定官方拉丁 Aa 表示，不随中文系统切换为“字”。
+        // Pin the Latin "Aa" glyph via withLocale so Chinese macOS locales do not substitute a localized character.
         NSImage(systemSymbolName: "textformat", accessibilityDescription: style.title)?
             .withLocale(Locale(identifier: "en")) ?? NSImage()
     }

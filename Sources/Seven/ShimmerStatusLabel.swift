@@ -1,6 +1,6 @@
 import AppKit
 
-/// 与点阵球共用刷新时钟，在同一文字控件的原字形上扫描高光，无第二层排版或遮罩。
+/// Shares the refresh clock with the dot-matrix orb and sweeps a highlight across the existing glyphs of the same text control, with no secondary layout or mask.
 @MainActor
 final class ShimmerStatusLabel: NSTextField {
     private var palette = ThemePalette.system
@@ -38,7 +38,7 @@ final class ShimmerStatusLabel: NSTextField {
         drawSweep(elapsed: ProcessInfo.processInfo.systemUptime - startedAt)
     }
 
-    /// 窄竖条只改变笔画颜色，所有绘制复用同一 cell，确保基线和字形始终重合。
+    /// Narrow vertical strips only change stroke color; every draw pass reuses the same cell so baselines and glyphs stay pixel-aligned.
     func drawSweep(elapsed: TimeInterval) {
         guard let textCell = cell as? NSTextFieldCell else { return }
         let phase = elapsed.truncatingRemainder(dividingBy: Design.ReplacementHUD.shimmerDuration)

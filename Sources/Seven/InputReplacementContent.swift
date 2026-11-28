@@ -1,6 +1,6 @@
 import Foundation
 
-/// 区分确认空白、可读取正文与真实读取失败；独立正文优先于占位提示。
+/// Distinguishes confirmed blank, readable content, and real read failures; standalone content takes precedence over placeholders.
 enum InputReplacementContent {
     static func resolve(value: String?, characterCount: Int?, placeholder: String?, documentText: String?) throws -> String {
         if let characterCount, characterCount < 0 { throw InputReplacementError.unreadable }
@@ -9,7 +9,7 @@ enum InputReplacementContent {
            documentText == nil || documentText == placeholder {
             throw InputReplacementError.empty
         }
-        // 范围文本来自真实文档，优先于可能带占位提示的 AXValue。
+        // Range text comes from the real document and takes precedence over AXValue, which may contain placeholder text.
         if let documentText {
             if documentText.isEmpty, let characterCount, characterCount > 0 {
                 throw InputReplacementError.unreadable

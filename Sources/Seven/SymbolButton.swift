@@ -1,7 +1,7 @@
 import AppKit
 
-/// 工具按钮：只显示 SF Symbol。平时为次要色，悬停时加深为正文色；
-/// 调用方设成其他颜色（例如表示“已钉住”的强调色）时，悬停不改变它。
+/// Utility button displaying only an SF Symbol: uses secondary color at rest and deepens to primary text color on hover;
+/// when the caller sets a custom color (such as the accent color for "pinned"), hovering leaves it unchanged.
 class SymbolButton: NSButton, ThemeApplying {
     private(set) var palette = ThemePalette.system
     private var tintToken: ThemeToken? = .inkSecondary
@@ -47,10 +47,10 @@ class SymbolButton: NSButton, ThemeApplying {
         didSet { applyTint() }
     }
 
-    /// 当前实际显示的颜色（含悬停效果）。
+    /// Currently displayed color, including hover state.
     var displayedTint: NSColor? { super.contentTintColor }
 
-    /// 实际显示的颜色已变化；用内部视图绘制图标的子类在这里转发。
+    /// Called when the displayed color changes; subclasses rendering icons with inner views forward updates here.
     func displayedTintDidChange(_ color: NSColor?) {}
 
     private func applyTint() {

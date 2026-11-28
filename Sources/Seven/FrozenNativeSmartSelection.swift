@@ -1,6 +1,6 @@
 import AppKit
 
-/// 自身 UI 只读已布局的原生视图几何；不进入 SwiftUI 虚拟辅助功能回调。
+/// Reads only laid-out native view geometry for Seven's own UI; never enters SwiftUI virtual accessibility callbacks.
 @MainActor enum FrozenNativeSmartSelection {
     static func query(at point: CGPoint, in candidate: FrozenWindowCandidate, geometry: FrozenSmartGeometry) -> FrozenSmartSelectionResult {
         guard let window = NSApp.windows.first(where: { $0.windowNumber == Int(candidate.id) }) else { return FrozenSmartSelectionResult() }
@@ -17,17 +17,17 @@ private struct FrozenNativeSmartNode: Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(object)) }
 }
 
-/// 此私有桥接只由上面的 MainActor 同步入口构造、读取，不跨线程传递 UI 对象。
+/// Private bridge constructed and read only through the MainActor synchronous entry point above; never passes UI objects across threads.
 @MainActor private struct FrozenNativeSmartReader: @preconcurrency FrozenSmartTreeReading {
     let window: NSWindow
     let geometry: FrozenSmartGeometry
     func windows() -> [FrozenNativeSmartNode] { [FrozenNativeSmartNode(object: window)] }
-    // 从真实子视图和显式布局锚点遍历，不能在主线程调用 accessibilityHitTest。
+    // Traverse real subviews and explicit layout anchors; do not call accessibilityHitTest on the main thread.
     func hit(at point: CGPoint) -> FrozenNativeSmartNode? { nil }
     func role(_ value: FrozenNativeSmartNode) -> String? {
         if value.object is NSWindow { return "AXWindow" }
         if let anchor = value.object as? SettingsSmartSelectionAnchor { return anchor.smartRole }
-        // 只按原生控件类型分类，不查询可能执行 SwiftUI 代码的 accessibilityRole。
+        // Classify strictly by native control type; do not query accessibilityRole, which may execute SwiftUI code.
         switch value.object {
         case is NSPopUpButton: return "AXPopUpButton"
         case is NSComboBox: return "AXComboBox"

@@ -14,7 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     internal var screenshotTask: Task<Void, Never>?
     internal var screenshotGate = OperationGate()
     internal var screenshotTermination = ScreenshotTerminationCoordinator { NSApp.reply(toApplicationShouldTerminate: $0) }
-    /// 浮窗是否已有上次的位置；有则每次弹出都回到那里，不再跟随鼠标。
+    /// Whether the panel has a saved position; if so, reopen there instead of following the mouse.
     internal var hasRememberedPanelPosition = false
     internal static let panelFrameName = "SevenTranslationPanelV2"
     internal var preferredPanelHeight: CGFloat = 440
@@ -191,7 +191,7 @@ enum SevenApp {
             }
             return
         }
-        // 快捷键装配会保存默认键位，必须先读取升级前的使用痕迹。
+        // Shortcut setup saves default key bindings, so read pre-upgrade usage markers first.
         let onboarding = OnboardingFlow(defaults: defaults, hasExistingUsage: OnboardingFlow.hasExistingUsage(
             preferences: defaults.persistentDomain(forName: bundleIdentifier ?? "Seven") ?? [:],
             dataDirectory: AppDataPaths.directory(variant: AppDataPaths.variant(bundleIdentifier: bundleIdentifier))

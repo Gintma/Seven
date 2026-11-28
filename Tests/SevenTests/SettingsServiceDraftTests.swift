@@ -134,7 +134,7 @@ private actor DraftConfigurationTester: ServiceConfigurationTesting {
     func testVerifyUsesDraftIncludingEmptyKeyWithoutSavingOrRememberingProtocol() async throws {
         let (model, settings, keys, editor, tester) = try fixture()
         let original = editor.value
-        // 相同地址、模型时，旧验证逻辑会持久化协议探测结果；草稿验证不得这样做。
+        // For identical endpoint and model, legacy validation persisted protocol probe results; draft validation must not do that.
         editor.apiKey = ""
         try editor.verify(using: model)
         for _ in 0..<100 where model.isTestingConfiguration { try await Task.sleep(for: .milliseconds(10)) }
@@ -378,11 +378,11 @@ extension SettingsServiceDraftTests {
         control.selectedSegment = 2
         _ = control.sendAction(control.action, to: control.target)
         XCTAssertEqual(writes, [2])
-        // 确认帧：携带用户刚选的“快”。
+        // Confirmation frame: carries the "Fast" option the user just selected.
         host.rootView = frame(2, label: "确认快")
         host.layoutSubtreeIfNeeded()
         XCTAssertEqual(control.selectedSegment, 2)
-        // 更旧的一帧：点击之前求值的“正常”，现在才应用到控件。
+        // Stale frame: "Normal" evaluated before the click, only now applied to the control.
         host.rootView = frame(1, label: "迟到旧值")
         host.layoutSubtreeIfNeeded()
         XCTAssertEqual(control.selectedSegment, 2, "确认后的迟到旧值不能把原生选择退回旧选项")

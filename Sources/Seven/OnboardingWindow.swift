@@ -65,7 +65,7 @@ final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        // 关闭按钮和 Esc 走原生 performClose。退出或系统重启应用不在这里登记完成。
+        // The close button and Esc go through native performClose; app termination or system relaunch is not recorded as completion here.
         flow.finish(.dismiss, close: {}, openInput: openInput)
         return true
     }

@@ -1,6 +1,6 @@
 import AppKit
 
-/// 只保存工具参数，不保存截图、文字、选区或当前选中的工具。
+/// Persists tool parameters only; never saves screenshots, text, selections, or the currently active tool.
 final class ScreenshotToolPreferences {
     private var smartSelection = true
     static let smartSelectionKey = "screenshotSmartSelection.v1"

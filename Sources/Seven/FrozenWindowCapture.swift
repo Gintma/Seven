@@ -10,7 +10,7 @@ struct FrozenWindowCandidate: Equatable, Sendable {
         self.id = id; self.frame = frame; self.ownerPID = ownerPID
     }
 
-    /// 保留 WindowServer 前后次序，只命中应用窗口；Dock 有覆盖整屏的透明窗口，不能作候选。
+    /// Preserves WindowServer z-order and matches only app windows; Dock has a full-screen transparent window that must be excluded.
     static func candidates(from info: [[String: Any]], primaryScreenTop: CGFloat, includingWindowIDs: Set<CGWindowID> = []) -> [Self] {
         info.compactMap { item in
             guard let layer = item[kCGWindowLayer as String] as? Int,
@@ -36,7 +36,7 @@ protocol IndependentWindowCapturing {
 @MainActor
 struct SystemIndependentWindowCapture: IndependentWindowCapturing {
     func capture(_ candidate: FrozenWindowCandidate) async throws -> NSImage {
-        // 按窗口编号查找采集对象，将点到像素的倍率取整。
+        // Look up the capture target by window ID and round the point-to-pixel scale factor.
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
         guard let window = content.windows.first(where: { $0.windowID == candidate.id }) else { throw ScreenshotTranslationError.captureFailed }
         let filter = SCContentFilter(desktopIndependentWindow: window)
@@ -54,7 +54,7 @@ struct SystemIndependentWindowCapture: IndependentWindowCapturing {
     }
 }
 
-/// 同屏多选按WindowServer原前后次序保留身份；点击顺序不改变窗口堆叠。
+/// Multi-selection on the same display preserves original WindowServer z-order; click order does not alter window stacking.
 struct FrozenMultiWindowSelection {
     private(set) var screenFrame: CGRect?
     private(set) var ids: Set<CGWindowID> = []
@@ -67,8 +67,8 @@ struct FrozenMultiWindowSelection {
     func ordered(in candidates: [FrozenWindowCandidate]) -> [FrozenWindowCandidate] { candidates.filter { ids.contains($0.id) } }
 }
 
-/// 仅合成所选窗口独立图像。未选窗口/桌面不进入union中的空隙，输出透明底。
-/// 合成时保持选中窗口在屏幕上的堆叠顺序。
+/// Composites only the selected windows' standalone images; unselected windows and desktop stay out of union gaps with a transparent background.
+/// Preserves the selected windows' on-screen stacking order during compositing.
 enum FrozenMultiWindowComposition {
     static func selectionContext(candidates: [FrozenWindowCandidate], images: [NSImage], screenFrame: CGRect, backgroundImage: CGImage? = nil) -> FrozenSelectionContext? {
         guard let image = render(candidates: candidates, images: images, bounds: screenFrame),
@@ -91,7 +91,7 @@ enum FrozenMultiWindowComposition {
         guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
                                       space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: .init(alpha: .premultipliedLast)) else { return nil }
         context.scaleBy(x: scale, y: scale)
-        // candidates前到后，绘制反序以免后窗覆盖前窗。
+        // candidates are ordered front-to-back; draw in reverse so rear windows do not paint over front windows.
         for index in candidates.indices.reversed() {
             context.draw(rasters[index], in: candidates[index].frame.offsetBy(dx: -bounds.minX, dy: -bounds.minY))
         }

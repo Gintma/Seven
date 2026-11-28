@@ -1,10 +1,10 @@
 import AppKit
 import CoreImage
 
-/// 截图标注的工具编号。序号与文字共用工具栏入口。
+/// Annotation tool identifiers; step numbers and text share a toolbar entry.
 enum ScreenshotEditorTool: Int, CaseIterable {
     case rectangle, ellipse, line, arrow, pencil, mosaic, text
-    // 工具偏好以 rawValue 为持久化键，保留聚焦原来的编号。
+    // Tool preferences are persisted by rawValue; keep the original numeric ID for spotlight.
     case highlight = 8
 
     static var toolbarCases: [Self] { allCases }
@@ -21,7 +21,7 @@ enum ScreenshotEditorTool: Int, CaseIterable {
         case .highlight: return L10n.text("spotlight")
         }
     }
-    /// 各标注工具的默认尺寸。
+    /// Default sizes for each annotation tool.
     var defaultSize: CGFloat {
         switch self {
         case .rectangle, .ellipse, .mosaic, .highlight: return 3
@@ -30,7 +30,7 @@ enum ScreenshotEditorTool: Int, CaseIterable {
         case .text: return 18
         }
     }
-    /// 尺寸控件按工具限制整数取值范围。
+    /// Clamps integer size-control values per tool.
     var sizeRange: ClosedRange<Int> {
         switch self {
         case .text: return 10...100
@@ -52,7 +52,7 @@ enum ScreenshotEditorTool: Int, CaseIterable {
     }
 }
 
-/// 文字标注的三种样式。
+/// The three text annotation styles.
 enum ScreenshotEditorTextStyle: Int, CaseIterable {
     case plain, background, outline
     static let toolbarCases: [Self] = [.background, .outline, .plain]
@@ -65,7 +65,7 @@ enum ScreenshotShapeMode: Int, CaseIterable {
 }
 
 enum ScreenshotArrowStyle: Int, CaseIterable {
-    // 保留已保存参数的编号，移除原来的实心头细杆样式（0）。
+    // Keep persisted raw values after removing the legacy thin-shaft solid-head style (0).
     case openHead = 1, solid = 2
     var title: String { self == .openHead ? L10n.text("openArrowhead") : L10n.text("thickFilledArrow") }
     var symbol: String { self == .openHead ? "arrow.up.right" : "arrowshape.up.fill" }
@@ -207,7 +207,7 @@ struct ScreenshotEditorStroke: Equatable {
     }
 }
 
-/// 同身份版本维护编辑历史；图层按首次创建顺序，预览和编辑不置顶。undo 排除历史尾部，新建截断 redo。
+/// Maintains edit history across versions of the same identity; layers stay in creation order without raising on preview/edit. undo excludes the history tail, and new edits truncate redo.
 struct ScreenshotEditorDocument {
     private(set) var history: [ScreenshotEditorStroke] = []
     private(set) var undone = 0
@@ -240,7 +240,7 @@ struct ScreenshotEditorDocument {
     mutating func commit(_ stroke: ScreenshotEditorStroke) {
         if isGrouping { pending = stroke; preview = stroke; return }
         preview = nil
-        // 不记录改回原值、只选中或打开再关闭的空操作，也不因此丢弃重做。
+        // Ignore no-op edits (reverting to original, selection-only, or open-then-close) without discarding the redo stack.
         if history.prefix(history.count - undone).last(where: { $0.id == stroke.id }) == stroke { return }
         history.removeLast(undone); undone = 0; history.append(stroke)
     }
@@ -264,7 +264,7 @@ struct ScreenshotEditorDocument {
 }
 
 enum ScreenshotEditorGeometry {
-    /// 将实心直箭头的七点轮廓缩放并旋转到起点和终点之间。
+    /// Scales and rotates the seven-point solid straight-arrow contour between start and end points.
     static func arrowVertices(start: CGPoint, end: CGPoint, width: CGFloat) -> [CGPoint] {
         let length = hypot(end.x-start.x,end.y-start.y)
         let scale = length == 0 ? 1/CGFloat(30) : length/30
@@ -275,14 +275,14 @@ enum ScreenshotEditorGeometry {
             CGPoint(x:start.x + scale*(point.x*cos(angle)-point.y*sin(angle)), y:start.y + scale*(point.x*sin(angle)+point.y*cos(angle)))
         }
     }
-    /// 曲线箭头沿末端切线延伸 `2 * (width + 3)`。
+    /// Extends the curved arrow along its terminal tangent by `2 * (width + 3)`.
     static func curveHead(end: CGPoint, control2: CGPoint, width: CGFloat) -> [CGPoint] {
         let dx = end.x-control2.x, dy = end.y-control2.y, length = hypot(dx,dy), a = width+3
         guard length != 0 else { return [] }
         let nx = -dy/length, ny = dx/length
         return [.init(x:end.x+a*nx,y:end.y+a*ny),.init(x:end.x-a*nx,y:end.y-a*ny),.init(x:end.x+2*a*dx/length,y:end.y+2*a*dy/length)]
     }
-    /// 预生成表后十项半径为1.5*k-1.5，k=1...10；前十项像素块level为1...10。
+    /// The last 10 precomputed entries use blur radius 1.5*k-1.5 (k=1...10); the first 10 use pixelation levels 1...10.
     static func filterRadius(level:Int)->CGFloat {CGFloat(level)*1.5-1.5}
     static func path(_ stroke: ScreenshotEditorStroke) -> NSBezierPath {
         let path = NSBezierPath()
@@ -318,7 +318,7 @@ enum ScreenshotEditorGeometry {
         path.line(to: CGPoint(x: center.x + sin(angle) * halfWidth, y: center.y - cos(angle) * halfWidth))
         return path
     }
-    /// 给已定位的文本框添加标识时，优先左右，其次上下，整个标识留在选区内。
+    /// When attaching a badge to a positioned text box, prefer left/right then top/bottom while keeping the full badge inside the selection.
     static func markerAnchor(frame: CGRect, bounds: CGRect, radius: CGFloat) -> CGPoint? {
         let safe = bounds.insetBy(dx: radius, dy: radius)
         guard !safe.isEmpty else { return nil }
@@ -328,7 +328,7 @@ enum ScreenshotEditorGeometry {
         return [CGPoint(x: frame.minX - gap, y: y), CGPoint(x: frame.maxX + gap, y: y),
                 CGPoint(x: x, y: frame.maxY + gap), CGPoint(x: x, y: frame.minY - gap)].first { safe.contains($0) }
     }
-    /// 使用 TextKit 测量行布局和字形边界，容器行片段不留内边距。
+    /// Measures line layout and glyph bounds with TextKit using zero line-fragment padding.
     static func textSize(_ text: String, font: NSFont, wrappingWidth: CGFloat? = nil) -> NSSize {
         let storage = NSTextStorage(string:text.isEmpty ? " " : text,attributes:[.font:font])
         storage.fixFontAttribute(in:NSRange(location:0,length:storage.length))
@@ -340,14 +340,14 @@ enum ScreenshotEditorGeometry {
         let ink = manager.boundingRect(forGlyphRange: range, in: container)
         return CGSize(width: ceil(max(used.maxX, ink.maxX)), height: ceil(max(used.maxY, ink.maxY)))
     }
-    /// 计算三次 Bézier 曲线在参数 `t` 处的坐标。
+    /// Evaluates a cubic Bézier curve at parameter `t`.
     static func curvePoint(start: CGPoint, control1: CGPoint, control2: CGPoint, end: CGPoint, t: CGFloat) -> CGPoint {
         let u = 1 - t, tt = t * t, uu = u * u
         let a = u * uu, b = 3 * uu * t, c = 3 * u * tt, d = tt * t
         return CGPoint(x: ((start.x * a + control1.x * b) + control2.x * c) + end.x * d,
                        y: ((start.y * a + control1.y * b) + control2.y * c) + end.y * d)
     }
-    /// 用线段与指针命中方框的四条边判断是否相交。
+    /// Tests whether the segment intersects any of the four edges of the pointer hit-test box.
     static func segmentCrossesPointerBox(_ a: CGPoint, _ b: CGPoint, center: CGPoint, radius: CGFloat) -> Bool {
         let radius = CGFloat(Float(radius))
         let x1 = center.x - radius, x2 = center.x + radius, y1 = center.y - radius, y2 = center.y + radius
@@ -362,7 +362,7 @@ enum ScreenshotEditorGeometry {
         }
         return false
     }
-    /// 根据三条有向边的叉积判断点是否位于三角形内，边界计入命中。
+    /// Determines whether a point lies inside a triangle (inclusive of edges) via cross products of its three directed edges.
     static func triangleContains(_ point: CGPoint, _ vertices: [CGPoint]) -> Bool {
         guard vertices.count == 3 else { return false }
         let a = vertices[0], b = vertices[1], c = vertices[2]
@@ -418,7 +418,7 @@ enum ScreenshotEditorGeometry {
     }
 }
 
-/// 按逻辑尺寸与像素倍率生成缩小的效果底图，再映射回标注画布。
+/// Generates a downscaled effect backing image from logical size and pixel scale, then maps it back to the annotation canvas.
 @MainActor final class ScreenshotEditorEffects {
     let base:NSImage
     private var cached:[Int:NSImage]=[:]
@@ -498,7 +498,7 @@ enum ScreenshotEditorGeometry {
         default: path.stroke()
         }
     }
-    /// 聚焦和其他对象一样按创建顺序叠放，后创建的内容绘制在其上方。
+    /// Spotlights stack in creation order like other annotations, so newer items render above them.
     static func drawFocus(_ stroke: ScreenshotEditorStroke, size: NSSize) {
         let mask = NSBezierPath(rect: CGRect(origin: .zero, size: size))
         let radius = min(stroke.cornerRadius, min(stroke.rect.width, stroke.rect.height) / 2)

@@ -5,10 +5,10 @@ import SwiftUI
 
 @MainActor
 final class AppKitTranslationViewController: NSViewController, ThemeApplying {
-    /// 标题栏底边直接接输入框：系统把工具栏图标放在标题栏中间，距窗口顶约 10，
-    /// 这样图标到输入框也约 10，图标上下留白相等。
+    /// Titlebar bottom meets the input field directly: the system centers toolbar icons ~10 pt from the window top,
+    /// leaving ~10 pt to the input field as well for equal top and bottom clearance.
     private static let topInset: CGFloat = 0
-    /// 最后一个区块到窗口底边，与两侧留白一致。
+    /// Bottom margin from the last section to the window edge, matching the side margins.
     private static let bottomInset = Design.Space.l
     private let model: TranslationModel
     private let scrollView = UserActivityScrollView()
@@ -94,7 +94,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
             scrollView.bottomAnchor.constraint(equalTo: root.bottomAnchor)
         ])
 
-        // 文档背景透明，由根视图按当前外观绘制底色。
+        // Keep document background transparent; the root view paints the background for the current appearance.
         scrollView.documentView = documentView
         documentView.frame = NSRect(x: 0, y: 0, width: TranslationPanelSize.defaultWidth, height: 440)
 
@@ -282,7 +282,7 @@ final class AppKitTranslationViewController: NSViewController, ThemeApplying {
         pendingIssueHeight = height
         guard !isApplyingModel, !issueHeightUpdateScheduled else { return }
         issueHeightUpdateScheduled = true
-        // 布局帧尚未提交时只记录测量结果，下一轮再替换正在插值的目标。
+        // Only record measurements before layout frames are committed; replace the interpolated target on the next pass.
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.issueHeightUpdateScheduled = false

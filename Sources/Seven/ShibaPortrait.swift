@@ -1,7 +1,7 @@
 import AppKit
 import SceneKit
 
-/// 模型使用原图的面纹。头、眼球和角膜反光分别在各自的坐标系中运动。
+/// The model uses the original image's facial markings. Head, eyeballs, and corneal highlights move in separate coordinate spaces.
 @MainActor
 final class ShibaPortrait {
     private let head = SCNNode()
@@ -76,7 +76,7 @@ final class ShibaPortrait {
         socket.addChildNode(reflection)
         catchlights.append(reflection)
 
-        // 单独的上眼皮贴在角膜外侧，沿眼球曲面向下扫过虹膜和反光。
+        // A separate upper eyelid sits just outside the cornea and sweeps down over the iris and highlight along the eyeball's curvature.
         let lid = cap(angle: .pi / 2, radius: 1.055, color: 0xF4A23E)
         lid.addChildNode(lidCrease())
         lid.name = "upperLid"
@@ -85,7 +85,7 @@ final class ShibaPortrait {
         lids.append(lid)
     }
 
-    /// 闭眼时，沿上眼皮球面的一条细弧线勾出眼睑，双端逐渐收细。
+    /// When eyes are closed, a thin arc along the upper eyelid sphere outlines the lid, tapering smoothly at both ends.
     private func lidCrease() -> SCNNode {
         var points: [SCNVector3] = []
         var indices: [UInt16] = []
@@ -163,7 +163,7 @@ final class ShibaPortrait {
         return material
     }
 
-    /// 球冠贴合眼球曲率；转到边缘时虹膜自然变窄，露出另一侧眼白。
+    /// A spherical cap conforms to the eyeball curvature; as the gaze turns toward the edge, the iris naturally narrows and reveals the sclera on the opposite side.
     private func cap(angle: Double, radius: Double, color: UInt32) -> SCNNode {
         var vertices: [SCNVector3] = []
         var indices: [UInt16] = []
@@ -197,7 +197,7 @@ final class ShibaPortrait {
             turn(iris, pitch: -Double(direction.y) * 0.16, yaw: Double(direction.x) * 0.20,
                  duration: animated ? Design.Onboarding.eyeResponse : 0)
         }
-        // 固定左上光源，反光相对瞳孔滑过，并在头转动时沿角膜弧面偏移。
+        // Fixed top-left light source; specular highlights glide relative to the pupil and shift along the corneal curve as the head turns.
         for reflection in catchlights {
             turn(reflection, pitch: -0.39 - pitch * 0.75, yaw: -0.26 - yaw * 0.75,
                  duration: animated ? Design.Onboarding.headResponse : 0)

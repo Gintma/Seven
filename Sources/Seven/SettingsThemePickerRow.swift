@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// 浅色和深色各自从同一目录选取，色样按该变体预览。
+/// Light and dark appearances each pick from the same catalog, with swatches previewed in their respective variant.
 struct SettingsThemePickerRow: View {
     let variant: ThemeVariant
     let manager: ThemeManager
@@ -56,7 +56,7 @@ private struct SettingsThemeMenu: NSViewRepresentable {
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView button: NSPopUpButton, context: Context) -> CGSize? {
         guard let item = selectedItem(in: button) else { return nil }
-        // AppKit 默认按最长菜单项取宽度，用单项原生 cell 测量当前选项。
+        // AppKit sizes pop-up buttons to the widest menu item by default; measure the current selection with a single-item native cell.
         let cell = NSPopUpButtonCell(textCell: item.title, pullsDown: false)
         cell.controlSize = button.controlSize
         cell.font = button.font

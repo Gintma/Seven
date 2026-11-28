@@ -183,7 +183,7 @@ final class SettingsStore {
         get { defaults.string(forKey: "primaryLanguage").map(LanguageCatalog.migrate) ?? LanguageRouting.defaultPrimary }
         set { defaults.set(newValue, forKey: "primaryLanguage") }
     }
-    /// 语言栏上手动选择的源语言与目标语言（"auto" 为自动），下次打开时沿用。
+    /// Source and target languages manually chosen in the language bar ("auto" for automatic), preserved on next launch.
     var sourceLanguage: String {
         get { validLanguage(defaults.string(forKey: "sourceLanguage.v1")) }
         set { defaults.set(newValue, forKey: "sourceLanguage.v1") }
@@ -192,12 +192,12 @@ final class SettingsStore {
         get { validLanguage(defaults.string(forKey: "targetLanguage.v1")) }
         set { defaults.set(newValue, forKey: "targetLanguage.v1") }
     }
-    /// 原文语言的识别方式，见 `LanguageDetectionMode`。
+    /// Method used to detect source text language; see `LanguageDetectionMode`.
     var languageDetectionMode: LanguageDetectionMode {
         get { defaults.string(forKey: LanguageDetectionMode.storageKey).flatMap(LanguageDetectionMode.init(rawValue:)) ?? .youdao }
         set { defaults.set(newValue.rawValue, forKey: LanguageDetectionMode.storageKey) }
     }
-    /// 语言栏菜单直接列出的常用语言，按语言目录顺序；未设置或全部无效时用默认值。
+    /// Frequently used languages listed directly in the language bar menu in catalog order; falls back to defaults if unset or all invalid.
     var commonLanguages: [String] {
         get {
             guard let stored = defaults.stringArray(forKey: "commonLanguages.v1") else { return LanguageCatalog.defaultCommon }

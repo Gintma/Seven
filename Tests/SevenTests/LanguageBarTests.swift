@@ -25,7 +25,7 @@ private struct UnsupportedOnlineService: OnlineTranslationServing {
     }
 }
 
-/// 第一次请求卡住，放行后以普通网络错误返回；之后的请求立即成功。
+/// First request stalls and returns a normal network error once released; subsequent requests succeed immediately.
 private actor FirstCallLateFailureService: OnlineTranslationServing {
     private(set) var calls = 0
     private var gate: CheckedContinuation<Void, Never>?
@@ -45,7 +45,7 @@ private actor FirstCallLateFailureService: OnlineTranslationServing {
     }
 }
 
-/// 请求一直挂起，直到 release 才返回，用来让本轮翻译保持进行中。
+/// Keeps the request suspended until release is called so the current translation round stays in progress.
 private actor HeldOnlineService: OnlineTranslationServing {
     private var gate: CheckedContinuation<Void, Never>?
     private var released = false
@@ -139,7 +139,7 @@ final class LanguageBarModelTests: XCTestCase {
         }
     }
 
-    /// 识别结果在停止输入并达到延迟时间后显示。
+    /// Detection result appears after input stops and the debounce delay elapses.
     func testLanguageBarUpdatesAfterTypingPause() async {
         let model = makeModel(RecordingOnlineService(response: "x"))
         model.updateInput("The quick brown fox jumps over the lazy dog.")
@@ -456,8 +456,8 @@ final class LanguageBarModelTests: XCTestCase {
         XCTAssertTrue(requests.isEmpty, "收起的卡片不应发请求")
     }
 
-    /// 同一轮翻译仍在进行（有道未返回）时快速停用再启用 Google：
-    /// 旧请求迟到的普通错误不能覆盖重新启用后的新结果。
+    /// Rapidly disabling and re-enabling Google while the same translation round is still active (Youdao still pending):
+    /// a late normal error from the old request must not overwrite the new result after re-enabling.
     func testLateErrorFromCancelledRequestDoesNotOverwriteNewResult() async throws {
         let youdao = HeldOnlineService()
         let google = FirstCallLateFailureService()

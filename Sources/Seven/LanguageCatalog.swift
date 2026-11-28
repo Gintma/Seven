@@ -1,19 +1,19 @@
 import Foundation
 import NaturalLanguage
 
-/// 一种语言在Seven里的全部信息：标识、显示名，以及各服务使用的代码。
-/// 新增语言只需在 `LanguageCatalog.all` 加一行；某服务的代码为 nil 表示该服务不支持。
+/// Complete metadata for a language in Seven: identifier, display name, and per-service language codes.
+/// Add a new language by inserting one row in `LanguageCatalog.all`; a nil service code marks that service as unsupported.
 struct Language: Hashable, Identifiable, Sendable {
-    /// 稳定标识（BCP 47 风格），用于保存设置与内部传递，不随界面文案变化。
+    /// Stable identifier (BCP 47 style) used for settings persistence and internal routing, independent of UI copy.
     let code: String
-    /// 界面显示名。
+    /// UI display name.
     let nameKey: String
     var name: String { L10n.text(nameKey) }
-    /// 写入大模型提示词的名称，用英文以减少歧义。
+    /// Language name injected into LLM prompts, kept in English to avoid ambiguity.
     let promptName: String
     let googleCode: String?
     let youdaoCode: String?
-    /// Apple 翻译与系统朗读使用的区域标识。
+    /// Locale identifier used by Apple Translation and system speech synthesis.
     let appleLocale: String?
     let speechLocale: String?
     let detection: NLLanguage?
@@ -22,19 +22,19 @@ struct Language: Hashable, Identifiable, Sendable {
 }
 
 enum LanguageCatalog {
-    /// 源语言为自动检测、目标语言为自动选择时使用的标识。
+    /// Identifier used when source language is auto-detected or target language is auto-selected.
     static let automatic = "auto"
     static let defaultPrimary = "zh-Hans"
     static let defaultSecondary = "en"
-    /// 语言栏菜单默认直接列出的常用语言（即扩充前的 9 种），其余在“更多语言”里。
+    /// Common languages listed directly in the language bar menu (the original 9 before expansion); the rest live under "More Languages".
     static let defaultCommon = ["zh-Hans", "zh-Hant", "en", "ja", "ko", "fr", "de", "es", "ru"]
 
-    /// 30 种语言。Apple 翻译与系统朗读的支持情况于 2026-10-30 在 macOS 26 上用
-    /// `LanguageAvailability().supportedLanguages` 与 `AVSpeechSynthesisVoice.speechVoices()` 核对；
-    /// Google、有道的代码由 `SEVEN_LIVE_TRANSLATION_TESTS` 联网测试逐一核对（2026-10-30）。nil 表示不支持。
-    /// 有道网页接口另有语言对限制，见 `ServiceLanguageSupport`。
+    /// 30 languages. Apple Translation and system speech support verified on macOS 26 (2026-10-30) via
+    /// `LanguageAvailability().supportedLanguages` and `AVSpeechSynthesisVoice.speechVoices()`;
+    /// Google and Youdao codes verified via `SEVEN_LIVE_TRANSLATION_TESTS` live tests (2026-10-30). nil means unsupported.
+    /// Youdao web API has additional language-pair restrictions; see `ServiceLanguageSupport`.
     static let all: [Language] = [
-        // 中日韩与英语
+        // CJK and English
         Language(code: "zh-Hans", nameKey: "simplifiedChinese", promptName: "Simplified Chinese",
                  googleCode: "zh-CN", youdaoCode: "zh-CHS", appleLocale: "zh-Hans", speechLocale: "zh-CN",
                  detection: .simplifiedChinese),
@@ -50,7 +50,7 @@ enum LanguageCatalog {
         Language(code: "ko", nameKey: "korean", promptName: "Korean",
                  googleCode: "ko", youdaoCode: "ko", appleLocale: "ko", speechLocale: "ko-KR",
                  detection: .korean),
-        // 欧洲
+        // Europe
         Language(code: "fr", nameKey: "french", promptName: "French",
                  googleCode: "fr", youdaoCode: "fr", appleLocale: "fr", speechLocale: "fr-FR",
                  detection: .french),
@@ -90,7 +90,7 @@ enum LanguageCatalog {
         Language(code: "cs", nameKey: "czech", promptName: "Czech",
                  googleCode: "cs", youdaoCode: nil, appleLocale: nil, speechLocale: "cs-CZ",
                  detection: .czech),
-        // 亚洲及其他
+        // Asia and others
         Language(code: "vi", nameKey: "vietnamese", promptName: "Vietnamese",
                  googleCode: "vi", youdaoCode: "vi", appleLocale: "vi", speechLocale: "vi-VN",
                  detection: .vietnamese),
@@ -135,13 +135,13 @@ enum LanguageCatalog {
 
     static func language(_ code: String) -> Language? { byCode[code] }
 
-    /// 界面显示名；未知代码原样返回。
+    /// UI display name; returns unknown codes verbatim.
     static func name(_ code: String) -> String {
         if code == automatic { return L10n.text("auto") }
         return byCode[code]?.name ?? code
     }
 
-    /// 历史记录里的语言：新记录存代码，旧记录存显示名，统一换成当前显示名。
+    /// Languages stored in history: new entries store codes and legacy entries store display names; normalize all to current display names.
     static func displayName(stored: String) -> String { name(migrate(stored)) }
 
     static func isChinese(_ code: String) -> Bool { code == "zh-Hans" || code == "zh-Hant" }
@@ -156,7 +156,7 @@ enum LanguageCatalog {
         localDetection(for: text, primary: primary, secondary: secondary).code
     }
 
-    /// 旧版本以显示名保存语言（如 "English"、"繁體中文"），读取设置时换成代码。
+    /// Legacy versions stored languages by display name (e.g., "English" or localized Chinese names); convert to codes when loading settings.
     static func migrate(_ stored: String) -> String {
         if byCode[stored] != nil || stored == automatic { return stored }
         return legacyNames[stored] ?? stored
@@ -169,13 +169,13 @@ enum LanguageCatalog {
     ]
 }
 
-/// 各翻译服务能否处理某次请求的源语言与目标语言。大模型服务支持全部语言。
+/// Checks whether each translation service supports a request's source and target languages. LLM services support all languages.
 enum ServiceLanguageSupport {
-    /// 有道网页接口只支持与中文互译的语言（2026-10-30 联网核对：英语→葡萄牙语返回错误码 40，中文→葡萄牙语正常）。
+    /// Youdao web API only supports language pairs involving Chinese (live-verified 2026-10-30: English -> Portuguese returned error 40, Chinese -> Portuguese succeeded).
     static let youdaoChineseOnly: Set<String> = ["pt"]
 
-    /// 返回该服务不支持的那一方语言代码；nil 表示支持。
-    /// `source` 为自动时应传入检测结果；检测不出时传 `LanguageCatalog.automatic`，视为支持。
+    /// Returns the unsupported language code for the service, or nil if supported.
+    /// Pass the detected language when `source` is automatic; if detection fails, pass `LanguageCatalog.automatic`, which is treated as supported.
     static func unsupportedLanguage(_ provider: TranslationProviderID, source: String, target: String) -> String? {
         let code: (Language) -> String?
         switch provider {

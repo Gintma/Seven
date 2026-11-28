@@ -15,7 +15,7 @@ enum PreferencesDomainMigration {
         guard bundleIdentifier == currentIdentifier,
               defaults.persistentDomain(forName: currentIdentifier)?.isEmpty != false,
               let legacy = defaults.persistentDomain(forName: legacyIdentifier), !legacy.isEmpty else { return }
-        // 保留旧域，完整复制后新域已有配置，后续启动不会重做。
+        // Keep the old domain intact; once copied, the new domain has the settings and future launches will not re-migrate.
         defaults.setPersistentDomain(legacy, forName: currentIdentifier)
     }
 }

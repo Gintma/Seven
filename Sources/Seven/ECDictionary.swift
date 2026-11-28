@@ -9,7 +9,7 @@ struct TranslationProviderID: RawRepresentable, Hashable, Codable, Identifiable,
     static let appleTranslation = Self(rawValue: "appleTranslation")
     static let youdao = Self(rawValue: "youdao")
     static let google = Self(rawValue: "google")
-    /// 旧自备服务迁移后保留稳定身份；新服务使用独立 UUID。
+    /// Preserves a stable identity for migrated legacy custom services; new services get their own UUID.
     static let compatible = Self(rawValue: "compatible")
     static let allCases: [Self] = [.ecdict, .appleTranslation, .youdao, .google, .compatible]
     var id: String { rawValue }
@@ -157,7 +157,7 @@ struct AppleTranslationRequest: Identifiable, Equatable, Sendable {
 
 protocol DictionaryServing: Sendable {
     var isAvailable: Bool { get }
-    /// 返回 nil 表示词库中没有这个词；词库无法读取时抛出错误。
+    /// Returns nil if the word is not in the dictionary; throws if the dictionary database cannot be read.
     func lookup(_ text: String) async throws -> DictionaryEntry?
 }
 
@@ -317,7 +317,7 @@ enum ECDictionaryError: LocalizableIssue {
         }
     }
 
-    /// 写入诊断日志的固定分类，不含任何关联文本。
+    /// Fixed diagnostic log category without any associated text.
     var diagnosticCategory: String {
         switch self {
         case .database, .couldNotOpenDatabase, .couldNotCreateDatabase: return "database"
@@ -399,7 +399,7 @@ enum ECDictionaryDatabase {
         var database: OpaquePointer?
         let status = openConnection(url.fileSystemPath, &database, flags | SQLITE_OPEN_NOMUTEX, nil)
         guard status == SQLITE_OK else {
-            // SQLite 也可能给打开失败的调用分配句柄。
+            // SQLite may still allocate a handle even when sqlite3_open fails.
             if let database { _ = closeConnection(database) }
             return nil
         }
@@ -661,7 +661,7 @@ final class ECDictionaryManager: ObservableObject {
             }
             do {
                 var request = URLRequest(url: ECDictionaryPack.sourceURL)
-                // 只用于 GitHub ECDICT 下载；不涉及有道的浏览器 UA 或签名。
+                // Used only for GitHub ECDICT downloads; unrelated to Youdao browser UA or request signing.
                 request.setValue("DictionaryPackClient/1.0", forHTTPHeaderField: "User-Agent")
                 let (temporaryURL, response) = try await URLSession.shared.download(for: request)
                 try Task.checkCancellation()

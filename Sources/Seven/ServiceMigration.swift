@@ -1,8 +1,8 @@
 import Foundation
 
 extension SettingsStore {
-    /// 仅迁移服务列表与非密钥配置，不访问凭据。
-    /// 一旦已有 v2 列表（含用户主动清空的 []）就不再从旧设置重新添加服务。
+    /// Migrates only the service list and non-secret configuration without accessing credentials.
+    /// Once a v2 list exists (including an explicit user-cleared []), never re-add services from legacy settings.
     func migrateServiceInstances() -> [ServiceInstance] {
         if hasServiceInstancesData {
             var ids = Set<TranslationProviderID>()
@@ -30,8 +30,8 @@ extension SettingsStore {
             let legacy = configuration
             var instance = ServiceInstance(provider: .inferred(from: legacy), id: .compatible, name: legacy.name, enabled: customServiceEnabled)
             instance.apply(legacy)
-            // 迁移时保留已有格式（包括通过 Gemini 的 OpenAI 兼容入口配置的旧服务）。
-            // 非自定义预设新建后固定格式；旧实例如格式不同则归入自定义，避免改变原请求协议。
+            // Preserve the existing wire format during migration (including legacy services configured via Gemini's OpenAI-compatible endpoint).
+            // Non-custom presets have a fixed format when newly created; legacy instances with a different format become custom so their original request protocol stays unchanged.
             if instance.apiStyle != legacy.apiStyle {
                 instance = ServiceInstance(provider: .custom, id: .compatible, name: legacy.name, enabled: customServiceEnabled)
                 instance.apply(legacy)

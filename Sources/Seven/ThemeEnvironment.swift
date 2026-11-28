@@ -29,7 +29,7 @@ struct ThemedContent<Content: View>: View {
     }
 }
 
-/// SwiftUI 的分组分隔线和普通按钮底共用第三级前景。
+/// SwiftUI group dividers and standard button backgrounds share the tertiary foreground color.
 struct ThemeForeground: ViewModifier {
     let palette: ThemePalette
 

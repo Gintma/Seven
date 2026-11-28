@@ -19,8 +19,8 @@ struct SystemAppleTranslationAvailability: AppleTranslationAvailabilityChecking 
         case .installed: return .installed
         case .unsupported: return .unsupported
         case .supported:
-            // 系统仅提供语言对状态；一条 installed 边能证明该语言和对端均已安装。
-            // 未找到 installed 组合时，保守列出当前语言对里未能证实安装的语言，不读取系统私有文件。
+            // The system only reports pair status; an installed edge proves both endpoints are installed.
+            // When no installed pair is found, conservatively list unverified languages in the current pair without reading private system files.
             let languages = await checker.supportedLanguages
             var missing: [String] = []
             for code in [source, target] {

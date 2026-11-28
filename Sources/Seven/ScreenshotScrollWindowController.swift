@@ -36,7 +36,7 @@ private actor ScreenshotScrollProcessor {
         } else { matcher = ScreenshotScrollMatcher(initial: frame); result = .unchanged }
         let outputChanged: Bool
         if case .addedPixels = result { outputChanged = true } else { outputChanged = false }
-        // 只在输出或显示尺寸变化时重绘整图；回看复用位图，静止和失败保留当前预览。
+        // Redraw the full image only when output or display size changes; reuse the bitmap on revisits and keep the current preview when idle or failed.
         let sizeChanged = cachedPreviewSize != previewSize
         if isInitial || outputChanged || sizeChanged {
             cachedPreview = matcher?.previewImage(maximumSize: previewSize)
@@ -49,8 +49,8 @@ private actor ScreenshotScrollProcessor {
     func finish() -> CGImage? { matcher?.image }
 }
 
-/// 只覆盖边框、工具条和选区外缩略图；选区仍是原应用，可正常滚动。
-/// border 是所有采集 UI 下方的排除哨兵，capture belowWindow 不会采到任何自有工具/缩略图。
+/// Covers only the border, toolbar, and external thumbnail; the selection region stays pass-through so the target app scrolls normally.
+/// border acts as the exclusion sentinel beneath all capture UI so capture belowWindow never captures our own toolbar or thumbnail.
 @MainActor final class ScreenshotScrollWindowController: NSWindowController, NSWindowDelegate, ThemeApplying {
     let sessionID: UUID
     private let rect: CGRect
@@ -113,7 +113,7 @@ private actor ScreenshotScrollProcessor {
         self.rect = rect; self.sessionID = sessionID; self.completed = completed
         trace = diagnostics ?? (capture == nil ? ScreenshotScrollTrace.start(defaults: .standard) : nil)
         self.capture = capture ?? { FrozenSystemImage.capture(rect: $0, options: .optionOnScreenBelowWindow, windowID: $1) }
-        // 注入采样后端的测试绝不能额外触发真实截屏。
+        // Tests injecting a mock sampling backend must never trigger real screen capture.
         self.captureBackground = captureBackground ?? capture ?? { FrozenSystemImage.capture(rect: $0, options: .optionOnScreenBelowWindow, windowID: $1) }
         let screen = NSScreen.screens.first(where: { $0.frame.contains(CGPoint(x: rect.midX, y: rect.midY)) })
         screenFrame = screen?.frame ?? rect
@@ -200,7 +200,7 @@ private actor ScreenshotScrollProcessor {
         if !schedulesSamples && !stopped {
             schedulesSamples = true
             globalMonitor = events.addGlobal(matching: .scrollWheel) { [weak self] event in self?.wheel(event) }
-            // 原应用保留焦点；此监听只处理取消，不运行任何工具快捷键。
+            // Keep focus in the target app; this monitor handles only cancellation and runs no tool shortcuts.
             escapeMonitor = events.addGlobal(matching: .keyDown) { [weak self] event in
                 _ = self?.cancelOnEscape(event)
             }
@@ -212,7 +212,7 @@ private actor ScreenshotScrollProcessor {
                 }
                 return event
             }
-            // 首帧等旧编辑层退出；后续按每帧实际开始时间安排，不被100ms网格放大成200ms。
+            // Wait for the old editor overlay to exit before the first frame; schedule subsequent frames from each frame's actual start time so a 100ms grid does not inflate intervals to 200ms.
             scheduleNextSample(after: ScreenshotScrollPolicy.sampleInterval)
         }
     }
@@ -282,7 +282,7 @@ private actor ScreenshotScrollProcessor {
             MainActor.assumeIsolated { self?.timer = nil; self?.tick() }
         }
         timer = next
-        // 弹出工具菜单、拖动预览时主RunLoop进入tracking模式，采样也不能停顿。
+        // Keep sampling active even when the main RunLoop enters tracking mode during tool menus or preview drags.
         RunLoop.main.add(next, forMode: .common)
     }
     private func layoutPanels() {
@@ -291,7 +291,7 @@ private actor ScreenshotScrollProcessor {
         let above = CGPoint(x: origin.x, y: rect.maxY+Design.Space.s)
         toolbarPanel.setFrameOrigin(ScreenshotScrollLayout.clamped(origin.y >= screenFrame.minY ? origin : above, size: size, to: screenFrame))
         positionStatus()
-        previewPanel.setFrame(.zero, display: false) // 首帧到达后按实际图片比例显示。
+        previewPanel.setFrame(.zero, display: false) // Display at the actual image aspect ratio once the first frame arrives.
     }
     private func positionStatus() {
         guard let content = statusPanel.contentView else { return }
@@ -369,7 +369,7 @@ private actor ScreenshotScrollProcessor {
                 case .limitReached:
                     self.setStatus(.key("theScreenshotHasReachedItsSizeLimit"))
                 case .unchanged:
-                    // 滚轮事件异步到达目标应用，不能把尚未变化的一帧误认为已到底。
+                    // Scroll events reach the target app asynchronously; do not mistake an unchanged frame for reaching the bottom.
                     if self.needsRecovery {
                         self.needsRecovery = false; self.failureSince = nil; self.setStatus(.key("foundTheSeamYouCanContinueScrolling"))
                     }
@@ -397,7 +397,7 @@ private actor ScreenshotScrollProcessor {
         case .withinRange where info.displacement != 0 || info.reference == .collectedViewport:
             let total = CGFloat(frameHeight+info.upper-info.lower)
             y = (CGFloat(info.position-info.lower)+CGFloat(frameHeight)/2)/max(1,total)*preview.frame.height-previewScroll.contentSize.height/2
-        default: return // 浏览预览时不因静止帧反复把用户拉回末尾。
+        default: return // Do not repeatedly snap the user back to the end on idle frames while browsing the preview.
         }
         previewScroll.contentView.scroll(to:CGPoint(x:0,y:min(max(0,y),maximum)))
         previewScroll.reflectScrolledClipView(previewScroll.contentView)
@@ -532,14 +532,14 @@ private actor ScreenshotScrollProcessor {
     }
 }
 
-/// 优先放选区外；放不下最小宽度时，贴到选区内部边缘，始终在屏幕内避让工具条。
+/// Prefer placing outside the selection; if the minimum width does not fit, tuck against the inner edge while staying on-screen and clear of the toolbar.
 enum ScreenshotScrollLayout {
     static func clamped(_ point:CGPoint,size:CGSize,to screen:CGRect)->CGPoint {
         let m = Design.Space.s
         return CGPoint(x:min(max(point.x,screen.minX+m),max(screen.minX+m,screen.maxX-size.width-m)),
                        y:min(max(point.y,screen.minY+m),max(screen.minY+m,screen.maxY-size.height-m)))
     }
-    /// 与普通截图尺寸条同位：优先选区左上方，空间不足移入选区左上角。
+    /// Matches the standard screenshot size bar position: prefer above the selection's top-left, moving inside the top-left corner when space is tight.
     static func statusRect(size: CGSize, selection: CGRect, screen: CGRect) -> CGRect {
         let margin = Design.Space.s
         let above = selection.maxY + margin
@@ -584,7 +584,7 @@ enum ScreenshotScrollLayout {
             }
         }
         if let outside = options.max(by: { $0.width*$0.height < $1.width*$1.height }) { return outside }
-        // 窄选区容不下160pt时可跨过选区边缘，但仍保持最小宽度并限制在当前屏幕内。
+        // Allow overflowing the selection edge when narrower than 160pt while maintaining the minimum width and clamping to the current screen.
         let inside = rect.intersection(safe).insetBy(dx:m,dy:m)
         let fallback = fitting(inside).isEmpty ? fitting(safe) : fitting(inside)
         guard let area = fallback.max(by: { $0.width*$0.height < $1.width*$1.height }) else { return nil }
@@ -612,7 +612,7 @@ final class ScreenshotScrollBorder: ThemedDrawingView {
         FrozenCaptureMask.drawOverlay(in: bounds, revealing: rect)
         theme.captureAccent.setStroke()
         let path = NSBezierPath(rect:rect);path.lineWidth = Design.ScreenshotCapture.borderWidth;path.stroke()
-        // 固定采集区只有L形装饰，不设置拉手、跟踪区或resize/move动作。
+        // The fixed capture region renders only L-shaped corner accents, with no handles, tracking areas, or resize/move interactions.
         let inside = min(Design.ScreenshotCapture.cornerInside,min(rect.width,rect.height)/2)
         let outside = Design.ScreenshotCapture.cornerOutside
         let corners = NSBezierPath()
@@ -628,11 +628,11 @@ final class ScreenshotScrollBorder: ThemedDrawingView {
 final class ScreenshotScrollPreview: ThemedDrawingView {
     override func draw(_ dirtyRect: NSRect) {
         theme.surfaceRaised.setFill()
-        bounds.fill() // 图片预览是直角，不能复用工具条的圆角装饰。
+        bounds.fill() // The image preview has square corners; do not reuse the toolbar's rounded chrome.
     }
 }
 
-/// 归一化坐标属于整张长图；装饰随文档滚动，由NSClipView自然裁切。
+/// Normalized coordinates span the full stitched image; overlays scroll with the document and clip naturally via NSClipView.
 final class ScreenshotScrollPreviewImage: NSImageView, ThemeApplying {
     private var palette = ThemePalette.system
 

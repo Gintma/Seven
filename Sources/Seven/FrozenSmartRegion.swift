@@ -1,6 +1,6 @@
 import AppKit
 
-/// 无障碍结构的几何快照，仅在当前截图会话内使用。
+/// Geometric snapshot of accessibility structure, scoped strictly to the current capture session.
 struct FrozenSmartRegion: Equatable, Sendable {
     let role: String
     let frame: CGRect
@@ -19,7 +19,7 @@ struct FrozenSmartRegion: Equatable, Sendable {
     var isText:Bool {role == "AXStaticText" || Self.textBlocks.contains(role) || isTextBlock}
     var ownsLabel:Bool {Self.controls.contains(role) || role == "AXRow" || role == "AXCell"}
     var hasValidFrame:Bool {!frame.isNull && !frame.isInfinite && area.isFinite && frame.minX.isFinite && frame.minY.isFinite && frame.maxX.isFinite && frame.maxY.isFinite && frame.width>0 && frame.height>0}
-    /// 识别规则的容差，不改变界面尺寸。
+    /// Recognition rule tolerances; does not affect UI layout dimensions.
     static let manualSelectionResetDistance: CGFloat = 3
     static let windowMatchTolerance: CGFloat = 4
 
@@ -39,7 +39,7 @@ struct FrozenSmartRegion: Equatable, Sendable {
         abs(rect.minX - target.minX) <= windowMatchTolerance && abs(rect.minY - target.minY) <= windowMatchTolerance
             && abs(rect.maxX - target.maxX) <= windowMatchTolerance && abs(rect.maxY - target.maxY) <= windowMatchTolerance
     }
-    /// 只有真实视口裁剪子控件，普通分组的内容边界不能削掉输入框等控件的边框。
+    /// Only true viewports clip child controls; regular group content bounds must not trim borders of inputs or similar controls.
     static func candidates(at point: CGPoint?, in window: CGRect, ancestry: [Self]) -> [Self] {
         var viewport = window
         var result: [Self] = []
@@ -54,7 +54,7 @@ struct FrozenSmartRegion: Equatable, Sendable {
             if region.role == "AXScrollArea" || Self.surfaces.contains(region.role) { viewport = clipped }
         }
         let path=Array(result.reversed())
-        // 子标签不拆散真实控件/整行；段落的文字碎片归属于其紧贴内容的容器。
+        // Child labels must not fragment real controls or full rows; text fragments within a paragraph belong to their tight content container.
         let owned=path.enumerated().filter {index,region in
             !path.dropFirst(index+1).contains {parent in
                 guard parent.frame.contains(region.frame) else{return false}
@@ -63,7 +63,7 @@ struct FrozenSmartRegion: Equatable, Sendable {
                     || (parent.isText && parent.role != "AXStaticText" && region.role == "AXStaticText")
             }
         }.map(\.element)
-        // 多层同框包装只提供一个层级；使用同框中语义最明确的对象。
+        // Collapse stacked identical-frame wrappers into a single level using the most semantically specific element.
         var unique:[Self]=[]
         for region in owned {
             if let index=unique.firstIndex(where:{$0.frame == region.frame}) {
@@ -81,7 +81,7 @@ struct FrozenSmartRegion: Equatable, Sendable {
     }
 }
 
-/// 留住已确认的父面板，在控件间的空隙里选择包含鼠标的面板。
+/// Retains confirmed parent panels so gaps between controls still select the enclosing panel under the cursor.
 struct FrozenSmartSelectionCache {
     private struct Entry {
         let window: FrozenWindowCandidate

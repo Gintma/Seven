@@ -1,6 +1,6 @@
 import Foundation
 
-/// 只将服务错误映射到固定类别，不向界面或日志传递服务端的任意正文。
+/// Maps service errors only to fixed categories without exposing raw server response bodies to the UI or logs.
 enum ServiceAPIError {
     static func mapped(_ error: Any?, status: Int? = nil) -> TranslationError {
         if let status, [401, 403, 429].contains(status) { return .http(status) }
@@ -24,7 +24,7 @@ enum ServiceAPIError {
         let namedFormatUnsupported = (message.contains("responses") || message.contains("chat/completions")) &&
             ["not supported", "unsupported", "does not support"].contains { message.contains($0) }
         if unsupported || routeMessage || namedFormatUnsupported || status == 405 || status == 501 { return .endpointUnsupported }
-        // 无结构化错误的 404（常见为 HTML/空响应）才按路径不存在处理。
+        // Treat a 404 as a missing path only when it lacks a structured error (typically HTML or an empty response).
         if status == 404, error == nil { return .endpointUnsupported }
         if parameter == "model" { return .modelUnavailable }
         if let status { return .http(status) }

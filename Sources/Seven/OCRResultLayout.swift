@@ -1,7 +1,7 @@
 import Foundation
 import Vision
 
-/// 排版只整理当前文字；几何信息仅用于未被手动修改的识别结果。
+/// Formatting only reflows the current text; geometry metadata is used only for unedited recognition results.
 enum OCRResultLayout: String, CaseIterable {
     case smart, merged, lines
     static let preferenceKey = "ocr.layout.v1"
@@ -24,12 +24,12 @@ enum OCRResultLayout: String, CaseIterable {
             if lines.count == rows.count {
                 let a = lines[index - 1].boundingBox, b = lines[index].boundingBox
                 let height = max(a.height, b.height)
-                // Vision 原点在左下。跨列/回到列顶不合并，较大的行距、缩进与短标题保留。
+                // Vision uses a bottom-left origin. Do not merge across columns or wraps back to the top; preserve large line gaps, indentation, and short headings.
                 separate = separate || b.midY >= a.midY || a.minY - b.maxY > height * 0.8
                     || abs(a.minX - b.minX) > height * 1.5 || a.height > b.height * 1.25
                     || (a.width < b.width * 0.65 && Self.endsSentence(previous))
             } else {
-                // 手动编辑后没有可靠行框，保守保留句末换行，避免凭空改写段落。
+                // After manual edits there are no reliable line boxes; conservatively keep sentence-ending line breaks to avoid rewriting paragraphs.
                 separate = separate || Self.endsSentence(previous)
             }
             output = separate ? output + "\n" + row : Self.join(output, row.trimmingCharacters(in: .whitespaces))
@@ -37,7 +37,7 @@ enum OCRResultLayout: String, CaseIterable {
         return output
     }
 
-    /// 只有存在贯穿全部行框的空白列缝时才分列；跨栏标题等不确定结构维持原顺序。
+    /// Split into columns only when a blank gutter spans all line boxes; keep ambiguous layouts like multi-column headings in their original order.
     private static func readingOrder(_ lines: [OCRTextLine]) -> [OCRTextLine] {
         guard lines.count >= 4 else { return lines }
         let sorted = lines.sorted { $0.boundingBox.minX < $1.boundingBox.minX }
@@ -69,7 +69,7 @@ enum OCRResultLayout: String, CaseIterable {
         func eastAsian(_ c: Character) -> Bool {
             c.unicodeScalars.contains { (0x2E80...0x9FFF).contains($0.value) || (0xAC00...0xD7AF).contains($0.value) || (0xF900...0xFAFF).contains($0.value) }
         }
-        // 不猜测断词连字符；中文/日文直接衔接，拉丁词之间留空格。
+        // Do not guess hyphenated word breaks; join CJK directly and insert a space between Latin words.
         return a + (eastAsian(last) || eastAsian(first) ? "" : " ") + b
     }
 }
