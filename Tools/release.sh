@@ -82,7 +82,7 @@ notarize() {
 }
 
 SEVEN_BUILD_OUTPUT_DIR="$stage_dir" SEVEN_SIGN_IDENTITY="$signing_identity" ./build-app.sh release --universal
-# Apple 可接收 ZIP，但票据贴在 app 上。最终 ZIP 用粘贴票据后的 app 重打。
+# Apple accepts ZIPs for notarization, but the ticket is stapled to the app bundle; repackage the final ZIP from the stapled app.
 ditto -c -k --keepParent "$app" "$stage_dir/notarization.zip"
 notarize "$stage_dir/notarization.zip"
 xcrun stapler staple "$app"

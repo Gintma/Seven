@@ -50,7 +50,7 @@ extension SettingsView {
         guard let id = selectedService else { return }
         do {
             try model.deleteService(id)
-            // 删除已明确确认，丢弃该服务尚未保存的草稿。
+            // Deletion is explicitly confirmed; discard any unsaved draft for this service.
             serviceEditor.discard()
             selectedService = model.serviceInstances.first?.id
             prepareServiceDraft()

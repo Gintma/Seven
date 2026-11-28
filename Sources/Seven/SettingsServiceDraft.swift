@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-/// 服务详情的编辑事务；只有显式保存才写入模型和凭据存储。
+/// Editing transaction for service details; writes to the model and credential store only on explicit save.
 @MainActor final class SettingsServiceDraft: ObservableObject {
     @Published var value = ServiceInstance(provider: .custom) {
         didSet {
@@ -37,7 +37,7 @@ import Combine
     var hasChanges: Bool {
         guard let baseline, !value.provider.isBuiltIn else { return false }
         var comparable = value
-        // 勾选开关即时保存；协议探测状态属于模型，不属于用户草稿。
+        // Toggle switches save immediately; protocol probe state belongs to the model rather than the user draft.
         comparable.enabled = baseline.enabled
         comparable.detectedAPIStyle = baseline.detectedAPIStyle
         return comparable != baseline || apiKey != savedKey
@@ -64,7 +64,7 @@ import Combine
             throw TranslationError.configuration(.key("couldNotReadTheSavedAPIKey"))
         }
         try value.configuration.validatePrompt()
-        // 凭据写入可失败，必须在配置更新前完成；失败时保持草稿和已保存配置。
+        // Credential writes can fail and must succeed before updating configuration; on failure, preserve both the draft and saved configuration.
         if apiKey != savedKey { try model.saveServiceKey(value.id, key: apiKey) }
         var saved = value
         saved.enabled = current.enabled

@@ -2,15 +2,15 @@ import AVFoundation
 import CryptoKit
 import Foundation
 
-/// 一次在线朗读请求的一个候选地址；`label` 只用于诊断日志，不含查询参数。
+/// A candidate URL for an online speech request; `label` is used only in diagnostic logs and excludes query parameters.
 struct OnlineSpeechAttempt: Equatable {
     let url: URL
     let label: String
 }
 
-/// 按服务拼出朗读音频地址。参数取值于 2026-10-23 实测，见 SpeechEngineCatalog。
+/// Builds speech audio URLs per service. Parameters were verified against live endpoints on 2026-10-23; see SpeechEngineCatalog.
 enum OnlineSpeechURLBuilder {
-    /// 按顺序返回候选地址；前一个失败时再试下一个。
+    /// Returns candidate URLs in priority order; falls back to the next one if the previous fails.
     static func attempts(
         engine: SpeechEngineID,
         text: String,
@@ -24,7 +24,7 @@ enum OnlineSpeechURLBuilder {
         case .system:
             return []
         case .youdao:
-            // 先用有道翻译网页的整句朗读接口；签名常量失效时，退回只收录词典词条的 dictvoice。
+            // Prefer Youdao Translate's full-sentence web TTS endpoint; fall back to dictionary-only dictvoice if the signing constant breaks.
             var result: [OnlineSpeechAttempt] = []
             if let code = youdaoPronounceCodes[language],
                let url = youdaoPronounceURL(text: text, le: code, voiceType: accent == .uk ? 1 : 2, now: now) {
@@ -41,7 +41,7 @@ enum OnlineSpeechURLBuilder {
         case .baidu:
             guard let code = baiduCodes[language] else { return [] }
             let lan = isEnglish && accent == .uk ? "uk" : code
-            // 百度中文默认语速 5、其他语言 3，慢和快各偏移 2 档。
+            // Baidu defaults to speed 5 for Chinese and 3 for other languages, with slow and fast offset by 2 steps each.
             let base = language == "zh-Hans" ? 5 : 3
             let speed = base + (rate == .slow ? -2 : rate == .fast ? 2 : 0)
             return build("https://fanyi.baidu.com/gettts", [
@@ -56,7 +56,7 @@ enum OnlineSpeechURLBuilder {
         }
     }
 
-    /// 有道、谷歌返回固定语速的音频，语速由本地播放器倍速实现（有道网页同样如此）；百度由服务端合成语速。
+    /// Youdao and Google return fixed-rate audio whose speed is adjusted locally by the player (matching Youdao's web UI); Baidu synthesizes speed server-side.
     static func playbackRate(engine: SpeechEngineID, rate: SpeechRate) -> Float {
         guard engine == .youdao || engine == .google else { return 1 }
         switch rate {
@@ -66,12 +66,12 @@ enum OnlineSpeechURLBuilder {
         }
     }
 
-    /// 有道网页朗读使用的公开参数常量，与用户凭据无关。
+    /// Public parameter constants used by Youdao web TTS; unrelated to user credentials.
     private static let youdaoVoiceKeyID = "voiceFanyiWeb"
     private static let youdaoVoiceProduct = "webfanyi"
     private static let youdaoVoiceSecret = "qCG2vdP92hOXDcKa"
 
-    /// 去掉空值后按键名排序，末尾追加 key=常量再计算 MD5。pointParam 列出参与签名的键。
+    /// Drops empty values, sorts by key name, appends key=<constant>, and computes the MD5 digest. pointParam lists the signed keys.
     static func youdaoPronounceURL(text: String, le: String, voiceType: Int, now: Date) -> URL? {
         var parameters: [String: String] = [
             "product": youdaoVoiceProduct, "appVersion": "1", "client": "web", "mid": "1", "vendor": "web",
@@ -159,7 +159,7 @@ enum OnlineSpeechURLBuilder {
         "ur": "ur",
         "sw": "sw"
     ]
-    /// 严格编码查询值，避免 `+`、`&` 等字符被服务端误解析。
+    /// Strictly percent-encodes query values so characters like `+` and `&` are not misinterpreted by the server.
     private static let queryValueAllowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
 
     private static func build(_ base: String, _ query: [(String, String)]) -> URL? {
@@ -172,7 +172,7 @@ enum OnlineSpeechURLBuilder {
     }
 }
 
-/// 决定一次朗读是否走在线服务；返回 nil 时改用系统朗读。
+/// Decides whether speech should use an online service; returns nil to fall back to system speech.
 enum SpeechRoutingPolicy {
     static func onlineEngine(
         selected: SpeechEngineID,
@@ -193,7 +193,7 @@ enum SpeechAudioError: Error, Equatable {
     case notAudio
     case transport
 
-    /// 写入诊断日志的固定分类。
+    /// Fixed category written to diagnostic logs.
     var diagnosticCategory: String {
         switch self {
         case .http: return "http"

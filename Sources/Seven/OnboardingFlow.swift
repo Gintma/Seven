@@ -22,7 +22,7 @@ struct OnboardingFlow {
         defaults.removeObject(forKey: reaction.key)
     }
 
-    /// 持久化的请求只在窗口可见且系统确认成功后消费，允许授权期间重启。
+    /// Consume the persisted request only after the window is visible and system confirmation succeeds, allowing restarts during authorization.
     func nextReaction(accessibility: Bool, screenRecording: Bool, login: LaunchAtLoginState) -> Reaction? {
         for reaction in Reaction.allCases where defaults.bool(forKey: reaction.key) {
             let ready = switch reaction {
@@ -63,7 +63,7 @@ struct OnboardingFlow {
                 if !hasPendingImages { save(.completed) }
                 return false
             }
-            // 装配和图片处理会生成业务设置，后续启动应继续以待完成状态为准。
+            // Setup and image processing write app preferences, so subsequent launches should continue honoring the pending state.
             save(.pending)
             return !hasPendingImages
         }
@@ -98,7 +98,7 @@ struct OnboardingFlow {
         ]
         if settingsKeys.contains(where: { preferences[$0] != nil }) { return true }
 
-        // 目录本身可能仅用于构建签名；只检查业务文件是否存在。
+        // The directory itself may exist solely for build signing; check only for app data files.
         let dataEntries = [
             "history.json", "history.recovery.json", "favorites.json", "favorites.recovery.json",
             "credentials.json", "ECDICT", "PinLibrary"

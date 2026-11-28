@@ -32,12 +32,12 @@ final class ScreenshotShadowPreferences {
 }
 
 @MainActor enum ScreenshotShadowRendering {
-    /// 阴影只画在圆角主体之外，不改变钉图主体的不透明度。
+    /// Draws the shadow strictly outside the rounded body without altering the pinned image's opacity.
     static func draw(_ image:NSImage,in rect:CGRect,bounds:CGRect,radius:CGFloat,style:ScreenshotShadowStyle) {
         guard style.effective else{return}
         NSGraphicsContext.saveGraphicsState();defer{NSGraphicsContext.restoreGraphicsState()}
-        // 先按图片的 alpha 轮廓生成阴影，再移除主体；不能按矩形外沿裁切，
-        // 否则圆角透明区内的阴影会被截掉，阴影看起来与图像脱离。
+        // Generate the shadow from the image's alpha silhouette and then clear the body; do not clip to the outer rectangle,
+        // otherwise shadow inside the transparent rounded corners gets cut off and looks detached from the image.
         let silhouette=NSImage(size:rect.size,flipped:false) { target in
             NSGraphicsContext.saveGraphicsState();defer{NSGraphicsContext.restoreGraphicsState()}
             if radius>0 {NSBezierPath(roundedRect:target,xRadius:radius,yRadius:radius).addClip()}
@@ -52,7 +52,7 @@ final class ScreenshotShadowPreferences {
         silhouette.draw(in:rect,from:.zero,operation:.destinationOut,fraction:1,respectFlipped:true,hints:nil)
         context.endTransparencyLayer()
     }
-    /// 导出只添加外围留白，原图像素保持不变；不用于钉图悬浮显示的复制/保存。
+    /// Export adds only outer padding while leaving original pixels untouched; not used for copy/save of floating pins.
     static func image(_ source:NSImage,style:ScreenshotShadowStyle)->NSImage {
         guard style.effective,let original=ScreenshotSaving.cgImage(source),source.size.width>0,source.size.height>0 else{return source}
         let sx=CGFloat(original.width)/source.size.width,sy=CGFloat(original.height)/source.size.height
@@ -61,7 +61,7 @@ final class ScreenshotShadowPreferences {
         let rect=CGRect(x:px,y:py,width:original.width,height:original.height)
         context.saveGState();context.setShadow(offset:CGSize(width:Design.ScreenshotShadow.offset.width*sx,height:Design.ScreenshotShadow.offset.height*sy),blur:Design.ScreenshotShadow.blur*max(sx,sy),color:style.color.cgColor)
         context.draw(original,in:rect);context.restoreGState()
-        // 覆回主体，避免阴影使透明图像本身变暗。
+        // Composite the body back on top so the shadow does not darken transparent pixels.
         context.saveGState();context.clip(to:rect);context.setBlendMode(.copy);context.draw(original,in:rect);context.restoreGState()
         guard let output=context.makeImage() else{return source}
         let rep=NSBitmapImageRep(cgImage:output),size=CGSize(width:CGFloat(width)/sx,height:CGFloat(height)/sy)
@@ -69,7 +69,7 @@ final class ScreenshotShadowPreferences {
     }
 }
 
-/// 独立、穿透点击的阴影窗口只绘阴影，主体仍由原钉图窗口显示。
+/// Standalone click-through shadow window that renders only the shadow while the original pin window displays the body.
 final class ScreenshotPinShadowView:NSView {
     var image:NSImage?
     var imageRect=CGRect.zero

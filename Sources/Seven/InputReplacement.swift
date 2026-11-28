@@ -2,7 +2,7 @@ import AppKit
 import ApplicationServices
 import Carbon
 
-/// 分开保存 AX 显示文字与原生选区坐标；链接/附件坐标不能直接套在展开文字上。
+/// Stores AX display text and native selection coordinates separately; link/attachment coordinates cannot be applied directly to expanded text.
 struct InputReplacementSnapshot: Equatable {
     let value: String
     let range: NSRange
@@ -39,7 +39,7 @@ struct InputReplacementSnapshot: Equatable {
         return (value as NSString).replacingCharacters(in: replacementRange, with: text)
     }
 
-    /// 部分编辑器把占位内容暴露为 AXValue；实际字符数为零时不能把它当原文。
+    /// Some editors expose placeholder text as AXValue; do not treat it as source text when actual character count is zero.
     func validateContent(characterCount: Int? = nil, placeholder: String? = nil) throws {
         guard characterCount != 0, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw InputReplacementError.empty
@@ -72,7 +72,7 @@ enum InputReplacementError: Error, Equatable, LocalizableIssue {
     }
 }
 
-/// 原生全选之后，等待读取到真实选区，不把一次尚未刷新的 AX 读数当作用户修改。
+/// After native Select All, wait for a real selection to appear rather than treating a stale AX read as a user edit.
 @MainActor
 enum InputReplacementSelection {
     static func validate(_ current: InputReplacementSnapshot, against original: InputReplacementSnapshot,
@@ -90,7 +90,7 @@ enum InputReplacementSelection {
         attempts: Int = 30,
         pause: () async throws -> Void = { try await Task.sleep(for: .milliseconds(20)) }
     ) async throws -> InputReplacementSnapshot {
-        // 只有明确的无选区输入才能走整框路径，绝不把选区读取失败降级为全选。
+        // Use the whole-field path only when there is definitively no selection; never downgrade a selection read failure to Select All.
         guard original.replacesWholeInput else { throw InputReplacementError.selectionChanged }
         try Task.checkCancellation()
         try checkTarget()
@@ -101,8 +101,8 @@ enum InputReplacementSelection {
             try checkTarget()
             let current = try read()
             guard current.value.utf16.elementsEqual(original.value.utf16) else { throw InputReplacementError.contentChanged }
-            // 链接/附件的原生选区坐标不一定等于 AXValue 展开文字的 UTF-16 长度。
-            // Command-A 的结果作为新基准，不以另一种文本表示推算它应该有多长。
+            // Native selection coordinates for links/attachments may not match the UTF-16 length of expanded AXValue text.
+            // Treat the Command-A result as the new baseline instead of estimating its expected length from another text representation.
             if current.range.length > 0 {
                 if original.usesTextMarkers, current.range != original.replacementRange {
                     throw InputReplacementError.selectionUnavailable
@@ -114,7 +114,7 @@ enum InputReplacementSelection {
         }
         let current = try read()
         try validate(current, against: original)
-        // 原生全选未产生选区时仍继续复制；两次无非空白结果按产品规则静默结束。
+        // Continue copying even if native Select All yields no selection; two empty/whitespace-only reads end silently per product rules.
         return current
     }
 }
@@ -195,7 +195,7 @@ final class InputReplacementTarget: InputReplacementTargeting {
         try reader.read(usingTextMarkers: snapshot.usesTextMarkers)
     }
 
-    /// 原生复制确认发生在联网之前；不把编辑器的可访问性名称或过期 AXValue 当成用户输入。
+    /// Native copy confirmation runs before any network request; never treat an editor's accessibility title or stale AXValue as user input.
     func prepare() async throws {
         var stage = "prepare"
         do {
@@ -275,7 +275,7 @@ final class InputReplacementTarget: InputReplacementTargeting {
         )
     }
 
-    /// 只记录固定阶段、错误分类及字数，后续复现可定位具体拦截点，不记录正文或链接。
+    /// Logs only fixed stages, error categories, and character counts to locate interception points during repro; never logs text or links.
     private func recordFailure(_ error: Error, stage: String) {
         let category = (error as? InputReplacementError).map { String(describing: $0) }
             ?? String(reflecting: type(of: error))
@@ -292,7 +292,7 @@ final class InputReplacementTarget: InputReplacementTargeting {
         guard CFEqual(try Self.focused(pid: pid), element) else { throw InputReplacementError.controlChanged }
     }
 
-    /// 原应用原生粘贴，保留撤销；不发 Enter，不激活或切换到其他应用。
+    /// Uses native paste in the source app to preserve Undo; never sends Enter and never activates or switches apps.
     private func paste(_ text: String) async throws {
         let pasteboard = NSPasteboard.general
         let previous = PasteboardSnapshot.capture(from: pasteboard)
@@ -305,15 +305,15 @@ final class InputReplacementTarget: InputReplacementTargeting {
         let lease = pasteboard.changeCount
         defer { _ = previous.restore(to: pasteboard, ifUnchangedSince: lease) }
         try postCommand(keyCode: UInt16(kVK_ANSI_V))
-        // 给原应用处理原生粘贴的时间；观察到预期结果才提早归还剪贴板，最多等待一秒。
-        // 会话写回期间不取消租约，以免原应用尚未取值时就恢复旧剪贴板。
+        // Give the source app time to process native paste; restore the clipboard early only once the expected result is observed, up to 1 second.
+        // Do not cancel the lease during writeback so the old clipboard is not restored before the source app reads it.
         for _ in 0..<20 {
             try? await Task.sleep(for: .milliseconds(50))
             if outputMatches(text) { break }
         }
     }
 
-    /// 将原生 Command 组合键发送到已验证的进程，用于全选、复制和粘贴。
+    /// Sends native Command key chords to the verified process for Select All, Copy, and Paste.
     private func postCommand(keyCode: UInt16) throws {
         guard let source = CGEventSource(stateID: .combinedSessionState),
               let down = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: true),
@@ -344,7 +344,7 @@ final class InputReplacementTarget: InputReplacementTargeting {
             AXUIElementSetMessagingTimeout(element, 0.5)
             return element
         }
-        // 有些应用不返回应用级焦点；只接受同一前台进程的系统焦点。
+        // Some apps do not report app-level focus; accept system focus only if it belongs to the same frontmost process.
         let systemElement = systemFocus()
         guard frontmostPID() == pid else { throw InputReplacementError.focusChanged }
         var owner: pid_t = 0

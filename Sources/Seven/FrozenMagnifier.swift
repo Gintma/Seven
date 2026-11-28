@@ -1,6 +1,6 @@
 import AppKit
 
-/// 放大镜先将鼠标位置对齐到整数像素，再以此为中心计算 12pt 采样框。
+/// Snaps the cursor position to integer pixels first, then centers the 12pt sampling rect on that pixel.
 enum FrozenMagnifierGeometry {
     static func pixel(point: CGPoint, scale: CGFloat, imageSize: CGSize) -> CGPoint {
         let ratio = CGFloat(Float(scale))
@@ -16,7 +16,7 @@ enum FrozenMagnifierGeometry {
                       height: Design.ScreenshotMagnifier.sampleSide * ratio)
     }
 
-    /// 放大镜固定在鼠标左上方，并限制在屏幕范围内。
+    /// Anchors the magnifier to the top-left of the cursor and clamps it within screen bounds.
     static func origin(mouse: CGPoint, screenSize: CGSize) -> CGPoint {
         let size = Design.ScreenshotMagnifier.size
         let x = CGFloat(Int(mouse.x)) - Design.ScreenshotMagnifier.sizeAndDistance
@@ -27,7 +27,7 @@ enum FrozenMagnifierGeometry {
 
 }
 
-/// 120pt 的像素网格从未遮罩的冻结屏幕图采样。
+/// Samples the 120pt pixel grid from the unmasked frozen screen image.
 final class FrozenMagnifierView: ThemedDrawingView {
     private var sample: CGImage?
     private(set) var sampledColor: NSColor?
@@ -48,7 +48,7 @@ final class FrozenMagnifierView: ThemedDrawingView {
         let rect = FrozenMagnifierGeometry.sampleRect(point: point, screenSize: screenSize, scale: scale)
         sample = image.cropping(to: rect)
         coordinateText = FrozenMagnifierLabels.coordinate(point, screenHeight: screenSize.height)
-        // 裁片在屏幕边缘会被截短；取色始终独立读取鼠标对应的原图像素。
+        // The cropped patch may be clipped at screen edges; color sampling always reads the exact source pixel under the cursor.
         let pixel = FrozenMagnifierGeometry.pixel(point: point, scale: scale,
             imageSize: CGSize(width: image.width, height: image.height))
         sampledColor = image.cropping(to: CGRect(origin: pixel, size: CGSize(width: 1, height: 1)))
@@ -135,7 +135,7 @@ final class FrozenMagnifierView: ThemedDrawingView {
     }
 }
 
-/// 格式化坐标与 HEX，并按文字宽度计算标签位置。
+/// Formats coordinates and HEX color, and computes the label position based on text width.
 enum FrozenMagnifierLabels {
     static func coordinate(_ point: CGPoint, screenHeight: CGFloat) -> String {
         String(format: "%.f,%.f", Double(point.x), Double(screenHeight - point.y))

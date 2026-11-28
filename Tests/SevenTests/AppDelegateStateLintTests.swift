@@ -1,10 +1,10 @@
 import Foundation
 import XCTest
 
-/// AppDelegate 的跨文件扩展共享状态；其他源码须通过装配根的操作入口使用它。
+/// Shared state across AppDelegate extension files; other sources must access it through composition root action entry points.
 final class AppDelegateStateLintTests: XCTestCase {
-    // 仅列拆分时从 private 放宽为模块可写且仍保留的可变存储属性。
-    // 仍为 private(set) 的 model、inputReplacement、设置/历史窗口不需要重复守护 setter。
+    // Lists only mutable stored properties widened from private to internal during file splitting that are still retained.
+    // model, inputReplacement, and settings/history windows remain private(set) and do not need duplicate setter guards.
     private static let protectedProperties = [
         "item", "panel", "selectionMenuItem", "screenshotMenuItem",
         "localKeyMonitor", "selectionTask", "selectionGate", "screenshotTask", "screenshotGate",
@@ -32,8 +32,8 @@ final class AppDelegateStateLintTests: XCTestCase {
             try NSRegularExpression(pattern: pattern).matches(in: source, range: range).filter { match in
                 let receiver = (source as NSString).substring(with: match.range(at: 1))
                 let name = (source as NSString).substring(with: match.range(at: 2))
-                // ScreenshotCapture 等类型有自己的 self.panel。
-                // 仅允许源码实际声明过的同名 self 成员；delegate.panel 等外部写入仍必须拦截。
+                // Types such as ScreenshotCapture have their own self.panel.
+                // Allow only same-named self members declared in source; external writes like delegate.panel must still be blocked.
                 let ownDeclaration = #"\b(?:let|var)\s+"# + NSRegularExpression.escapedPattern(for: name) + #"\b"#
                 return receiver != "self" || source.range(of: ownDeclaration, options: .regularExpression) == nil
             }.map(\.range)

@@ -1,6 +1,6 @@
 import Foundation
 
-/// 只列入已核对的模型；默认值用 nil 表示，完全不发送参数。
+/// Lists only verified models; nil represents the default and omits the parameter entirely.
 enum ReasoningEffort: String, Codable, CaseIterable, Sendable {
     case none, minimal, low, medium, high, xhigh, max
     var title: String {
@@ -16,7 +16,7 @@ enum ReasoningEffort: String, Codable, CaseIterable, Sendable {
     }
 }
 
-/// 2026-11-05 核对。集中维护参数差异，按已核对模型和所选协议判断，不按官方/中转域名限制。
+/// Verified 2026-11-05. Centralizes parameter differences based on verified models and selected protocol, without restricting by official or relay domains.
 enum ServiceReasoning {
     static func options(provider: ServiceProvider?, model: String, style: ServiceAPIStyle) -> [ReasoningEffort] {
         guard let provider = parameterProvider(provider, style: style) else { return [] }
@@ -52,7 +52,7 @@ enum ServiceReasoning {
 
     private static func parameterProvider(_ provider: ServiceProvider?, style: ServiceAPIStyle) -> ServiceProvider? {
         guard provider == .custom else { return provider }
-        // 自定义服务的显式协议决定参数格式，模型仍须精确命中下方能力表。
+        // A custom service's explicit protocol determines the parameter format, while the model must still match the capability table below exactly.
         switch style {
         case .openAIResponses, .openAICompatible: return .openAI
         case .anthropic: return .claude

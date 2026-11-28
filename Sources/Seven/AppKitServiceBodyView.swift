@@ -282,7 +282,7 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
             textView.textContainer?.containerSize = NSSize(
                 width: safeWidth, height: CGFloat.greatestFiniteMagnitude
             )
-            // 词形按整组换行；宽度变化时重排正文和按钮位置，原始结果不变。
+            // Wrap word forms as whole groups; reflow body and button positions on width changes without altering the raw result.
             if let result, result.dictionaryEntry != nil {
                 updateText(for: result, previousPhase: result.phase)
             } else if isShowingRichMarkdown, !renderingSuspended, renderedMarkdownWidth != safeWidth,
@@ -310,7 +310,7 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
         return textHeight + (textHeight > 0 && actionsHeight > 0 ? 10 : 0) + actionsHeight
     }
 
-    /// 字体行框的上下留白不属于用户指定的可见间距，按实际字面范围补偿。
+    /// Vertical line-box padding is not part of the user-specified visual spacing; compensate using actual glyph bounds.
     private func normalizeVisibleParagraphGaps(manager: NSLayoutManager, container: NSTextContainer) {
         guard let storage = textView.textStorage, storage.length > 0 else { return }
         for _ in 0..<3 {
@@ -397,7 +397,7 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
                 button.target = self
                 button.action = selector
                 button.translatesAutoresizingMaskIntoConstraints = true
-                // 放在正文上方的同级视图，避免NSTextView的文字命中截走按钮点击。
+                // Place in a sibling view above the body text so NSTextView hit testing does not intercept button clicks.
                 addSubview(button)
                 pronunciationButtons[content] = button
             }
@@ -477,7 +477,7 @@ final class AppKitServiceBodyView: FlippedView, NSTextViewDelegate, ThemeApplyin
                     append(row.displayLabel + "\t", to: value, font: auxiliaryFont, color: .inkSecondary)
                     append("/" + phone.value + "/", to: value, font: auxiliaryFont, color: .inkSecondary)
                     if result.map(showsPronunciation(for:)) == true {
-                        // 用定宽不换行空格预留按钮，不往可复制正文中插入附件字符。
+                        // Reserve button space with fixed-width non-breaking spaces instead of inserting attachment characters into copyable text.
                         let side = Design.Dictionary.pronunciationButtonSize
                         let font = Design.Text.dictionaryAuxiliary.nsFont
                         let spaceWidth = ("\u{00A0}" as NSString).size(withAttributes: [.font: font]).width

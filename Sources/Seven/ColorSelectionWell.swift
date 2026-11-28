@@ -1,6 +1,6 @@
 import AppKit
 
-/// 所有颜色入口共用原生快捷色板，再由“显示颜色”进入系统调色板。
+/// All color controls share the native quick swatch popover, with "Show Colors" opening the system color panel.
 final class ColorSelectionWell: NSColorWell, ThemeApplying {
     private var palette = ThemePalette.system
 
@@ -74,7 +74,7 @@ final class ColorSelectionWell: NSColorWell, ThemeApplying {
     }
 }
 
-/// 编辑层压住普通应用和菜单栏，但必须低于系统原生 popover（而非 screenSaver 层级）。
+/// Editor overlay sits above regular apps and the menu bar, but must stay below native system popovers (not screenSaver level).
 enum ScreenshotPresentation {
     static let overlayLevel:NSWindow.Level = .statusBar
 }

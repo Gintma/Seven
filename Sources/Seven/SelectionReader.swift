@@ -252,7 +252,7 @@ final class SelectionReader: @unchecked Sendable {
         var element = focused
         var hasTextRange = false
         var hasCollapsedMarker = false
-        // 网页可能把选区报告在焦点的文档祖先上。窗口、应用和对象选择控件是查找边界。
+        // Web pages may report the selection on a focused document ancestor. Windows, applications, and object-selection controls act as traversal boundaries.
         for depth in 0...8 {
             let role = attribute(kAXRoleAttribute, from: element) as? String ?? ""
             if role == kAXWindowRole || role == kAXApplicationRole { break }
@@ -417,7 +417,7 @@ final class SelectionReader: @unchecked Sendable {
                 guard case .enabled(let item) = menu else { return false }
                 AXUIElementSetMessagingTimeout(item, 0.05)
                 let result = AXUIElementPerformAction(item, kAXPressAction as CFString)
-                // 超时的动作可能已派发。先等剪贴板结果，避免立即重复复制。
+                // A timed-out action may have already been dispatched. Wait for the pasteboard result first to avoid immediately issuing a duplicate copy.
                 return result == .success || result == .cannotComplete
             },
             sendCopyShortcut: { await self.postShortcut(keyCode: UInt16(kVK_ANSI_C), to: applicationPID) }
@@ -524,7 +524,7 @@ final class SelectionReader: @unchecked Sendable {
         return match ?? .unknown
     }
 
-    /// 标记 Seven 自己模拟的按键，供快捷键录制窗口识别并忽略。
+    /// Marks key events simulated by Seven itself so the shortcut recorder window can recognize and ignore them.
     static let syntheticEventMarker: Int64 = 0x5356_5359  // "SVSY"
 
     static func isSynthetic(_ event: NSEvent) -> Bool {

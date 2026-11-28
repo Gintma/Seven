@@ -30,7 +30,7 @@ final class ScreenshotScrollTests: XCTestCase {
             let original = y < top ? y : y >= height - bottom ? 900 + y : y + offset
             let absolute = rowPeriod.map { original % $0 } ?? original
             for x in 0..<width {
-                // 每行具有不重复的横向特征；不依赖自然语言内容或系统截图。
+                // Each row has unique horizontal features without relying on natural language content or system screenshots.
                 let mixed = (absolute &* 31 &+ x &* 67) ^ (absolute &* x &* 13)
                 let value = bright ? 230 + abs(mixed % 20) : 20 + abs(mixed % 210)
                 let byte = scrollbar && x >= width-3 && y >= 2 && y < height-2 ? UInt8(110) : UInt8(value)
@@ -77,7 +77,7 @@ final class ScreenshotScrollTests: XCTestCase {
         XCTAssertTrue(controller.isCapturing, "不能拦截原应用的带修饰键组合")
         let escape = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
             windowNumber: 0, context: nil, characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53))
-        events.emitGlobal(escape) // 模拟原应用持有焦点；不发送本地或真实全局键盘事件。
+        events.emitGlobal(escape) // Simulates the original app holding focus without sending local or real global keyboard events.
         XCTAssertFalse(controller.isCapturing)
         XCTAssertFalse(root.isVisible)
         XCTAssertTrue(panels.allSatisfy { !$0.isVisible })
@@ -217,7 +217,7 @@ final class ScreenshotScrollTests: XCTestCase {
         XCTAssertEqual(matcher.consume(try frame(offset: 500, bright: true)), .noMatch)
         XCTAssertEqual(matcher.outputHeight, 88)
         XCTAssertEqual(try ScreenshotScrollFrame(image: XCTUnwrap(matcher.image)).pixels, try ScreenshotScrollFrame(image: before).pixels)
-        // 找回的画面仍比最后成功帧向前；不按向上滚轮方向拒绝实际有效重叠。
+        // The recovered frame is still ahead of the last successful frame; do not reject valid overlap solely due to upward wheel direction.
         XCTAssertEqual(matcher.consume(try frame(offset: 16)), .addedPixels(8))
         XCTAssertEqual(try ScreenshotScrollFrame(image: XCTUnwrap(matcher.image)).pixels, try frame(offset: 0, height: 96).pixels)
     }

@@ -1,6 +1,6 @@
 import Foundation
 
-/// 提供方决定预设与品牌；实例 ID 决定凭据、任务和卡片身份。
+/// The provider determines presets and branding; the instance ID determines credentials, tasks, and card identity.
 enum ServiceProvider: String, Codable, CaseIterable, Identifiable, Sendable {
     case apple, google, youdao, dictionary
     case openAI, claude, gemini, deepSeek, miniMax, zhipu, kimi, qwen, doubao, openRouter, custom
@@ -44,7 +44,7 @@ enum ServiceProvider: String, Codable, CaseIterable, Identifiable, Sendable {
         default: return .openAICompatible
         }
     }
-    // 2026-11-04 核对各家官方文档。
+    // Verified against each provider's official documentation on 2026-11-04.
     var baseAddress: String {
         switch self {
         case .openAI: return "https://api.openai.com/v1"
@@ -60,7 +60,7 @@ enum ServiceProvider: String, Codable, CaseIterable, Identifiable, Sendable {
         default: return ""
         }
     }
-    // 默认模型同上官方来源，2026-11-04 核对；不覆盖用户迁移过来的原模型。
+    // Default models from the same official sources, verified 2026-11-04; never overwrites a user's migrated model.
     var defaultModel: String {
         switch self {
         case .openAI: return "gpt-6-luna"
@@ -71,7 +71,7 @@ enum ServiceProvider: String, Codable, CaseIterable, Identifiable, Sendable {
         case .zhipu: return "glm-5.3"
         case .kimi: return "kimi-k3.1-pro"
         case .qwen: return "qwen-plus"
-        // 豆包接入点由用户在火山方舟控制台取得，不伪造可调用 ID。
+        // Doubao endpoints are obtained by the user from the Volcengine Ark console; do not fabricate callable IDs.
         default: return ""
         }
     }
@@ -94,7 +94,7 @@ struct ServiceInstance: Identifiable, Codable, Equatable, Sendable {
     var timeoutSeconds: Int
     var reasoningEffort: ReasoningEffort?
     var detectedAPIStyle: ServiceAPIStyle?
-    // Optional 保持旧服务配置可解码；新增模型只跟随所属实例保存。
+    // Kept optional so legacy service configs remain decodable; newly added models are saved only with their owning instance.
     private var addedModels: [String]?
     private var cachedModels: [String]?
     var fetchedModels: [String] {
@@ -162,7 +162,7 @@ enum ServiceEndpoint {
         return nil
     }
 
-    /// 只在完整请求后缀已出现时归一化输入框；普通路径末尾的 / 保留，避免打断逐字输入。
+    /// Normalizes the input field only once a complete request suffix is present; preserves trailing / on regular paths to avoid interrupting typing.
     static func pastedBase(_ value: String) -> String? {
         let path = URLComponents(string: value)?.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")) ?? ""
         let known = ["chat/completions", "responses", "messages", ":generateContent", ":streamGenerateContent"]

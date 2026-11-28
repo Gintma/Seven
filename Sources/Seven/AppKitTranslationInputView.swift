@@ -256,7 +256,7 @@ final class AppKitTranslationInputView: LayerBackedView, NSTextViewDelegate, The
     }
 
     private func updateSpeechButton() {
-        // 原文语言还在联网识别时先禁用，避免按系统误判的语言（如把斯瓦希里语当印尼语）朗读。
+        // Disable while online source-language detection is in flight to avoid speaking with a misdetected system language (e.g. Swahili detected as Indonesian).
         let pending = model.isSourceLanguagePending
         let language = model.sourceLanguageForSpeech
         speechButton.isEnabled = !pending && model.speech.canSpeak(text: model.input, declaredLanguage: language)

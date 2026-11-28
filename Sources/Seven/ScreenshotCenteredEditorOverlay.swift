@@ -1,6 +1,6 @@
 import AppKit
 
-/// 长图居中与钉图原位共用覆盖层/标注画布；界面位置、缩放与导出像素分离。
+/// Centered long-image editing and in-place pin editing share the overlay/annotation canvas, separating UI placement, zoom, and export pixels.
 struct ScreenshotCenteredEditorContext {
     let screenFrame: CGRect
     let background: CGImage?

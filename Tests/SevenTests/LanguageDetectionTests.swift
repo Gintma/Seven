@@ -16,7 +16,7 @@ final class LanguageDetectionLiveTests: XCTestCase {
         }
     }
 
-    /// 用 Google 把同一句英文译成目录中的每种语言，再分别交给 Google、百度识别，核对代码对照表。
+    /// Translates the same English sentence into every catalog language via Google, then runs Google and Baidu detection to verify the code mapping table.
     func testLiveLanguageDetectionCoversCatalog() async throws {
         guard ProcessInfo.processInfo.environment["SEVEN_LIVE_TRANSLATION_TESTS"] == "1" else {
             throw XCTSkip("Set SEVEN_LIVE_TRANSLATION_TESTS=1 to run online service checks.")
@@ -36,7 +36,7 @@ final class LanguageDetectionLiveTests: XCTestCase {
             for (name, detector) in detectors {
                 do {
                     let detected = try await detector.detect(sample)
-                    // Google 对中文不分简繁，由本地简繁判断补足（见 TranslationModel）。
+                    // Google does not distinguish Simplified vs. Traditional Chinese; local script classification fills the gap (see TranslationModel).
                     let matches = detected == language.code
                         || (name == "Google" && LanguageCatalog.isChinese(language.code) && detected.map(LanguageCatalog.isChinese) == true)
                     if !matches { report.append("\(name) \(language.code) → \(detected ?? "目录外")") }
@@ -576,7 +576,7 @@ final class LanguageDetectionModelTests: XCTestCase {
                        .key("translation.unsupportedLanguage", .provider(.youdao), .language("sw")))
     }
 
-    /// 服务在语言识别完成前被停用时，加载状态必须复位。
+    /// Loading state must reset when a service is disabled before language detection finishes.
     func testServiceDisabledWhileWaitingForDetectionDoesNotStayLoading() async throws {
         let google = MockDetector(.success("sw"), held: true)
         let model = makeModel(mode: .google, google: google, baidu: MockDetector(.success("sw")))

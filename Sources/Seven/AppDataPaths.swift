@@ -1,7 +1,7 @@
 import Foundation
 import CoreFoundation
 
-/// 词库与通用诊断沿用共享目录。试用变体的凭据、翻译历史和收藏夹使用变体目录。
+/// Dictionaries and general diagnostics use the shared directory. Preview variants store credentials, translation history, and favorites in the variant directory.
 enum AppDataPaths {
     static let bundleIdentifier = "com.crissun.seven"
 
@@ -19,7 +19,7 @@ enum AppDataPaths {
 }
 
 extension URL {
-    /// 系统文件路径保留编码的路径分隔符，避免把文件名误当成目录。
+    /// Preserve encoded path separators in file paths so filenames are not mistaken for directories.
     var fileSystemPath: String {
         (CFURLCopyFileSystemPath(self as CFURL, .cfurlposixPathStyle) as String?) ?? ""
     }

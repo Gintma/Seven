@@ -12,7 +12,7 @@ struct KeyboardShortcut: Codable, Equatable, Sendable {
         carbonModifiers: UInt32(optionKey),
         keyLabel: "D"
     )
-    /// 输入翻译默认使用 ⌥A，与截图的 ⌥S 和划词翻译的 ⌥D 相邻。
+    /// Input translation defaults to ⌥A, adjacent to screenshot (⌥S) and selection translation (⌥D).
     static let inputDefault = KeyboardShortcut(
         keyCode: UInt32(kVK_ANSI_A),
         carbonModifiers: UInt32(optionKey),
@@ -33,7 +33,7 @@ struct KeyboardShortcut: Codable, Equatable, Sendable {
         keyCode: UInt32(kVK_ANSI_O), carbonModifiers: UInt32(controlKey | optionKey), keyLabel: "O"
     )
 
-    /// 按显示顺序拆成单独的键，用于绘制键帽，例如 ["⌥", "D"]。
+    /// Splits into individual keys in display order for rendering keycaps, e.g. ["⌥", "D"].
     var keyLabels: [String] {
         var keys: [String] = []
         if carbonModifiers & UInt32(controlKey) != 0 { keys.append("⌃") }
@@ -52,13 +52,13 @@ struct KeyboardShortcut: Codable, Equatable, Sendable {
         return value + keyLabel
     }
 
-    /// 全局快捷键必须包含 ⌘、⌥ 或 ⌃：只有 ⇧ 的组合会在输入大写字母时被误触发。
+    /// Global shortcuts must include ⌘, ⌥, or ⌃: combinations with only ⇧ would misfire while typing uppercase letters.
     var hasPrimaryModifier: Bool {
         carbonModifiers & UInt32(cmdKey | optionKey | controlKey) != 0
     }
 
-    /// ⌘ + 字母是各应用通用的编辑与窗口命令（⌘C、⌘V、⌘Z…），⌘⇧3/4/5 是系统截屏，
-    /// 注册为全局快捷键会让这些命令在所有应用里失效。
+    /// ⌘ + letter combos are standard editing and window commands across apps (⌘C, ⌘V, ⌘Z, ...), and ⌘⇧3/4/5 are system screenshot shortcuts;
+    /// registering them as global hotkeys would break those commands in every app.
     var conflictsWithSystemShortcut: Bool {
         if carbonModifiers == UInt32(cmdKey) {
             let reserved = [UInt32(kVK_ANSI_Comma), UInt32(kVK_Space), UInt32(kVK_Tab)]
@@ -148,7 +148,7 @@ final class HotKeyManager: ObservableObject {
     @Published private(set) var shortcut: KeyboardShortcut
     @Published private var status = LocalizedMessage.verbatim("")
     var statusMessage: String { status.text }
-    /// 当前保存的快捷键未能注册。录制和恢复默认的反馈由发起操作的界面处理。
+    /// The currently saved shortcut failed to register. Feedback for recording and restoring defaults is handled by the initiating UI.
     @Published private var problemMessage: LocalizedMessage?
     var problem: String? { problemMessage?.text }
     @Published private(set) var isRegistered = false
@@ -156,7 +156,7 @@ final class HotKeyManager: ObservableObject {
     var reservesShortcut: Bool { isEnabled && (!usesImplicitDefault || problemMessage == nil) }
     let allowsUnset: Bool
     var onHotKey: (() -> Void)?
-    /// 保留冲突操作的本地化消息，设置行在渲染错误时解析显示名。
+    /// Keeps the localized message for the conflicting action; settings rows resolve display names when rendering errors.
     var conflictingAction: ((KeyboardShortcut) -> LocalizedMessage?)?
 
     enum Scope {case global,local}
@@ -195,7 +195,7 @@ final class HotKeyManager: ObservableObject {
         } else {
             shortcut = defaultShortcut ?? .selectionDefault
             if allowsUnset {
-                // 缺失表示首次使用；显式清空的 false 必须在重启后继续生效。
+                // Missing value means first run; an explicitly cleared false must persist across restarts.
                 let explicitlyCleared = defaults?.object(forKey: storageKey) as? Bool == false
                 isEnabled = defaultShortcut != nil && !explicitlyCleared
                 usesImplicitDefault = isEnabled
@@ -228,7 +228,7 @@ final class HotKeyManager: ObservableObject {
         eventHandlerRef = nil
     }
 
-    /// 返回是否保存成功；失败原因见 statusMessage。
+    /// Returns whether saving succeeded; see statusMessage for failure details.
     @discardableResult
     func update(_ candidate: KeyboardShortcut) -> Bool {
         guard candidate.hasPrimaryModifier else {
@@ -278,9 +278,9 @@ final class HotKeyManager: ObservableObject {
         return update(defaultShortcut) ? nil : .key("couldNotRestoreTheDefault", .message(status))
     }
 
-    /// 录制快捷键期间暂停注册，使按键能到达录制窗口，而不是触发Seven自己的操作。
+    /// Suspends hotkey registration during shortcut recording so keystrokes reach the recorder instead of triggering Seven's own actions.
     func suspend() {
-        // 即使当前未注册成功（例如被其他应用占用），也要标记暂停，阻止录制中新注册的组合被触发。
+        // Mark suspended even if registration currently failed (e.g. claimed by another app) so newly registered combos during recording cannot fire.
         isSuspended = true
         guard let hotKeyRef else { return }
         UnregisterEventHotKey(hotKeyRef)
@@ -294,7 +294,7 @@ final class HotKeyManager: ObservableObject {
         if isEnabled, hotKeyRef == nil, !registerCurrentShortcut() { problemMessage = status }
     }
 
-    /// 录制快捷键期间（包括录制中刚注册的新组合）不触发任何操作。
+    /// Suppresses all action triggers during shortcut recording, including combos newly registered mid-recording.
     func fire() {
         guard isEnabled, !isSuspended else { return }
         onHotKey?()
@@ -306,7 +306,7 @@ final class HotKeyManager: ObservableObject {
     }
 
     private func registerCurrentShortcut() -> Bool {
-        // 新引入的默认键不能抢占其他操作已保存的绑定。
+        // Newly introduced default shortcuts must not hijack bindings already saved for other actions.
         if usesImplicitDefault, let other = conflictingAction?(shortcut) {
             status = .key("thisShortcutIsAlreadyUsedForChoose", .message(other))
             return false

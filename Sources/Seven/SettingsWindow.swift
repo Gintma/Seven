@@ -69,7 +69,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         super.init(window: nil)
     }
 
-    // 声明按需加载身份；loadWindow 直接构建窗口，不读取 nib 文件。
+    // Declare on-demand loading identity; loadWindow constructs the window directly without loading a nib.
     override var windowNibName: NSNib.Name? { NSNib.Name("SettingsWindow") }
 
     override func loadWindow() {

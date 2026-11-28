@@ -175,7 +175,7 @@ import XCTest
         let copyEvent = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: .command, timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: "c", charactersIgnoringModifiers: "c", isARepeat: false, keyCode: 8))
         XCTAssertTrue(preview.performKeyEquivalent(with: copyEvent))
         XCTAssertEqual(copied, "Alpha Beta")
-        // 文字绘在图片上部；VisionKit查询点须按图像的左上原点转换。
+        // Text is drawn in the upper part of the image; VisionKit query points must be converted using the image's top-left origin.
         let candidates = stride(from: 165.0, through: 190.0, by: 2).flatMap { y in
             stride(from: 45.0, through: 220.0, by: 5).map { CGPoint(x: $0, y: y) }
         }

@@ -1,6 +1,6 @@
 import AppKit
 
-/// 仅在用户点共享时创建临时 PNG，交给系统共享服务；取消或完成后删除。
+/// Creates a temporary PNG only when the user invokes Share, hands it to the system sharing service, and deletes it on completion or cancellation.
 @MainActor final class ScreenshotSharingSession:NSObject,@preconcurrency NSSharingServicePickerDelegate,NSSharingServiceDelegate {
     let fileURL:URL
     private let directory:URL
@@ -41,8 +41,8 @@ import AppKit
             }
             let session=try ScreenshotSharingSession(image:image,windows:roots,activityChanged:activityChanged,serviceChosen:serviceChosen);current=session
             session.keepAlive=session
-            // 普通截图完成框选后焦点在画布；非激活工具面板的按钮点击不会自动转移焦点。
-            // 共享菜单必须从键盘窗口展开，否则首次点击只显示外观，后续项目不能正常接管。
+            // After normal selection completes, focus stays on the canvas; clicking buttons on a non-activating tool panel does not transfer focus automatically.
+            // The sharing menu must be presented from the key window; otherwise the first click only renders its appearance and subsequent items fail to take over properly.
             view.window?.makeKey()
             session.picker.show(relativeTo:view.bounds,of:view,preferredEdge:.minY)
         } catch {
@@ -67,7 +67,7 @@ import AppKit
             for child in window.childWindows ?? [] {collect(child)}
         }
         for source in sourceWindows {if let window=source.window {collect(window)}}
-        // 不隐藏、不激活整应用；让系统服务的普通窗口自然显示在截图上方。
+        // Do not hide or activate the whole app; let the system service's normal window appear naturally above the screenshot.
         for state in loweredWindows {state.window?.level = .normal}
         serviceChosen?()
     }
@@ -76,7 +76,7 @@ import AppKit
     private func finish() {
         guard !isFinished else{return}
         isFinished=true
-        // 只恢复层级，不调用显示方法；期间被隐藏的钉图下次显示仍保持原置顶级别。
+        // Only restore the window level without calling order-front methods; pinned screenshots hidden in the meantime retain their original floating level when shown next.
         for state in loweredWindows {state.window?.level=state.level}
         loweredWindows=[]
         if serviceStarted {activityChanged?(false)}

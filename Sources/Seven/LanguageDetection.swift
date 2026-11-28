@@ -1,8 +1,8 @@
 import Foundation
 
-/// 先用系统离线识别；可信语言直接采用，否则仅向用户所选服务优化识别，
-/// 所选服务失败时采用系统结果，不切换到其他服务。
-/// 系统识别不支持斯瓦希里语、菲律宾语等，会把它们误判为印尼语，联网识别可以纠正。
+/// Runs offline system detection first; adopts trusted languages directly, otherwise refines only via the user-selected service,
+/// falling back to the system result on failure without switching to another service.
+/// System detection lacks support for languages like Swahili and Filipino and misclassifies them as Indonesian; online detection corrects this.
 enum LanguageDetectionMode: String, CaseIterable, Identifiable, Sendable {
     case system
     case youdao
@@ -22,7 +22,7 @@ enum LanguageDetectionMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// 联网识别会把原文发送到的主机；系统识别为 nil。
+    /// Host to which online detection sends source text; nil for system detection.
     var host: String? {
         switch self {
         case .system: return nil
@@ -32,7 +32,7 @@ enum LanguageDetectionMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// 仅请求所选联网识别服务，失败后采用本机结果。
+    /// Queries only the selected online detection service and falls back to the local result on failure.
     var onlineOrder: [LanguageDetectionMode] {
         switch self {
         case .system: return []
@@ -43,16 +43,16 @@ enum LanguageDetectionMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// 联网识别原文语言，返回 `LanguageCatalog` 中的代码；识别出的语言不在目录里时返回 nil。
+/// Detects source language online and returns a `LanguageCatalog` code, or nil if the detected language is not in the catalog.
 protocol OnlineLanguageDetecting: Sendable {
     func detect(_ text: String) async throws -> String?
 }
 
 enum LanguageDetectionPolicy {
-    /// 联网识别最多发送的字符数：识别语言用不着全文。
+    /// Maximum characters sent for online detection: language identification does not need the full text.
     static let maximumCharacters = 500
 
-    /// 中、英、日、韩以及首选语言在本机有明确证据时直接采用。
+    /// Adopts Chinese, English, Japanese, Korean, and preferred languages directly when local detection has strong evidence.
     private static let trustedLocalLanguages: Set<String> = ["en", "zh-Hans", "zh-Hant", "ja", "ko"]
 
     static func needsOnlineCheck(local: LocalLanguageDetection, primary: String, secondary: String) -> Bool {
@@ -68,7 +68,7 @@ enum LanguageDetectionPolicy {
     }
 }
 
-/// 借用 Google 翻译接口的自动识别结果（响应中的 `src`）。
+/// Reuses Google Translate's auto-detected language result (`src` in the response).
 struct GoogleLanguageDetector: OnlineLanguageDetecting {
     static let endpoint = GoogleTranslationService.endpoint
 
@@ -98,7 +98,7 @@ struct GoogleLanguageDetector: OnlineLanguageDetecting {
         return code(fromGoogle: source)
     }
 
-    /// Google 的代码与目录不完全一致：中文带地区、希伯来语用 iw、菲律宾语用 tl。
+    /// Google's language codes differ slightly from the catalog: Chinese includes region subtags, Hebrew uses iw, and Filipino uses tl.
     static func code(fromGoogle value: String) -> String? {
         let key = value.lowercased()
         let aliases = ["zh": "zh-Hans", "zh-cn": "zh-Hans", "zh-tw": "zh-Hant", "iw": "he", "tl": "fil"]
@@ -109,7 +109,7 @@ struct GoogleLanguageDetector: OnlineLanguageDetecting {
     private static let session = onlineTranslationSession()
 }
 
-/// 百度翻译网页的语言识别接口，2026-11-01 核对可用。
+/// Baidu Translate web language detection endpoint; verified working on 2026-11-01.
 struct BaiduLanguageDetector: OnlineLanguageDetecting {
     static let endpoint = URL(string: "https://fanyi.baidu.com/langdetect")!
 
@@ -139,7 +139,7 @@ struct BaiduLanguageDetector: OnlineLanguageDetecting {
         return codes[language]
     }
 
-    /// 百度语言代码 → 目录代码（由 testLiveLanguageDetectionCoversCatalog 联网核对）。
+    /// Baidu language codes -> catalog codes (verified online by testLiveLanguageDetectionCoversCatalog).
     static let codes: [String: String] = [
         "zh": "zh-Hans", "cht": "zh-Hant", "en": "en", "jp": "ja", "kor": "ko", "fra": "fr", "de": "de",
         "spa": "es", "pt": "pt", "it": "it", "ru": "ru", "nl": "nl", "pl": "pl", "swe": "sv", "ukr": "uk",

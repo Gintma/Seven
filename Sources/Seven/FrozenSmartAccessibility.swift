@@ -1,7 +1,7 @@
 import ApplicationServices
 import os
 
-/// 目标应用的运行时AX模式，不是系统授权；不读取标题、文字或输入值。
+/// Runtime AX mode of the target app, not system TCC authorization; never reads titles, text, or input values.
 enum FrozenSmartAccessibilityAttribute: String, CaseIterable, Sendable {
     case manual = "AXManualAccessibility"
     case enhanced = "AXEnhancedUserInterface"
@@ -23,30 +23,30 @@ struct SystemFrozenSmartAccessibilityAttributes: FrozenSmartAccessibilityAttribu
         return value as? Bool
     }
     func set(_ value: Bool, for attribute: FrozenSmartAccessibilityAttribute, in pid: pid_t) -> AXError {
-        // AppKit可能返回notImplemented，但实际已改变模式；由调用者回读确认，不能只看返回码。
+        // AppKit may return notImplemented even after changing the mode; callers must read back to verify rather than trusting the status code alone.
         AXUIElementSetAttributeValue(application(pid), attribute.rawValue as CFString, value ? kCFBooleanTrue : kCFBooleanFalse)
     }
 }
 
-/// 一个选区会话持有按需开启的AX模式；结束立即禁止新准备，后台恢复外部状态。
-/// 截图遮罩的关闭不能等待跨进程AX调用，调用者可等待返回任务确认恢复完成。
-/// 优先使用Electron的manual模式；不覆盖原先为true的模式、不猜测不可读取属性的旧值。
+/// A selection session owns on-demand AX mode activation; finishing immediately blocks new preparations and restores external state in the background.
+/// Closing the screenshot overlay must not block on cross-process AX calls; callers can await the returned task to confirm restoration.
+/// Prefers Electron's manual mode; never overwrites a mode that was already true and never guesses prior values of unreadable attributes.
 struct FrozenSmartAccessibilitySession: Sendable {
-    // 实际冷启动的WebKit树约2.6秒才发布；只用于首次准备，不扩大单次AX查询预算。
+    // Cold-started WebKit trees take ~2.6s to publish; apply this wait only during initial preparation without expanding per-query AX budgets.
     static let warmupTimeout: TimeInterval = 3
     static let warmupInterval: Duration = .milliseconds(100)
     private struct ModeChange: Sendable {
         let attribute: FrozenSmartAccessibilityAttribute
-        // Electron 可能在提交启用请求几个轮询周期后才更新读值。
+        // Electron may take several polling intervals after enabling before the readback reflects the updated value.
         let restoreWhilePending: Bool
     }
     private struct State: Sendable {
         var prepared: Set<pid_t> = []
         var changed: [pid_t: ModeChange] = [:]
     }
-    // 按提交顺序准备/恢复；先finish再prepare的截图切换保持顺序。
-    // 独立且重叠的会话不共享属性所有权，不能据此保证任意交错下的模式生命周期。
-    // 只从后台查询调用同步准备；结束会话仅入队，不等待此队列。
+    // Prepare and restore in submission order so finish-then-prepare capture transitions remain serialized.
+    // Independent overlapping sessions do not share attribute ownership and cannot guarantee mode lifecycle across arbitrary interleaving.
+    // Call synchronous preparation only from background queries; finishing a session only enqueues restoration without waiting on this queue.
     private static let operations = DispatchQueue(label: "Seven.FrozenSmartAccessibility", qos: .userInitiated)
     private let state = OSAllocatedUnfairLock(initialState: State())
     private let cleanup = OSAllocatedUnfairLock<Task<Void, Never>?>(initialState: nil)
@@ -58,8 +58,8 @@ struct FrozenSmartAccessibilitySession: Sendable {
         self.attributes = attributes
         self.restorations = restorations
     }
-    /// 仅限后台线程调用：同步等待串行队列和跨进程AX；生产入口在Task.detached。
-    /// 返回true表示本次确实开启了模式，首次查询需要等目标进程发布内部树。
+    /// Background thread only: blocks synchronously on the serial queue and cross-process AX; production callers enter via Task.detached.
+    /// Returns true if this call actually enabled the mode, indicating the first query should wait for the target process to publish its internal tree.
     func prepare(_ pid: pid_t) -> Bool {
         Self.operations.sync { state.withLock { state in
             guard !isFinished, !restorations.isTerminating, state.prepared.insert(pid).inserted else { return false }
@@ -76,7 +76,7 @@ struct FrozenSmartAccessibilitySession: Sendable {
         } }
     }
 
-    /// 仅在本次发出开启请求时返回 true，让调用方等待 Electron 异步发布焦点。
+    /// Returns true only when this call issued an enable request, signaling the caller to wait for Electron to publish focus asynchronously.
     func requestManualAccessibility(_ pid: pid_t, report: (@Sendable (String) -> Void)? = nil) -> Bool {
         Self.operations.sync { state.withLock { state in
             guard !isFinished, !restorations.isTerminating, state.prepared.insert(pid).inserted else { return false }
@@ -111,7 +111,7 @@ struct FrozenSmartAccessibilitySession: Sendable {
         cleanup.withLock { task in
             if let task { return task }
             let (completion, signal) = AsyncStream<Void>.makeStream()
-            // 立即提交恢复以保证跨会话顺序，不等待外部调用或正在执行的准备。
+            // Enqueue restoration immediately to preserve cross-session ordering without waiting for external IPC or an in-flight preparation.
             Self.operations.async {
                 state.withLock { state in
                     for (pid, change) in state.changed {
@@ -123,7 +123,7 @@ struct FrozenSmartAccessibilitySession: Sendable {
                 }
                 signal.finish()
             }
-            // 仅提供可等待的完成信号，取消查询不会取消恢复。
+            // Exposes only an awaitable completion signal; cancelling the waiter does not cancel restoration.
             let restoration = Task.detached(priority: .utility) { for await _ in completion {} }
             restorations.track(restoration)
             task = restoration

@@ -470,7 +470,7 @@ final class YoudaoTranslationService: OnlineTranslationServing, OnlineLanguageDe
         guard let envelope = try? JSONDecoder().decode(TranslationEnvelope.self, from: data) else {
             throw TranslationError.malformed
         }
-        // 错误码 40：语言不受支持（2026-10-30 联网核对，如英语→斯瓦希里语、斯瓦希里语→中文）。
+        // Error code 40: unsupported language (verified online on 2026-10-30, e.g., English -> Swahili, Swahili -> Chinese).
         if envelope.code == 40 { throw TranslationError.unsupportedLanguage(.key("youdaoTranslateDoesNotSupportTheLanguage")) }
         guard envelope.code == 0 else {
             throw TranslationError.transport(.key("youdao.unavailable", .text(String(describing: envelope.code))))
@@ -478,7 +478,7 @@ final class YoudaoTranslationService: OnlineTranslationServing, OnlineLanguageDe
         let paragraphs = (envelope.translateResult ?? []).map { $0.map(\.tgt).joined() }
         var combined = ""
         for (index, paragraph) in paragraphs.enumerated() {
-            // 有道段落可能自带换行；仅在边界两侧都没有换行时补分隔，保留原有空行。
+            // Youdao paragraphs may include embedded newlines; insert a separator only when neither side ends/starts with a newline, preserving blank lines.
             if index > 0, paragraphs[index - 1].last?.isNewline != true,
                paragraph.first?.isNewline != true {
                 combined.append("\n")

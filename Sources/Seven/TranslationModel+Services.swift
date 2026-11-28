@@ -1,7 +1,7 @@
 import AppKit
 
 extension TranslationModel {
-    // MARK: 服务列表与展开状态
+    // MARK: Service List & Expansion State
 
     func isServiceExpanded(_ provider: TranslationProviderID) -> Bool {
         expandedProviders.contains(provider)
@@ -26,8 +26,8 @@ extension TranslationModel {
         return visibleServices()
     }
 
-    /// 当前设置下出现在结果列表中的服务，按显示顺序排列，均为未运行的占位结果。
-    /// 按启用状态及词典/Apple可用性过滤，不检查自备服务配置；配置错误由请求阶段呈现。
+    /// Services included in the results list under current settings, in display order, as idle placeholder results.
+    /// Filters by enabled state and dictionary/Apple availability without validating BYOK configuration; config errors are surfaced during requests.
     internal func visibleServices() -> [TranslationServiceResult] {
         serviceInstances.compactMap { item in
             guard item.enabled else { return nil }
@@ -37,9 +37,9 @@ extension TranslationModel {
         }
     }
 
-    /// 设置里启用、停用或重命名服务后，同步已显示的结果列表：
-    /// 停用的移除并取消请求；新启用的加入，有原文时只为它发起请求；其余结果保持不变。
-    /// 还没有结果时列表由 `displayedServiceResults` 按设置实时生成，无需处理。
+    /// Syncs the displayed results list after enabling, disabling, or renaming services in Settings:
+    /// removes disabled services and cancels their requests; adds newly enabled ones and queries only them if source text exists; leaves others unchanged.
+    /// When no results exist yet, the list is generated live from settings by `displayedServiceResults`, so nothing needs updating.
     internal func serviceListDidChange() {
         guard !serviceResults.isEmpty else { return }
         let wanted = visibleServices()
@@ -55,14 +55,14 @@ extension TranslationModel {
         let added = wanted.filter { existing[$0.id] == nil }.map(\.id)
         serviceResults = wanted.map { placeholder in
             guard var current = existing[placeholder.id] else { return placeholder }
-            // 保留已有结果，只更新标题（例如自备服务改名）。
+            // Keep existing results and update only the title (e.g., when a BYOK service is renamed).
             current.title = placeholder.title
             current.subtitle = placeholder.subtitle
             return current
         }
         if hasInputText {
             for provider in added {
-                // 收起的卡片保持暂停，不发请求（可能消耗付费额度），与正常翻译一致。
+                // Keep collapsed cards paused without sending requests (which may consume paid quota), matching normal translation behavior.
                 if isServiceExpanded(provider) {
                     retryResult(provider)
                 } else if let index = resultIndex(provider) {
@@ -84,7 +84,7 @@ extension TranslationModel {
                 expandedProviders.insert(provider)
             } else {
                 expandedProviders.remove(provider)
-                // 卡片收起后朗读按钮随之隐藏，正在朗读的内容应一并停止。
+                // Collapsing a card hides its speech button, so stop any active speech playback as well.
                 if speech.isActive(.result(of: provider)) { speech.stop() }
             }
             settings.setServiceExpanded(expanded, provider: provider)

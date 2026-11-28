@@ -1,6 +1,6 @@
 import Foundation
 
-/// 内部保留准确错误类型，界面按用户能采取的处理方式合并；不靠字符串内容猜测分类。
+/// Preserves exact internal error types while grouping UI presentation by user actionability; never infers categories from message strings.
 struct InputReplacementFailurePresentation {
     let reasonMessage: LocalizedMessage
     let detailMessage: LocalizedMessage

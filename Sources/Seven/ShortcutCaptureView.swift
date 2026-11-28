@@ -16,7 +16,7 @@ enum ShortcutCaptureAttempt:Equatable {
     }
 }
 
-/// 两类录入共用展示和事件监听，仅校验/保存策略不同。
+/// Both recording modes share presentation and event monitoring, differing only in validation and save policies.
 @MainActor enum ShortcutCaptureTarget {
     case combination(HotKeyManager)
     case tool(ScreenshotToolbarAction,ScreenshotToolbarPreferences)
@@ -73,7 +73,7 @@ enum ShortcutCaptureAttempt:Equatable {
     }
 }
 
-/// 失败时左右轻晃。
+/// Gently shakes horizontally on failure.
 private struct ShakeEffect: GeometryEffect {
     var animatableData: CGFloat
     func effectValue(size: CGSize) -> ProjectionTransform {
@@ -81,8 +81,8 @@ private struct ShakeEffect: GeometryEffect {
     }
 }
 
-/// 录制快捷键：以键帽显示示例、实时修饰键与结果；在弹出框内校验。
-/// 录制期间暂停Seven全部全局快捷键，使按键能到达这里。
+/// Shortcut recorder: displays examples, live modifiers, and results as keycaps, validating inside the popover.
+/// Suspends all global Seven shortcuts during recording so key presses reach this view.
 struct ShortcutCaptureView: View {
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     @Environment(\.dismiss) private var dismiss
@@ -94,7 +94,7 @@ struct ShortcutCaptureView: View {
     init(action:String,target:ShortcutCaptureTarget,allManagers:[HotKeyManager]) {
         self.action=action;self.target=target;self.allManagers=allManagers
     }
-    /// Seven的全部快捷键（含正在录制的这一个），录制期间统一暂停。
+    /// All Seven shortcuts (including the one being recorded), suspended together during recording.
     let allManagers: [HotKeyManager]
 
     @State private var keyMonitor: Any?
@@ -107,7 +107,7 @@ struct ShortcutCaptureView: View {
     @State private var interceptWatch: Task<Void, Never>?
 
     static let closeDelay = Design.Motion.settle
-    /// 检测到普通键已按下、但这么久仍未收到按键事件时，判定为被其他应用拦截。
+    /// If a regular key is detected as pressed and no key event arrives within this interval, assume another app intercepted it.
     static let interceptGrace: Duration = .milliseconds(200)
 
     var body: some View {
@@ -234,7 +234,7 @@ struct ShortcutCaptureView: View {
             let wasHolding = !heldModifiers.isEmpty
             heldModifiers = Self.modifierKeys(for: event.modifierFlags)
             if !wasHolding, !heldModifiers.isEmpty {
-                // 开始新的一次尝试：清除上一次的结果与提示。
+                // Start a fresh attempt: clear the previous result and hint.
                 result = nil
                 showsInterceptedHint = false
             }
@@ -249,7 +249,7 @@ struct ShortcutCaptureView: View {
         }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if result?.isComplete == true { return nil }
-            // 忽略Seven自己模拟的按键（例如划词时模拟的 ⌘C），只录制用户真实按下的组合。
+            // Ignore key events simulated by Seven itself (such as ⌘C during text selection) so only real user keystrokes are recorded.
             if SelectionReader.isSynthetic(event) { return nil }
             if event.keyCode == UInt16(kVK_Escape) { dismiss(); return nil }
             interceptWatch?.cancel()
@@ -271,8 +271,8 @@ struct ShortcutCaptureView: View {
         allManagers.forEach { $0.resume() }
     }
 
-    /// 按住修饰键期间，只要物理键盘上出现过普通键按下，而其后 200 毫秒内没有收到按键事件，
-    /// 就说明该组合被其他应用或系统拦截（轻敲也算，不要求一直按住）。读取不到按键状态时不提示。
+    /// While modifiers are held, if any regular key was physically pressed on the keyboard and no key event arrives within 200 ms,
+    /// conclude the combination was intercepted by another app or the system (quick taps count; holding is not required). Stay silent if key state cannot be read.
     @MainActor
     private func watchForInterceptedKey() async {
         var seenAt: ContinuousClock.Instant?
@@ -287,7 +287,7 @@ struct ShortcutCaptureView: View {
         }
     }
 
-    /// 修饰键（含 Fn、Caps Lock）的虚拟键码，检测普通键时排除。
+    /// Virtual key codes for modifier keys (including Fn and Caps Lock), excluded when detecting regular key presses.
     private static let modifierKeyCodes: Set<CGKeyCode> = Set([
         kVK_Command, kVK_RightCommand, kVK_Shift, kVK_RightShift, kVK_Option, kVK_RightOption,
         kVK_Control, kVK_RightControl, kVK_CapsLock, kVK_Function

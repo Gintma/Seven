@@ -33,7 +33,7 @@ extension AppDelegate {
 
     private enum ImageCaptureMode { case region, fullScreen, previousArea }
     private func startImageCapture(mode: ImageCaptureMode) {
-        // 已有采集或编辑覆盖层时跳过截图，避免把覆盖层拍进底图。
+        // Skip capture when a capture or editor overlay is already active to avoid capturing the overlay in the base image.
         guard !frozenScreenshotCapture.isCapturing, scrollCapture == nil,
               !screenshotEditors.contains(where: { $0.window?.isVisible == true }) else { return }
         inputReplacement.cancel()

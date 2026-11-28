@@ -20,7 +20,7 @@ volume_icon="$app/Contents/Resources/AppIcon.icns"
 [[ "$output" == *.dmg && ! -d "$output" ]] || fail "输出必须是 .dmg 文件路径。"
 mkdir -p "${output:h}"
 
-# 独立于发布暂存目录，避免调用方清理时触及尚未卸载的卷宗。
+# Separate from the release staging directory so caller cleanup never touches a still-mounted volume.
 stage_dir="$(mktemp -d "${TMPDIR:-/tmp}/seven-dmg.XXXXXX")"
 volume="$stage_dir/mount"
 image="$stage_dir/Seven-rw.dmg"
@@ -31,7 +31,7 @@ is_mounted() {
 
 cleanup() {
   if is_mounted && ! hdiutil detach "$volume" -quiet; then
-    # 只强制分离本次构建独占的挂载点。若仍失败，保留暂存目录以便恢复。
+    # Force-detach only the mount point dedicated to this build; if that still fails, keep the staging directory for recovery.
     if ! hdiutil detach "$volume" -force -quiet; then
       print -u2 "无法卸载临时镜像，请检查 $volume。"
       return 1
@@ -46,7 +46,7 @@ trap 'exit 143' TERM
 
 mkdir "$volume"
 app_kib="$(du -sk "$app" | awk '{print $1}')"
-# 按容量新建的 UDIF 镜像默认为可写 UDRW，为 Finder 布局和文件系统元数据留出空间。
+# Capacity-sized UDIF images default to writable UDRW, leaving room for Finder layout and filesystem metadata.
 hdiutil create -type UDIF -size "$((app_kib + 16384))k" -fs HFS+ -volname Seven "$image"
 hdiutil attach "$image" -mountpoint "$volume" -nobrowse -noautoopen
 

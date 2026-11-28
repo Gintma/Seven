@@ -1,6 +1,6 @@
 import AppKit
 
-/// sRGB 值，用于纯计算。构建原生颜色前保留导出值的透明度。
+/// sRGB values for pure computation, preserving exported alpha before constructing native colors.
 struct ThemeColor: Equatable, ExpressibleByIntegerLiteral {
     let red: Double
     let green: Double

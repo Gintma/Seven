@@ -1,7 +1,7 @@
 import AppKit
 import VisionKit
 
-/// 图片文字选择由系统在本机分析，不启用识图、链接检测或任何网络操作。
+/// Image text selection is analyzed locally by the system, with visual lookup, link detection, and all network operations disabled.
 @MainActor protocol OCRImageAnalyzing {
     func analyze(_ input: OCRImageAnalysisInput, language: String) async throws -> ImageAnalysis?
 }
@@ -16,7 +16,7 @@ import VisionKit
         case .original(let image):
             return try await analyzer.analyze(image, orientation: .up, configuration: configuration)
         case .raster(let image):
-            // 直接传入限额位图，避免 NSImage 按屏幕倍率重新栅格化。
+            // Pass the capped bitmap directly to avoid NSImage re-rasterizing at the display scale factor.
             return try await analyzer.analyze(image, orientation: .up, configuration: configuration)
         }
     }
@@ -26,9 +26,9 @@ enum OCRImageAnalysisInput {
     case original(NSImage)
     case raster(CGImage)
 
-    // macOS 26 的 VisionKit 拒绝长边达到 8192 像素的图像。
+    // VisionKit on macOS 26 rejects images with a longest edge of 8192 pixels or more.
     private static let maximumEdge: CGFloat = 8_191
-    // 限制分析服务可能在取消后继续持有的 32 位像素缓冲。
+    // Cap the 32-bit pixel buffer that the analysis service may retain after cancellation.
     private static let maximumPixelCount: CGFloat = 8 * 1_024 * 1_024
 
     @MainActor static func prepare(_ image: NSImage) async throws -> Self? {

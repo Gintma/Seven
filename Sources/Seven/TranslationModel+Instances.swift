@@ -33,7 +33,7 @@ extension TranslationModel {
         serviceTasks[item.id]?.cancel(); serviceTasks[item.id] = nil
         if item.id == .appleTranslation { appleTranslationRequest = nil }
         serviceInstances[index] = normalized
-        // 地址/模型/提示词等变化使该项结果失效；其他实例不重发。
+        // Changes to endpoint/model/prompt invalidate only this instance's result; other instances are not re-sent.
         if let index = resultIndex(item.id) {
             serviceResults[index].phase = .idle; serviceResults[index].text = ""; serviceResults[index].dictionaryEntry = nil
             serviceResults[index].issue = nil
@@ -62,7 +62,7 @@ extension TranslationModel {
     }
     func deleteService(_ id: TranslationProviderID) throws {
         guard let item = instance(id) else { return }
-        // 删除凭据失败时不删除实例，让用户仍能重试；词库文件不在此处处理。
+        // Keep the instance if credential deletion fails so the user can retry; dictionary files are not handled here.
         if !item.provider.isBuiltIn {
             try credentials.save("", account: item.configuration.credentialAccount)
         }

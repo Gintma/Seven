@@ -1,7 +1,7 @@
 import AppKit
 
 extension TranslationModel {
-    // MARK: 服务配置与设置持久化
+    // MARK: Service Configuration & Settings Persistence
     func readCredential(for account: String) throws -> String { try credentials.read(account: account) }
 
     func resolvedCredential(for config: ServiceConfiguration, override: String? = nil) throws -> String {
@@ -48,7 +48,7 @@ extension TranslationModel {
         try? saveLanguagePair(primary: other, secondary: code)
     }
 
-    /// 添加时追加末尾，删除时保留其余顺序，至少保留一种。
+    /// Appends to the end on addition, preserves remaining order on removal, and keeps at least one entry.
     func setCommonLanguage(_ code: String, isCommon: Bool) {
         guard LanguageCatalog.language(code) != nil else { return }
         var updated = commonLanguages

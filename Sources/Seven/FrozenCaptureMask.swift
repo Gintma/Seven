@@ -1,6 +1,6 @@
 import AppKit
 
-/// 框选、区域编辑与窗口编辑共用的冻结画面蒙层；不参与图片导出。
+/// Shared frozen-screen dim mask for region selection, region editing, and window editing; excluded from exported images.
 enum FrozenCaptureMask {
     static func draw(background: NSImage, in bounds: CGRect, revealing rects: [CGRect], cornerRadii: CGSize = .zero) {
         background.draw(in: bounds, from: .zero, operation: .copy, fraction: 1)
@@ -15,7 +15,7 @@ enum FrozenCaptureMask {
         background.draw(in: bounds, from: .zero, operation: .copy, fraction: 1)
         NSGraphicsContext.restoreGraphicsState()
     }
-    /// 滚动截图只绘制选区外蒙层，不冻结底图；鼠标穿透由所属窗口控制。
+    /// Scrolling capture draws only the mask outside the selection without freezing the backdrop; mouse pass-through is controlled by the owning window.
     static func drawOverlay(in bounds: CGRect, revealing rect: CGRect) {
         let path = NSBezierPath(rect: bounds)
         path.append(NSBezierPath(rect: rect.intersection(bounds)))

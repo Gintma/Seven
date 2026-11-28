@@ -39,7 +39,7 @@ struct InputReplacementAXReader {
 
     private func readRangeSnapshot() throws -> InputReplacementSnapshot {
         let count = (attribute(kAXNumberOfCharactersAttribute) as? NSNumber)?.intValue
-        // 空框可能不提供选区属性；先读取实际字符数，不能先因选区缺失报错。
+        // Empty fields may omit selection attributes; read the actual character count first instead of failing on a missing selection.
         if count == 0 { throw InputReplacementError.empty }
         let raw = attribute(kAXValueAttribute) as? String
         let placeholder = attribute(kAXPlaceholderValueAttribute) as? String
@@ -86,7 +86,7 @@ struct InputReplacementAXReader {
     }
 
     private func readTextMarkerSnapshot() throws -> InputReplacementSnapshot {
-        // Chromium 的富文本编辑器可能只提供文本标记。用控件自身的范围，不用页面的首尾标记。
+        // Chromium rich-text editors may expose only text markers. Use the control's own range rather than the page's start/end markers.
         guard let field = textMarkerRange(parameterized("AXTextMarkerRangeForUIElement", element)),
               let document = text(in: field) else {
             trace("marker.document_unavailable")

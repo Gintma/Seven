@@ -1,12 +1,12 @@
 import AppKit
 import SwiftUI
 
-/// Seven的设计规则：字号、间距、圆角、动效与图标尺寸的唯一来源。
-/// 浮窗（AppKit）与设置、历史（SwiftUI）都从这里取值；其他文件不要直接写字号或时长数字。
-/// 原则：
-/// 1. 内容是主角，工具退后：原文与结果用“内容”字号，按钮与耗时用次要色。
-/// 2. 交互强调色表示状态（钉住、成功、选中、焦点），错误和警告使用各自的语义色。品牌及功能图标可使用独立识别色。
-/// 3. 动效只回答“点上了吗”与“状态变了吗”。
+/// Seven's design tokens: single source of truth for typography, spacing, corner radii, motion, and icon sizes.
+/// Both the panel (AppKit) and Settings/History (SwiftUI) read from here; avoid hardcoding font sizes or durations elsewhere.
+/// Principles:
+/// 1. Content first, chrome recedes: source text and results use content typography; controls and timings use secondary color.
+/// 2. Accent color signals interactive state (pinned, success, selected, focused); errors and warnings use semantic colors. Brand and feature icons may use distinct identity colors.
+/// 3. Motion only answers "did it register?" and "did the state change?".
 enum Design {
     enum Onboarding {
         static let contentSize = NSSize(width: 480, height: 440)
@@ -18,7 +18,7 @@ enum Design {
         static let primaryLabelWidth: CGFloat = 84
     }
 
-    /// 权限引导浮窗的度量，按授权页内容列贴附。
+    /// Metrics for the permission guide popover, anchored to the authorization pane's content column.
     enum PermissionGuide {
         static let width: CGFloat = 420
         static let sidebarWidth: CGFloat = 230
@@ -39,34 +39,34 @@ enum Design {
         static let wiggleStep: TimeInterval = 0.22
     }
 
-    // MARK: 排版
+    // MARK: Typography
 
     enum Text {
-        /// 历史正文段落内的附加行距，独立于视图之间的布局间距。
+        /// Extra line spacing within history body paragraphs, independent of inter-view layout spacing.
         static let bodyLineSpacing: CGFloat = 4
 
-        /// 原文、每张卡片的结果、历史正文。
+        /// Source text, card results, and history body.
         case content
-        /// 卡片标题、语言名：与 label 同字号，字重轻一档，让原文与结果更突出。
+        /// Card titles and language names: same size as label with one step lighter weight so source text and results stand out.
         case title
-        /// 键帽等需要实体感的标签。
+        /// Labels requiring tactile weight, such as keycaps.
         case label
-        /// 设置行常规标题和值：13pt regular，不继承标签的半粗字重。
+        /// Standard settings row titles and values: 13pt regular, without inheriting label's semibold weight.
         case settingsRow
-        /// 词典分组、错误与操作说明。
+        /// Dictionary section headers, errors, and action hints.
         case body
-        /// 词典辅助信息：12pt中等字重。
+        /// Dictionary auxiliary metadata: 12pt medium.
         case dictionaryAuxiliary
-        /// 双语例句正文：14pt常规字重。
+        /// Bilingual example sentence body: 14pt regular.
         case dictionaryExample
-        /// 耗时、字数、例句、标签等注记。
+        /// Metadata captions such as latency, character count, examples, and tags.
         case note
-        /// 需要对齐的数字：耗时、字数。
+        /// Tabular-aligned numbers: latency and character count.
         case noteDigits
         case bodyDigits
-        /// 诊断日志等等宽文本。
+        /// Monospaced text such as diagnostic logs.
         case code
-        /// 词典词头。
+        /// Dictionary headword.
         case headword
         case sectionTitle
         case settingsPageTitle
@@ -120,7 +120,7 @@ enum Design {
         }
     }
 
-    // MARK: 布局：视图节奏与原生对齐分层
+    // MARK: Layout: Rhythm Scale & Native Alignment
 
     enum Space {
         static let xxs: CGFloat = 2
@@ -129,13 +129,13 @@ enum Design {
         static let m: CGFloat = 12
         static let l: CGFloat = 16
         static let xl: CGFloat = 24
-        /// 区块内部的左右边距：输入框、卡片、提示里的文字都从这里开始，左边缘对齐。
+        /// Horizontal inset inside containers: text in input fields, cards, and banners starts here along a shared leading edge.
         static let blockInset: CGFloat = m
-        /// 区块右侧图标按钮距边缘的距离；按钮自带约 5 的留白，视觉上与 blockInset 对称。
+        /// Trailing margin for icon buttons inside containers; buttons include ~5 pt internal padding, matching blockInset visually.
         static let iconButtonEdge: CGFloat = s
     }
 
-    /// macOS 原生表单的对齐度量，不按节奏刻度取整；设置页与历史窗口共用。
+    /// Alignment metrics matching native macOS forms (not snapped to the rhythm scale); shared by Settings and History.
     enum Layout {
         static let dividerWidth: CGFloat = 1
         static let pageInset: CGFloat = 20
@@ -150,13 +150,13 @@ enum Design {
         static let sidebarMaximum: CGFloat = 320
     }
 
-    /// 词典音标行：为原生朗读按钮保留可点击区域，换行后仍与音标对齐。
+    /// Dictionary phonetic row: reserves clickable area for the native audio button and keeps alignment after wrapping.
     enum Dictionary {
         static let pronunciationButtonSize: CGFloat = 26
         static let pronunciationIndent = Space.xl
     }
 
-    /// 设置页布局；服务面板外边距按原生 grouped Form 的实际卡片边缘对齐。
+    /// Settings layout; service pane outer margins align with the actual card edges of a native grouped Form.
     enum ShortcutRecorder {
         static let width:CGFloat=280
         static let keycapsHeight:CGFloat=34
@@ -167,39 +167,39 @@ enum Design {
         static let toolbarKeyWidth: CGFloat = 100
         static let toolbarVisibilityWidth: CGFloat = 48
 
-        /// 原生主题菜单中的色样图标尺寸。
+        /// Swatch icon size in the native theme menu.
         static let themeSwatchWidth: CGFloat = 24
         static let themeSwatchHeight: CGFloat = 16
 
-        /// 首选语言式原生紧凑列表行高。
+        /// Compact native list row height matching macOS Preferred Languages.
         static let commonLanguageRowHeight: CGFloat = 24
         static let commonLanguageDescriptionHeight: CGFloat = 36
         static let commonLanguageActionsHeight: CGFloat = 28
         static let languageAdditionWidth: CGFloat = 516
         static let languageAdditionHeight: CGFloat = 400
-        /// 对齐系统添加首选语言弹窗的边距、区块间距与普通列表文字缩进。
+        /// Matches margins, section spacing, and plain list text indentation of the system Add Preferred Language sheet.
         static let languageAdditionInset: CGFloat = 20
         static let languageAdditionHeaderSpacing: CGFloat = 8
-        /// 操作按钮上下对称的留白。
+        /// Symmetric vertical padding around action buttons.
         static let languageAdditionActionsSpacing: CGFloat = 14
         static let languageAdditionRowInset: CGFloat = 14
         static let languageAdditionButtonLabelWidth: CGFloat = 46
         static let languageSearchWidth: CGFloat = 160
-        /// 界面语言名称列从列表宽度的 40% 处开始。
+        /// Localized language name column starts at 40% of list width.
         static let commonLanguageNativeColumnRatio: CGFloat = 0.4
-        /// 原生 grouped Form 卡片的行内左右留白。
+        /// Horizontal row inset inside native grouped Form cards.
         static let commonLanguageCardInset = Layout.cardInset
         static let pageHorizontalInset = Layout.pageInset
-        /// 统一工具栏在导航项外侧已留出 8pt。
+        /// Unified toolbar already adds 8pt padding outside navigation items.
         static let toolbarTitleLeadingPadding = pageHorizontalInset - Space.s
-        /// 保留 grouped Form 顶部的 4pt 留白。
+        /// Preserves the 4pt top inset of grouped Form.
         static let formTopMarginAdjustment = -Space.l
         static let providerGridWidth: CGFloat = 320
         static let secondaryListWidth: CGFloat = 220
         static let secondaryRowHeight: CGFloat = 32
         static let listActionSize: CGFloat = 48
         static let controlHeight: CGFloat = 24
-        /// 提示词编辑框为原三行默认高度的两倍，固定高度，内容在框内滚动。
+        /// Prompt editor has a fixed height equal to twice the original three-line default, scrolling internally.
         static let promptEditorHeight: CGFloat = 112
         static let segmentedThumbInset: CGFloat = 1
         static let actionRowHeight: CGFloat = 28
@@ -209,14 +209,14 @@ enum Design {
         static var controlFont: NSFont { NSFont.systemFont(ofSize: NSFont.systemFontSize(for: .regular)) }
         static var controlTextFont: Font { Font(controlFont) }
         static let logMinimumHeight: CGFloat = 240
-        /// 关于页的现有应用图标展示尺寸。
+        /// App icon display size in the About pane.
         static let aboutIconSize: CGFloat = 80
-        /// 侧栏功能图标的连续圆角方块及内部符号。
+        /// Continuous rounded-square badge and inner glyph for sidebar feature icons.
         static let sidebarIconSize: CGFloat = 20
         static let sidebarIconRadius: CGFloat = 5.5
         static let sidebarIconBorderWidth: CGFloat = 0.5
         static let sidebarSymbolSize: CGFloat = 12
-        /// 放大图形较窄的书本和图钉，保持与其他符号的视觉重量接近。
+        /// Scale up narrower book and pin glyphs to match the visual weight of sibling symbols.
         static let sidebarLargeSymbolSize: CGFloat = 13
         static let sidebarIconShadowRadius: CGFloat = 1.2
         static let sidebarIconShadowOffset: CGFloat = 1
@@ -228,7 +228,7 @@ enum Design {
         static let valueWidth: CGFloat = 120
     }
 
-    /// 截图遮罩与选区边框的视觉参数。
+    /// Visual metrics for the screenshot dimming mask and selection border.
     enum ScreenshotCapture {
         static let maskFill = NSColor.black.withAlphaComponent(0.5)
         static let borderWidth: CGFloat = 1
@@ -236,7 +236,7 @@ enum Design {
         static let cornerMinimumSize: CGFloat = 20
         static let cornerOutside: CGFloat = 2
         static let cornerInside: CGFloat = 15
-        /// 截图提示使用深色卡片与白色键帽。
+        /// Screenshot hints use a dark card with white keycaps.
         static let hintEdgeInset: CGFloat = 20
         static let hintHoverDistance: CGFloat = 12
         static let hintWidth: CGFloat = 208
@@ -258,7 +258,7 @@ enum Design {
         static let hintKeyFont = NSFont.systemFont(ofSize: 13, weight: .medium)
     }
 
-    /// 放大镜的采样和网格尺寸，仅用于框选预览。
+    /// Loupe sampling and grid dimensions for region-selection preview only.
     enum ScreenshotMagnifier {
         static let size: CGFloat = 120
         static let distance: CGFloat = 10
@@ -283,7 +283,7 @@ enum Design {
         static let centerOrigin: CGFloat = 54.5
     }
 
-    /// 长截图采集时选区外的整图预览。
+    /// Full-image preview shown outside the selection during scrolling capture.
     enum ScreenshotShadow {
         static let blur:CGFloat=12
         static let offset=NSSize(width:0,height:-3)
@@ -294,7 +294,7 @@ enum Design {
     enum ScreenshotSave { static let jpegBackground = NSColor.white }
 
     enum ScreenshotPin {
-        /// 透明对齐留白，让Retina钉图可在整数窗口坐标内移动一个物理像素。
+        /// Transparent alignment padding allowing Retina pinned screenshots to nudge by a single physical pixel within integer window coordinates.
         static let drawingInset: CGFloat = 1
         static let menuHintPosition: CGFloat = 210
         static let menuFont = NSFont.menuFont(ofSize: 13)
@@ -308,24 +308,24 @@ enum Design {
     enum ScreenshotScroll {
         static let previewWidth: CGFloat = 200
         static let previewHeight: CGFloat = 640
-        /// 容器可用高度不足时改放选区内，避免挤成横向窄条。
+        /// Move inside the selection when available container height is insufficient to avoid squashing into a narrow horizontal strip.
         static let minimumPreviewSpace: CGFloat = 120
         static let minimumPreviewWidth: CGFloat = 160
-        /// 已成功定位的采集视口；仅绘在预览上，不进入原图。
+        /// Tracked capture viewport indicator; drawn on the preview only, never baked into the final image.
         static let viewportLineWidth: CGFloat = 1
         static let viewportCornerWidth: CGFloat = 2
         static let viewportCornerLength: CGFloat = 8
-        /// 居中编辑预留上下工具条，不缩小最终导出像素。
+        /// Reserves top and bottom toolbar clearance for centered editing without downscaling exported pixels.
         static let editorInset: CGFloat = 96
     }
 
-    /// 本机 OCR 结果窗口：语言栏、原图对照与文字编辑的最小可用尺寸。
+    /// Local OCR result window: minimum usable dimensions for the language bar, source image comparison, and text editor.
     enum OCR {
         static let windowSize = NSSize(width: 760, height: 560)
         static let comparisonSize = NSSize(width: 1040, height: 680)
-        // 两种视图共用最小窗口；容纳两栏和留白，切换时不改变窗口外框。
+        // Both views share the same minimum window size to fit both panes and margins without resizing the window frame on switch.
         static let minimumSize = NSSize(width: minimumPanelWidth * 2 + Design.Space.m + Design.Space.l * 2, height: 360)
-        /// 原图与文字区共用下限；可容纳文字区底部的图标和语言按钮。
+        /// Shared lower bound for the image and text panes; accommodates the bottom icons and language button in the text pane.
         static let minimumPanelWidth: CGFloat = 320
         static let minimumZoom: CGFloat = 0.05
         static let maximumZoom: CGFloat = 16
@@ -341,7 +341,7 @@ enum Design {
     }
 
     enum ScreenshotEditor {
-        /// 截图主工具栏与当前工具选项栏的统一外观。
+        /// Shared appearance for the main screenshot toolbar and active tool options bar.
         static let toolbarButtonSize: CGFloat = 28
         static let toolbarSymbolSize: CGFloat = 17
         static let toolbarButtonRadius: CGFloat = 8
@@ -350,14 +350,14 @@ enum Design {
         static let toolbarBarInset: CGFloat = 6
         static let toolbarOptionsSpacing: CGFloat = 12
         static let toolbarControlHeight: CGFloat = 24
-        /// 次级工具条固定高度，选项多少只影响宽度。
+        /// Secondary options bar has a fixed height; option count only affects width.
         static let toolbarOptionsHeight: CGFloat = 40
-        /// 选区左上方的紧凑宽高／比例面板。
+        /// Compact width/height and aspect-ratio badge above the selection's top-left corner.
         static let sizeToolbarHeight = toolbarOptionsHeight * 0.6
         static let sizeControlHeight: CGFloat = 16
         static let sizeFieldWidth: CGFloat = 48
         static let sizeRatioMinimumWidth: CGFloat = 14
-        /// 补偿原生菜单箭头右侧的不可见边距，使两侧可见留白平衡。
+        /// Compensates for invisible trailing padding on the native menu chevron to balance visible horizontal margins.
         static let sizeRatioTrailingInset: CGFloat = 5
         static let sizeFieldRadius: CGFloat = 4
         static let sizeSymbolSize: CGFloat = 12
@@ -369,7 +369,7 @@ enum Design {
         static let highlighterOpacity: CGFloat = 0.35
         static let highlighterRadius: CGFloat = 3
         static let highlighterTextPadding: CGFloat = 2
-        /// 荧光笔空心笔刷指针：白色外边、黑色内边，保持透明中心。
+        /// Hollow highlighter brush cursor: white outer ring, black inner ring, transparent center.
         static let highlighterCursorWidth: CGFloat = 10
         static let highlighterCursorMinimumHeight: CGFloat = 14
         static let highlighterCursorBlackWidth: CGFloat = 2
@@ -393,7 +393,7 @@ enum Design {
         static let maximumCornerRadius: CGFloat = 80
         static let handleSize: CGFloat = 8
         static let textSize: CGFloat = 18
-        /// 图片标注专用的默认红色。
+        /// Default red color for image annotations.
         static let defaultStrokeColor = NSColor.red
         static func restoredColor(_ rgba: [Double]) -> NSColor {
             guard rgba.count == 4 else { return defaultStrokeColor }
@@ -401,16 +401,16 @@ enum Design {
         }
         static func font(size: CGFloat) -> NSFont { .systemFont(ofSize: size) }
         static func serialFont(_ size: CGFloat) -> NSFont { .systemFont(ofSize: size) }
-        /// CustomView scrollWheel: 的原始不透明度下限。
+        /// Original lower opacity bound from CustomView scrollWheel:.
         static let minimumPinOpacity: CGFloat = 0.1
-        /// 原 DefaultPreferences sizeOfPinFillet=8。
+        /// Original DefaultPreferences sizeOfPinFillet=8.
         static let handleFill = NSColor.white
         static let highlightFill = NSColor.black
     }
 
-    /// 通用滑动分段控件：固定内容，只有选中背景移动。
+    /// Reusable sliding segmented control: content stays fixed while only the selection capsule moves.
     enum Segmented {
-        /// 两档显式度量：设置行与 24pt 原生控件对齐，截图工具条保持原有 28pt。
+        /// Two explicit size tiers: 24pt to align with native controls in Settings rows, and 28pt for the screenshot toolbar.
         enum Size {
             case compact, regular
             var height: CGFloat { self == .compact ? Settings.controlHeight : Segmented.height }
@@ -425,9 +425,9 @@ enum Design {
         static let radius: CGFloat = 9
         static let contentGap: CGFloat = 5
         static let iconSize: CGFloat = 17
-        /// Aa 文字样式预览的底色/边框装饰，字形始终使用官方 SF textformat。
+        /// Background/border styling for the Aa text-style preview; glyph always uses the standard SF textformat symbol.
         static let textStyleIconSize: CGFloat = 14
-        /// 文字样式每段 38pt，较默认内容宽度左右各多留 2pt。
+        /// Each text-style segment is 38pt wide, adding 2pt of extra padding on each side over default content width.
         static let textStyleSegmentWidth: CGFloat = 38
         static let symbolBadgeInset: CGFloat = 3
         static let symbolBadgeHeight: CGFloat = 17
@@ -450,18 +450,18 @@ enum Design {
         static let handleHeight: CGFloat = 12
     }
 
-    // MARK: 圆角
+    // MARK: Corner Radius
 
     enum Radius {
-        /// 输入框、语言栏、卡片。
+        /// Input fields, language bar, and cards.
         static let block: CGFloat = 8
-        /// 小控件、键帽。
+        /// Small controls and keycaps.
         static let control: CGFloat = 5
-        /// 服务品牌图标的圆角占边长的比例，与 macOS App 图标一致。
+        /// Corner radius ratio for service brand icons relative to side length, matching macOS app icons.
         static let brandTileRatio: CGFloat = 0.225
     }
 
-    /// 原地替换状态胶囊；高度固定，宽度随状态文字变化。
+    /// In-place status capsule; fixed height, width adapts to the status text.
     enum ReplacementHUD {
         static let height: CGFloat = 30
         static let resultHold: TimeInterval = 1.5
@@ -475,78 +475,78 @@ enum Design {
         static let borderWidth: CGFloat = 0.5
     }
 
-    // MARK: 动效
+    // MARK: Motion
 
     enum Motion {
-        /// 图标切换、淡入淡出、按下反馈。
+        /// Icon swaps, crossfades, and press feedback.
         static let fast: TimeInterval = 0.15
-        /// 展开收起、高度变化、旋转。
+        /// Expand/collapse, height changes, and rotation.
         static let standard: TimeInterval = 0.24
-        /// 成功反馈的停留时间。
+        /// Hold duration for success feedback.
         static let hold: TimeInterval = 1.2
-        /// 快捷键录制成功后，弹出框自动关闭前的停留。
+        /// Delay before auto-closing the popover after recording a shortcut.
         static let settle: TimeInterval = 0.6
-        /// 流式文字增长时高度跟随的时长（逐帧跟随，不是过渡；调大会让跟随变慢）。
+        /// Duration for tracking height as streamed text grows (frame-by-frame tracking, not a transition; higher values lag).
         static let follow: TimeInterval = 0.10
-        /// 喇叭声波每帧间隔（播放节奏，不是过渡）。
+        /// Frame interval for speaker wave animation (playback cadence, not a transition).
         static let speakerFrame: TimeInterval = 0.35
 
         static var reduced: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
     }
 
-    // MARK: 图标
+    // MARK: Icons
 
     enum Icon {
-        /// 工具与卡片操作按钮。
+        /// Tool and card action buttons.
         static let action: CGFloat = 16
-        /// 卡片操作的固定点击区域，图标或反馈变化时保持布局。
+        /// Fixed hit target for card actions to preserve layout during icon or feedback changes.
         static let cardActionSize: CGFloat = 26
-        /// 展开箭头等小图标。
+        /// Small icons such as disclosure chevrons.
         static let small: CGFloat = 11
-        /// 弹出菜单的上下小尖角。
+        /// Up/down chevrons for pop-up menus.
         static let tiny: CGFloat = 9
-        /// 空状态插图。
+        /// Empty-state illustration.
         static let hero: CGFloat = 30
-        /// 服务品牌图标（圆角方块）。
+        /// Service brand icon (rounded square).
         static let brand: CGFloat = 20
 
-        /// Seven自带的自定义符号（`Resources/Symbols.xcassets`，打包时由 actool 编译进 App）。
-        /// 交换语言：上向右、下向左的半叉箭头（⇌）。
+        /// Custom symbols bundled with Seven (`Resources/Symbols.xcassets`, compiled into the app by actool during packaging).
+        /// Swap languages: right-over-left harpoons (⇌).
         static let swapLanguages = "seven.swap"
 
-        /// 自定义符号缺失时（例如未经打包直接运行测试）使用的系统符号。
+        /// Fallback system symbols used when custom symbols are unavailable (e.g. running tests without packaging).
         static let screenshotFocus = "squareshape.on.pattern.diagonalline"
-        /// 马赛克采用官方黑白相间的棋盘格符号。
+        /// Mosaic uses the standard black-and-white checkerboard symbol.
         static let screenshotMosaic = "checkerboard.rectangle"
-        /// 六点拖动手柄的 SVG 模板资源。
+        /// SVG template asset for the six-dot drag handle.
         static let screenshotDrag = "ScreenshotDragHandle"
         private static let customFallbacks = [swapLanguages: "arrow.left.arrow.right", screenshotFocus: "square.on.square"]
 
-        /// 按名称取符号：先找系统 SF Symbols，再找Seven自带的自定义符号，最后用备用系统符号。
+        /// Resolves a symbol by name: checks system SF Symbols first, then Seven's bundled custom symbols, and finally falls back to a system symbol.
         static func symbol(_ name: String, description: String? = nil, tint: NSColor? = nil) -> NSImage? {
             let image = NSImage(systemSymbolName: name, accessibilityDescription: description)
                 ?? NSImage(symbolName: name, bundle: .main, variableValue: 0)
                 ?? customFallbacks[name].flatMap { NSImage(systemSymbolName: $0, accessibilityDescription: description) }
             guard let tint, let colored = image?.withSymbolConfiguration(.init(paletteColors: [tint])) else { return image }
-            // 原生分段控件会用系统色重绘模板；保留已配置的符号色板。
+            // Native segmented controls re-tint template images with the system color; preserve the configured symbol palette.
             colored.isTemplate = false
             return colored
         }
     }
 
     enum Palette {
-        /// 第三方服务的品牌色（十六进制 RGB），只用于服务图标；Seven自己的界面颜色不要用它。
+        /// Third-party service brand colors (hex RGB) for service icons only; do not use for Seven's own UI.
         static func brand(_ rgb: UInt32) -> NSColor { ThemePalette.rgb(rgb) }
     }
 
-    // MARK: 透明度
+    // MARK: Opacity
 
     enum Opacity {
-        /// 不可用的控件、未启用的状态、占位内容。
+        /// Disabled controls, inactive states, and placeholder content.
         static let disabled: CGFloat = 0.4
     }
 
-    // MARK: 键帽
+    // MARK: Keycaps
 
     enum Keycap {
         static let radius = Radius.control

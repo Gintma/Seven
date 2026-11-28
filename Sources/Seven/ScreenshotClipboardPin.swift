@@ -8,10 +8,10 @@ enum ScreenshotClipboardPinError: LocalizedError {
 }
 
 @MainActor enum ScreenshotClipboardPin {
-    /// 只在用户触发时读取。图片优先，文字按本机字体排版；不发网络、不写磁盘或日志。
+    /// Read only on user trigger. Prefers images and renders text with local fonts; performs no network, disk, or log writes.
     static func image(from pasteboard: NSPasteboard) throws -> NSImage {
         do { return try ImageImport.clipboard(pasteboard, preservingLogicalSize: true) }
-        catch ImageImportError.noImage { /* 只有没有图片/文件引用时才允许文字钉图。 */ }
+        catch ImageImportError.noImage { /* Allow text pinning only when no image or file reference is present. */ }
         guard let text = pasteboard.string(forType: .string), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ScreenshotClipboardPinError.empty }
         return try textImage(text)
     }
@@ -27,7 +27,7 @@ enum ScreenshotClipboardPinError: LocalizedError {
         let layout = manager.usedRect(for: container).union(manager.boundingRect(forGlyphRange: glyphs, in: container))
         let inset = Design.ScreenshotPin.textInset
         let size = CGSize(width: ceil(layout.width) + inset*2, height: ceil(layout.height) + inset*2)
-        // 测量与绘制使用同一次TextKit排版，不按测得的文字宽度重新换行，避免末行被截断。
+        // Reuse the same TextKit layout for both measurement and drawing without re-wrapping to the measured width, preventing last-line truncation.
         guard size.width * size.height * 4 <= CGFloat(ScreenshotScrollPolicy.maximumPixels) else { throw ScreenshotClipboardPinError.tooLarge }
         let scale = scale ?? NSScreen.main?.backingScaleFactor ?? 1
         let pixelWidth = Int(ceil(size.width * scale))

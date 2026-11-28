@@ -6,7 +6,7 @@ extension AppDelegate {
         guard !frozenScreenshotCapture.isCapturing,scrollCapture == nil,
               !screenshotEditors.contains(where:{$0.window?.isVisible==true}) else{return}
         inputReplacement.cancel();cancelSelectionWork();cancelScreenshotWork();model.cancel()
-        ocrWindowController?.close() // 保留旧结果，避免把自身结果窗口冻结进这次框选。
+        ocrWindowController?.close() // Keep the previous result without freezing our own result window into this capture selection.
         let token=screenshotGate.begin()
         frozenScreenshotCapture.start(purpose: .ocr) { [weak self] result in
             guard let self,self.screenshotGate.accepts(token) else{return}

@@ -1,6 +1,6 @@
 import AppKit
 
-/// 以两次稳定的原生复制结果为正文，AX 只独立核验目标；不跨格式比较字符串。
+/// Uses two stable native copy reads as the source text while AX independently verifies the target; never compares strings across formats.
 @MainActor
 enum InputReplacementClipboardProbe {
     private static var isBusy = false
@@ -39,7 +39,7 @@ enum InputReplacementClipboardProbe {
             var copied: String?
             var copiedCount = clearedCount
             for _ in 0..<attempts {
-                // 原生复制已投递时让短租约完成，再响应取消，防止迟到复制覆盖恢复内容。
+                // Once native copy is posted, let the short lease finish before honoring cancellation so a late copy cannot overwrite restored clipboard contents.
                 await pause()
                 if pasteboard.changeCount != clearedCount {
                     copiedCount = pasteboard.changeCount
@@ -65,7 +65,7 @@ enum InputReplacementClipboardProbe {
                 try Task.checkCancellation()
                 return copied
             }
-            // 只有当前目标仍有效时才保存本次副本；下一轮再次复制验证稳定性。
+            // Save this copy only while the target remains valid; the next pass copies again to verify stability.
             firstCopy = copied
             ownedCount = copiedCount
             try Task.checkCancellation()

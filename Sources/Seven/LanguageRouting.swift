@@ -1,6 +1,6 @@
 
-/// 自动目标语言规则：原文是第一语言时译为第二语言，其他情况译为第一语言。
-/// 所有语言参数均为 `LanguageCatalog` 中的代码。
+/// Automatic target-language rule: translate to the second language if the source is the first language, otherwise translate to the first language.
+/// All language parameters use codes from `LanguageCatalog`.
 enum LanguageRouting {
     static let automaticTarget = LanguageCatalog.automatic
     static let defaultPrimary = LanguageCatalog.defaultPrimary

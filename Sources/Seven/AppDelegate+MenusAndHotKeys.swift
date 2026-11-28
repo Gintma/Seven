@@ -164,7 +164,7 @@ extension AppDelegate {
         historyWindowController.show()
     }
 
-    /// 浮窗已在前台时再按一次即隐藏（同 Esc），否则在鼠标附近打开并聚焦输入框。
+    /// Hides the panel if already frontmost (same as Esc); otherwise opens near the mouse and focuses the input field.
     private func handleInputHotKey() {
         if let panel, panel.isVisible, panel.isKeyWindow {
             model.hide()

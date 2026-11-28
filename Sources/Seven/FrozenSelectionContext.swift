@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 
-/// 普通截图的原始冻结屏幕和选区。标注阶段仍保留原图，移动/缩放选区不会重新截图。
+/// Original frozen screen image and selection for a standard screenshot. Retained during annotation so moving or resizing the selection does not recapture.
 struct FrozenSelectionContext {
     let screenFrame: CGRect
     let localSelection: CGRect
@@ -14,7 +14,7 @@ struct FrozenSelectionContext {
     }
 }
 
-/// 选区四角与四边的缩放控制点。
+/// Resize handles at the four corners and four edges of the selection.
 enum FrozenSelectionHandle: Int, CaseIterable {
     case bottomLeft = 1, bottom, bottomRight, right, topRight, top, topLeft, left
 
@@ -33,8 +33,8 @@ enum FrozenSelectionHandle: Int, CaseIterable {
 }
 
 enum FrozenSelectionGeometry {
-    /// 按鼠标增量平移选区，将原点截为整数并限制在屏幕内，保留原宽高。
-    /// 调用方随后用 movingAnchor(for:) 更新拖动锚点。
+    /// Translates the selection by the mouse delta, truncates the origin to integers clamped to screen bounds, and preserves width and height.
+    /// Callers then update the drag anchor via movingAnchor(for:).
     static func moved(_ rect: CGRect, from previous: CGPoint, to point: CGPoint, within size: CGSize) -> CGRect {
         var x = max(0, Int(point.x + rect.minX - previous.x))
         var y = max(0, Int(point.y + rect.minY - previous.y))
@@ -47,7 +47,7 @@ enum FrozenSelectionGeometry {
         CGPoint(x: Int(point.x), y: Int(point.y))
     }
 
-    /// 每次拖动都以按下鼠标时的矩形为基准，拖过对边时也使用同一基准。
+    /// Every drag is computed relative to the rect at mouse-down, including when dragging past the opposite edge.
     static func resized(_ original: CGRect, handle: FrozenSelectionHandle, to point: CGPoint, within size: CGSize) -> CGRect {
         var begin = original.origin
         var end = CGPoint(x: original.maxX, y: original.maxY)
@@ -61,7 +61,7 @@ enum FrozenSelectionGeometry {
         case .topLeft: begin.x = point.x; end.y = point.y
         case .left: begin.x = point.x
         }
-        // 先将两个端点取整并限制在屏幕内，再计算位置和尺寸。
+        // Round and clamp both endpoints to screen bounds before computing origin and size.
         let x0 = min(max(Int(begin.x), 0), Int(size.width))
         let x1 = min(max(Int(end.x), 0), Int(size.width))
         let y0 = min(max(Int(begin.y), 0), Int(size.height))

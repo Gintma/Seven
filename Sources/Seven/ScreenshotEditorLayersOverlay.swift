@@ -1,6 +1,6 @@
 import AppKit
 
-/// 编辑旧文字时，把其后创建的图层绘制在原生文本编辑器之上，保持文档层级。
+/// While editing an older text annotation, renders newer layers above the native text editor to preserve document z-order.
 @MainActor final class ScreenshotEditorLayersOverlay: NSView {
     private let drawContent: () -> Void
     init(draw: @escaping () -> Void) {

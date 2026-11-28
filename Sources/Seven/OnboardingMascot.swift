@@ -76,7 +76,7 @@ final class OnboardingMascotView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         guard let window else { return }
-        // SwiftUI 可能在 NSWindow 安装 contentView 的过程中建立这个视图。
+        // SwiftUI may construct this view while NSWindow is still installing its contentView.
         DispatchQueue.main.async { [weak self, weak window] in
             guard let self, let window, self.window === window, tracking == nil,
                   let content = window.contentView else { return }

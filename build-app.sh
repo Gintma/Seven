@@ -53,7 +53,7 @@ if [[ -n "$variant" ]]; then
   app_name+="-$variant"
   bundle_identifier+=".$variant"
 fi
-# 签名凭证缺失时先退出，保留原有的试用包。
+# Exit early if signing credentials are missing, preserving the existing trial bundle.
 signing_arguments=(--force)
 identity_record=""
 release_signing=false
@@ -119,7 +119,7 @@ build_slice() {
   swift build "${build_arguments[@]}" "$@"
   binary_dir="$(swift build "${build_arguments[@]}" "$@" --show-bin-path)"
   cp "$binary_dir/Seven" "$output_binary"
-  # SwiftPM 为命令行工具附加本机构建工具链路径。分发包只用系统和包内的库。
+  # SwiftPM appends local toolchain rpaths to CLI binaries; distributable bundles should link only system and bundled libraries.
   local extra_rpaths
   extra_rpaths="$(xcrun otool -l "$output_binary" | awk '
     $2 == "LC_RPATH" {
@@ -151,7 +151,7 @@ if [[ ! -f "$sparkle_source/Versions/Current/Sparkle" ]]; then
   exit 1
 fi
 
-# actool 同时生成 macOS 26 的分层图标以及 macOS 14/15 的扁平回退图标。
+# actool generates both layered icons for macOS 26 and flat fallback icons for macOS 14/15.
 compiled_assets="$tmp_dir/compiled"
 mkdir -p "$compiled_assets"
 xcrun actool "$project_dir/Resources/AppIcon.icon" "$project_dir/Resources/Assets.xcassets" \
@@ -170,7 +170,7 @@ framework="$app/Contents/Frameworks/Sparkle.framework"
 cp -RP "$sparkle_source" "$framework"
 cp "$project_dir/Info.plist" "$app/Contents/Info.plist"
 if [[ "$configuration" != release || -n "$variant" || "$release_signing" == false ]]; then
-  # 即使源码含正式公钥，开发包和本机签名包也不应被正式更新替换。
+  # Even if the source includes the production public key, dev and locally signed builds must not be replaced by release updates.
   plutil -remove SUFeedURL "$app/Contents/Info.plist"
   plutil -remove SUPublicEDKey "$app/Contents/Info.plist"
 fi
@@ -184,13 +184,13 @@ for localization in "$project_dir/Sources/Seven/Localization/"*.lproj; do
 done
 cp "$compiled_assets/Assets.car" "$compiled_assets/AppIcon.icns" "$app/Contents/Resources/"
 cp "$project_dir/Sources/Seven/Art/Shiba.usdz" "$app/Contents/Resources/"
-# 静态链接的 Markdown 解析器随应用分发其许可证与版权声明。
+# Distribute the statically linked Markdown parser's license and copyright notice with the app.
 licenses="$app/Contents/Resources/Licenses"
 mkdir -p "$licenses"
 cp "$project_dir/.build/checkouts/swift-markdown/LICENSE.txt" "$licenses/swift-markdown-LICENSE.txt"
 cp "$project_dir/.build/checkouts/swift-markdown/NOTICE.txt" "$licenses/swift-markdown-NOTICE.txt"
 cp "$project_dir/.build/checkouts/swift-cmark/COPYING" "$licenses/swift-cmark-COPYING.txt"
-# (N) 允许某类文件为空，避免 zsh 报 no matches found；总数为 0 时才视为错误。
+# (N) allows a file pattern to match nothing without zsh raising "no matches found"; treat only a zero total as an error.
 brand_icons=("$project_dir/Resources/BrandIcons/"*.(png|svg)(N))
 if (( ${#brand_icons} == 0 )); then
   print -u2 "No brand icons found in Resources/BrandIcons."
@@ -199,7 +199,7 @@ fi
 cp "${brand_icons[@]}" "$app/Contents/Resources/BrandIcons/"
 chmod 755 "$app/Contents/MacOS/Seven"
 sparkle_version="$framework/Versions/Current"
-# Sparkle 的 Downloader 可携带网络权限，单独保留其签名权限。
+# Sparkle's Downloader may carry network entitlements; preserve its signing entitlements separately.
 codesign "${signing_arguments[@]}" "$sparkle_version/XPCServices/Installer.xpc"
 codesign "${signing_arguments[@]}" --preserve-metadata=entitlements "$sparkle_version/XPCServices/Downloader.xpc"
 codesign "${signing_arguments[@]}" "$sparkle_version/Autoupdate"

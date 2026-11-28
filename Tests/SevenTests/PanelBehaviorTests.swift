@@ -6,7 +6,7 @@ import XCTest
 final class PanelBehaviorTests: XCTestCase {
     private let screen = NSRect(x: 0, y: 0, width: 1_200, height: 800)
     private let panelSize = NSSize(width: 500, height: 400)
-    /// 跟随鼠标时允许的区域：左、右、下各留 10，顶部不留。
+    /// Allowed region when following the cursor: 10pt margin on left, right, and bottom; none at the top.
     private func permitted(_ screen: NSRect) -> NSRect {
         NSRect(x: screen.minX + 10, y: screen.minY + 10, width: screen.width - 20, height: screen.height - 10)
     }

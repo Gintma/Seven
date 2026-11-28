@@ -1,6 +1,6 @@
 import AppKit
 
-/// 语言栏两个按钮上显示的内容：实际语言名与“自动”注记。
+/// Content shown on the two language bar buttons: actual language name and optional "Auto" tag.
 struct LanguageBarLabel: Equatable {
     let name: String
     let note: String?
@@ -94,7 +94,7 @@ final class AppKitLanguageBar: LayerBackedView, ThemeApplying {
             : L10n.text("theSourceLanguageIsFixedChooseDetect")
     }
 
-    // MARK: 菜单
+    // MARK: Menus
 
     func sourceMenu() -> NSMenu {
         let menu = NSMenu()
@@ -118,7 +118,7 @@ final class AppKitLanguageBar: LayerBackedView, ThemeApplying {
         return menu
     }
 
-    /// 先列常用语言，其余放进“更多语言”子菜单；当前语言在子菜单里时，“更多语言”也打勾。
+    /// Lists common languages first and places the rest in a "More Languages" submenu; checks "More Languages" when the current selection is inside it.
     private func addLanguages(to menu: NSMenu, selected: String?, choose: @escaping (String) -> Void) {
         for code in model.commonLanguages {
             menu.addItem(item(LanguageCatalog.name(code), checked: selected == code) { choose(code) })
@@ -143,13 +143,13 @@ final class AppKitLanguageBar: LayerBackedView, ThemeApplying {
 
     @objc private func swapLanguages() {
         model.swapLanguages()
-        // ⇌ 上下翻面成 ⇋（再点翻回），箭头方向随交换改变。
+        // Flips ⇌ vertically to ⇋ (and back on next click) so arrow direction reflects the swap.
         swapButton.setMirrored(!swapButton.isMirrored, animated: true)
         applyModel()
     }
 }
 
-/// 执行闭包的菜单项。
+/// Menu item that executes a closure.
 private final class ClosureMenuItem: NSMenuItem {
     private let handler: () -> Void
 
@@ -164,11 +164,11 @@ private final class ClosureMenuItem: NSMenuItem {
     @objc private func run() { handler() }
 }
 
-/// 语言按钮：显示“语言名 · 注记”与小箭头，悬停时渐显底色，点击弹出原生菜单。
+/// Language button: shows "Language · Tag" with chevron, fades in background on hover, and pops up a native menu on click.
 final class LanguageMenuButton: NSButton, ThemeApplying {
     private var palette = ThemePalette.system
     var menuProvider: (() -> NSMenu)?
-    /// 仅需更宽点击区的场景使用；翻译语言栏原有等宽布局不变。
+    /// Used only where a wider hit target is needed; preserves the equal-width layout of the translation language bar.
     var horizontalContentInset: CGFloat = 0 { didSet { invalidateIntrinsicContentSize(); needsDisplay = true } }
     override var intrinsicContentSize: NSSize {
         let base = super.intrinsicContentSize
@@ -222,11 +222,11 @@ final class LanguageMenuButton: NSButton, ThemeApplying {
         setAccessibilityValue(label.note.map { "\(label.name)，\($0)" } ?? label.name)
     }
 
-    /// 上下小尖角作为文本附件，按字体中线垂直居中。
-    /// 作为按钮图标时会与文字底边对齐，比文字中心低约 1.5pt。
+    /// Up/down chevrons embedded as a text attachment, vertically centered on the font midline.
+    /// Using it as a button image aligns it with the text baseline, about 1.5pt lower than the text center.
     static func chevron(alignedTo font: NSFont, ink: NSColor) -> NSAttributedString {
         let configuration = NSImage.SymbolConfiguration(pointSize: Design.Icon.tiny, weight: .semibold)
-            .applying(.init(paletteColors: [ink]))  // 与语言名同色
+            .applying(.init(paletteColors: [ink]))  // Match the language name color
         guard let image = NSImage(systemSymbolName: "chevron.up.chevron.down", accessibilityDescription: nil)?
             .withSymbolConfiguration(configuration) else { return NSAttributedString() }
         let attachment = NSTextAttachment()
@@ -262,7 +262,7 @@ final class LanguageMenuButton: NSButton, ThemeApplying {
     override func mouseDown(with event: NSEvent) {
         guard isEnabled, let menu = menuProvider?() else { return }
         isPressed = true
-        // 菜单弹出后进入模态循环，先提交按下的底色。
+        // Commit the pressed background before the pop-up menu enters its modal tracking loop.
         CATransaction.flush()
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: isFlipped ? bounds.maxY + Design.Space.xs : -Design.Space.xs), in: self)
         isPressed = false

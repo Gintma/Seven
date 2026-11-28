@@ -27,7 +27,7 @@ enum ScreenshotPinWheel: String, CaseIterable, Identifiable {
     }
 }
 
-/// 只保存钉图操作/显示偏好，不保存钉图或剪贴板内容；nil为测试内存实现。
+/// Persists only pin interaction/display preferences, never pinned images or clipboard content; nil uses an in-memory store for tests.
 final class ScreenshotPinPreferences {
     static let zoomKey = "screenshotPin.zoomWheel.v1"
     static let opacityWheelKey = "screenshotPin.opacityWheel.v1"

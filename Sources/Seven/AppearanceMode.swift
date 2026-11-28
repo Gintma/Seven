@@ -1,6 +1,6 @@
 import AppKit
 
-/// 外观偏好：跟随系统，或固定浅色、深色。
+/// Appearance preference: follow system, or force Light or Dark Mode.
 enum AppearanceMode: String, CaseIterable, Identifiable {
     case system
     case light
@@ -18,7 +18,7 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
         }
     }
 
-    /// nil 表示跟随系统。
+    /// nil means follow the system appearance.
     var appearance: NSAppearance? {
         switch self {
         case .system: return nil

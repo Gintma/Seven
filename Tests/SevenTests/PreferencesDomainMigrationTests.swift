@@ -52,7 +52,7 @@ final class PreferencesDomainMigrationTests: XCTestCase {
     }
 }
 
-// 使用内存域，即使测试在已有 Seven 安装上运行也不会访问正式偏好。
+// Uses an in-memory domain so tests never touch production preferences even when Seven is already installed.
 private final class MemoryPreferencesDomains: PreferencesDomains {
     private var domains: [String: [String: Any]]
     private(set) var reads = [String]()

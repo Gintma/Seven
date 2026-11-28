@@ -205,7 +205,7 @@ final class OnlineTranslationServiceTests: XCTestCase {
         }
     }
 
-    /// 逐一核对语言目录里每种语言的 Google、有道代码能否真正翻译。代码为 nil 的语言跳过。
+    /// Verifies that each catalog language's Google and Youdao codes can actually translate; skips languages with a nil code.
     func testLiveEveryCatalogLanguage() async throws {
         guard ProcessInfo.processInfo.environment["SEVEN_LIVE_TRANSLATION_TESTS"] == "1" else {
             throw XCTSkip("Set SEVEN_LIVE_TRANSLATION_TESTS=1 to run online service checks.")

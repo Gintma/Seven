@@ -1,7 +1,7 @@
 import CoreGraphics
 import Darwin
 
-/// 滚动截图的 Core Graphics 取图入口，运行时解析窗口截图符号。
+/// Core Graphics image capture entry point for scrolling screenshots, resolving window capture symbols at runtime.
 enum FrozenSystemImage {
     private typealias Capture = @convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?
     static func capture(rect: CGRect, options: CGWindowListOption = .optionOnScreenOnly,

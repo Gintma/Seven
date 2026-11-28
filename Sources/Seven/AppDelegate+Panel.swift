@@ -16,8 +16,8 @@ extension AppDelegate {
         panel.title = "Seven"
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
-        // 空的紧凑工具栏把标题栏从 32 加高到 40，关闭按钮与右侧图标仍在同一中线上；
-        // 图标距窗口顶与距输入框都约 14，上下相等且不拥挤。
+        // An empty compact toolbar increases titlebar height from 32 to 40 while keeping the close button and trailing icons aligned on the same centerline;
+        // icons sit ~14 pt from both the window top and the input field, evenly spaced without crowding.
         let toolbar = NSToolbar(identifier: "SevenTranslationPanelToolbar")
         toolbar.allowsUserCustomization = false
         toolbar.displayMode = .iconOnly
@@ -43,8 +43,8 @@ extension AppDelegate {
         titlebarAccessory.layoutAttribute = .right
         titlebarAccessory.view = AppKitTitlebarControls(model: model)
         panel.addTitlebarAccessoryViewController(titlebarAccessory)
-        // 默认宽度改窄后换新名称，旧的 570 宽记录不再恢复。
-        // 先恢复上次的位置与宽度；只有从未记录过时才居中（之前恢复后又被居中覆盖）。
+        // Renamed after narrowing the default width so legacy 570-wide saved frames are no longer restored.
+        // Restore the last position and width first; only center if never saved before (previously centering overwrote the restored frame).
         hasRememberedPanelPosition = panel.setFrameUsingName(Self.panelFrameName)
         panel.setFrameAutosaveName(Self.panelFrameName)
         if !hasRememberedPanelPosition { panel.center() }
@@ -63,8 +63,8 @@ extension AppDelegate {
             (panel.contentViewController as? AppKitTranslationViewController)?.reloadFromModel(animated: false)
         }
         if !(model.pinned && panel.isVisible) {
-            // 记住上次位置：第一次出现在鼠标旁，之后用户拖到哪里下次就在哪里。
-            // 跟随鼠标：每次出现在鼠标旁（选中文字翻译时避开选区）。宽度都保持用户上次的宽度。
+            // Remember last position: appears near the mouse initially, then reopens wherever the user dragged it.
+            // Follow mouse: opens near the mouse each time (avoiding the text selection when translating selected text). Both modes preserve the last width.
             if PanelPlacementMode.stored() == .remember, hasRememberedPanelPosition {
                 placePanelAtRememberedPosition(panel)
             } else {
@@ -104,7 +104,7 @@ extension AppDelegate {
     private func hidePanelAfterFocusChange(applicationInactive: Bool) {
         guard let panel else { return }
         DispatchQueue.main.async { [weak self, weak panel] in
-            // 重新打开或跨桌面移动可能已恢复焦点。
+            // Reopening or moving across Spaces may have already restored focus.
             guard let self, let panel, panel.isVisible, PanelVisibilityPolicy.shouldHide(
                 isKeyWindow: panel.isKeyWindow && (!applicationInactive || NSApp.isActive),
                 isPinned: self.model.pinned,

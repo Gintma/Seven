@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import Seven
 
-/// 拦截所有请求，只返回内存中的 SSE；不读取凭据，也不接触真实网络。
+/// Intercepts all requests and returns in-memory SSE only; reads no credentials and makes no real network calls.
 private final class StreamFixtureProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -33,7 +33,7 @@ private final class StreamFixtureProtocol: URLProtocol {
         let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: ["Content-Type": "text/event-stream; charset=utf-8"])!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         let data = Data(text.utf8)
-        // 特意在 JSON 和中文 UTF-8 字符中间切分网络分片。
+        // Intentionally splits network chunks mid-JSON and mid-UTF-8 Chinese characters.
         for start in stride(from: 0, to: data.count, by: 3) {
             client?.urlProtocol(self, didLoad: data.subdata(in: start..<min(start + 3, data.count)))
         }

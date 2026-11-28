@@ -1,7 +1,7 @@
 import AppKit
 import Carbon
 
-/// 状态菜单使用原生右侧快捷键列，不把快捷键拼入标题。
+/// Status menu uses the native trailing shortcut column instead of concatenating shortcuts into titles.
 @MainActor enum StatusMenuShortcut {
     static func apply(_ shortcut:KeyboardShortcut?,to item:NSMenuItem) {
         guard let shortcut else{item.keyEquivalent="";item.keyEquivalentModifierMask=[];return}

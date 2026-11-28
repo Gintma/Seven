@@ -8,7 +8,7 @@ indirect enum SettingsServiceMenuItem<Value: Hashable> {
     case submenu(String, [SettingsServiceMenuItem<Value>])
 }
 
-/// 复用翻译设置的 grouped Form 原生菜单环境，外层仍由服务详情安排对齐。
+/// Reuses the grouped Form native menu environment from translation settings while letting the service detail view handle outer alignment.
 struct SettingsServiceMenu<Value: Hashable>: View {
     let title: String
     @Binding var selection: Value
@@ -38,7 +38,7 @@ struct SettingsServiceMenu<Value: Hashable>: View {
     }
 }
 
-/// 仅输出原生按钮的布局边界，局部 Form 的卡片和页边距不占服务行空间。
+/// Exposes only the native button's layout bounds so the local Form's card chrome and margins do not consume space in the service row.
 private struct SettingsMenuFormHost<Content: View>: NSViewRepresentable {
     let content: Content
     func makeNSView(context: Context) -> SettingsMenuFormViewport<Content> {
@@ -73,8 +73,8 @@ private final class SettingsMenuFormViewport<Content: View>: NSView {
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard !isHidden, alphaValue > 0, bounds.contains(convert(point, from: superview)) else { return nil }
-        // 裁切宿主改变了 bounds 原点；点击应直接交给可见的原生按钮，
-        // 不让内部 Form 的滚动/托管容器按未裁切坐标吞掉事件。
+        // The clipping host shifts the bounds origin; forward clicks directly to the visible native button,
+        // preventing the inner Form's scroll or hosting container from swallowing events in unclipped coordinates.
         return Self.menu(in: host)
     }
 
@@ -177,7 +177,7 @@ private struct SettingsServiceMenuControl<Value: Hashable>: NSViewRepresentable 
         @objc func runAction(_ item: NSMenuItem) {
             guard parent.isEnabled, item.isEnabled,
                   let route = item.representedObject as? SettingsServiceMenuAction else { return }
-            // 已展开菜单可能仍持有刷新前的 item；按当前启用状态执行当前闭包。
+            // An already-open menu may still hold a pre-refresh item; invoke the current closure according to the current enabled state.
             func run(_ entries: [SettingsServiceMenuItem<Value>], path: ArraySlice<String>) {
                 guard let head = path.first else { return }
                 for entry in entries {

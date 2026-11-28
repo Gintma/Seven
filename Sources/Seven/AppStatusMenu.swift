@@ -1,6 +1,6 @@
 import AppKit
 
-/// 原生平铺分组；行由装配根提供，保持动作及快捷键所有权不变。
+/// Native flat grouping; rows are supplied by the composition root, preserving action and shortcut ownership.
 @MainActor enum AppStatusMenu {
     private static let updateTag = 1
     private static let updateSeparatorTag = 2
@@ -12,7 +12,7 @@ import AppKit
         menu.item(withTag: updateSeparatorTag)?.isHidden = update.isHidden
     }
 
-    /// 使用应用动作而非系统terminate:菜单动作，避免系统自动附加退出图标。
+    /// Uses an app action instead of the system terminate: selector to prevent macOS from auto-attaching the quit icon.
     static func quitItem(target: NSObject?) -> NSMenuItem {
         let row = NSMenuItem(title: L10n.text("app.quit"), action: #selector(AppDelegate.quitSeven), keyEquivalent: "q")
         row.target = target; row.image = nil; row.keyEquivalentModifierMask = .command

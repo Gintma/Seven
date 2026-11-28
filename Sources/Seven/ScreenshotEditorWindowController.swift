@@ -590,7 +590,7 @@ import AppKit
         canvas.endParameterChange();colorWell.dismissSelection()
     }
     private func finishPaletteBeforeChanging(_ sender: NSSegmentedControl) -> Int {
-        // 先保留本次点击；完成上一笔色板操作时，同步控件不能覆盖刚选中的值。
+        // Preserve the current click first; syncing controls when finalizing the prior swatch action must not overwrite the newly chosen value.
         let choice = sender.selectedSegment
         dismissColorPanel()
         if let control = sender as? SlidingSegmentedControl { control.setSelectedSegment(choice, animated: false) }
@@ -701,7 +701,7 @@ import AppKit
     @objc private func redo(){dismissColorPanel();canvas.redoEdit();saveToolOptions();updateControls()}
     private func flatOutput()->NSImage{dismissColorPanel();canvas.commitText();return canvas.renderedImage()}
     private func output()->NSImage{let image=flatOutput();return isPinEditing ? image:ScreenshotShadowRendering.image(image,style:shadowStyle)}
-    /// 与采集栏共用导出含义；先完成拼接，再调用普通截图的导出路径。
+    /// Shares export semantics with the capture bar: finalize stitching first, then invoke the standard screenshot export path.
     func performScrollAction(_ action: ScreenshotScrollAction) {
         switch action {
         case .edit: break
@@ -954,7 +954,7 @@ import AppKit
         lastEmptyClick = nil; emptyClickDown = nil
         if bounds.contains(point), textView == nil, !placingAnnotation, tool != .text,
            !document.visible.contains(where: { ScreenshotEditorGeometry.hit(point, stroke: $0) || (($0.tool == .rectangle || $0.tool == .ellipse) && ScreenshotEditorGeometry.path($0).contains(point)) }) {
-            // 系统 clickCount 可能继承选择层的点击；只接受画布内已完整结束的第一次点击。
+            // System clickCount may carry over from the selection overlay; accept only a first click that completed inside the canvas.
             if event.clickCount == 2, let previousClick,
                (0...NSEvent.doubleClickInterval).contains(event.timestamp - previousClick.timestamp),
                hypot(point.x - previousClick.point.x, point.y - previousClick.point.y) <= 4,
@@ -1095,7 +1095,7 @@ import AppKit
         let r=stroke.rect
         return [.init(x:r.minX,y:r.minY),.init(x:r.midX,y:r.minY),.init(x:r.maxX,y:r.minY),.init(x:r.maxX,y:r.midY),.init(x:r.maxX,y:r.maxY),.init(x:r.midX,y:r.maxY),.init(x:r.minX,y:r.maxY),.init(x:r.minX,y:r.midY)]
     }
-    /// 用可重新聚焦的 NSTextView 编辑标注，编辑期间隐藏已提交的文字。
+    /// Edits annotations in a refocusable NSTextView, hiding the committed text while editing.
     private func beginTextEditing(_ original: ScreenshotEditorStroke) {
         var stroke = original
         stroke.isPlacementPreview = false; stroke.isEditingPreview = true; stroke.textLayoutBounds = bounds
@@ -1103,7 +1103,7 @@ import AppKit
         stroke.textBoxWidth = stroke.textBoxWidth ?? max(Design.AnnotationEditor.defaultWidth, stroke.rect.width)
         if stroke.textTopY == nil { stroke.textTopY = stroke.start.y + max(Design.AnnotationEditor.minimumHeight, stroke.rect.height) }
         stroke.layoutText(stroke.text)
-        // 与测量和导出共用TextKit 1，避免输入中切换布局引擎导致组合区失效。
+        // Share TextKit 1 with measurement and export so switching layout engines mid-typing does not break IME composition.
         let editor = ScreenshotAnnotationTextView(usingTextLayoutManager:false)
         editor.frame=stroke.textGlyphFrame
         editor.isRichText = false; editor.drawsBackground = false
@@ -1190,7 +1190,7 @@ import AppKit
         if textView != nil { textDidChange(Notification(name: NSText.didChangeNotification)) }
         synchronizeTextChrome(); needsDisplay = true; onChange?()
     }
-    /// refreshAllSizeAndDrawRect: 会同步当前对象与原生文本控件，并记录新历史版本。
+    /// refreshAllSizeAndDrawRect: syncs the current annotation with the native text view and records a new history revision.
     func updateSelected(_ change: (inout ScreenshotEditorStroke) -> Void) {
         if placingAnnotation, var preview = document.preview {
             change(&preview); preview.layoutText(preview.text)
@@ -1213,11 +1213,11 @@ import AppKit
     }
     func textDidChange(_ notification: Notification) {
         guard let editor = textView, var stroke = textStroke else { return }
-        // 组合文字也参与尺寸计算，但不替换 textStorage、取消 marked range 或提交历史。
+        // Include marked text in size calculation without replacing textStorage, clearing marked range, or committing history.
         stroke.layoutText(editor.string)
         textStroke = stroke
         let containerSize=CGSize(width:stroke.textBoxWidth ?? stroke.rect.width,height:CGFloat.greatestFiniteMagnitude)
-        // TextKit 1可在保留组合区的同时调整宽度；自动宽度先横向增长，手动宽度保持不变。
+        // TextKit 1 can resize width while preserving IME composition; auto-width grows horizontally first while manual width stays fixed.
         if editor.textContainer?.containerSize != containerSize {editor.textContainer?.containerSize=containerSize}
         if editor.frame != stroke.textGlyphFrame {editor.frame=stroke.textGlyphFrame}
         var preview = stroke; preview.text = ""; preview.isEditingPreview = true

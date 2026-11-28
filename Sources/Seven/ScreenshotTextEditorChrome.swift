@@ -1,6 +1,6 @@
 import AppKit
 
-/// 仅在定位与输入期间显示；不属于文档或图片渲染器，因此不会进入复制/保存结果。
+/// Shown only while positioning and typing; excluded from the document and image renderer so it never appears in copied or saved output.
 final class ScreenshotTextEditorChrome: ThemedDrawingView {
     var onResizeBegan: ((Bool) -> Void)?
     var onResize: ((CGFloat) -> Void)?

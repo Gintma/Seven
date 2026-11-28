@@ -1,6 +1,6 @@
 import Foundation
 
-/// 验证时探测标准接口；正式翻译不执行重试探测。
+/// Probes standard endpoints during verification; live translation never performs retry probing.
 final class CompatibleConfigurationTester: ServiceConfigurationTesting {
     private let service: TranslationServing
     init(service: TranslationServing = CompatibleTranslationService()) { self.service = service }

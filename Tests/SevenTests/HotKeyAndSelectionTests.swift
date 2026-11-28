@@ -232,7 +232,7 @@ final class HotKeyAndSelectionTests: XCTestCase {
         var fired = 0
         manager.onHotKey = { fired += 1 }
 
-        manager.suspend()  // 从未注册成功也必须进入暂停
+        manager.suspend()  // Must enter paused state even if registration never succeeded
         manager.fire()
         XCTAssertEqual(fired, 0)
 
@@ -272,7 +272,7 @@ final class HotKeyAndSelectionTests: XCTestCase {
         holder.start()
         defer { holder.stop() }
 
-        // 启动时组合已被占用：设置行应显示问题
+        // Combination already taken at launch: settings row should show an issue
         let starter = HotKeyManager(defaults: defaults, storageKey: "test.starter", defaultShortcut: taken,
                                     identifierID: 94, actionLabel: "输入翻译")
         starter.start()
@@ -280,7 +280,7 @@ final class HotKeyAndSelectionTests: XCTestCase {
         XCTAssertEqual(starter.problem, L10n.text("anotherAppAlreadyUsesThisShortcutChoose"))
         starter.stop()
 
-        // 恢复默认失败交给设置行处理，原先已注册的组合仍然有效。
+        // Delegate reset-to-default failure to the settings row while keeping the previously registered combination active.
         let other = HotKeyManager(defaults: defaults, storageKey: "test.other2", defaultShortcut: taken,
                                   identifierID: 95, actionLabel: "划词翻译")
         let free = KeyboardShortcut(keyCode: UInt32(kVK_F15),

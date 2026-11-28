@@ -1,5 +1,5 @@
 
-/// 可选的朗读服务；本机没有对应语言嗓音时，使用已验证的在线服务，否则不朗读。
+/// Available speech services; when no local voice exists for a language, falls back to a verified online service, otherwise does not speak.
 enum SpeechEngineID: String, CaseIterable, Identifiable, Sendable {
     case system
     case youdao
@@ -32,7 +32,7 @@ enum SpeechRate: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// 朗读服务提供的可调项。只列出服务真正支持的参数。
+/// Configurable options exposed by a speech service. Lists only parameters the service genuinely supports.
 enum SpeechEngineOption: Sendable {
     case englishAccent
     case rate
@@ -42,19 +42,19 @@ struct SpeechEngineDescriptor: Identifiable, Sendable {
     let id: SpeechEngineID
     let title: String
     let isOnline: Bool
-    /// 在线服务的请求主机，用于设置页的隐私说明和诊断日志。
+    /// Request host of an online service, used for settings privacy notes and diagnostic logs.
     let host: String?
-    /// 单次朗读字符上限；超出时选择其他可用服务，全部不可用则停止。nil 表示不限。
+    /// Per-request character limit; falls back to another eligible service if exceeded, or stops if none are available. nil means unlimited.
     let maximumCharacters: Int?
-    /// 已验证的在线语言，或本机运行时可用的系统语言。
+    /// Verified online languages, or system languages available at runtime on this Mac.
     let supportedLanguages: [String]
     let options: [SpeechEngineOption]
 }
 
 enum SpeechEngineCatalog {
-    /// 在线覆盖于 2026-11-01 用三家 × 30 种语言的可解码音频探测核对；字数上限沿用已有保守值。
-    /// 有道英文约 800 字截断、中文 1200 字返回 400；
-    /// 百度仅中/英/日/韩可用；谷歌 360 字时返回 400。有道、谷歌的语速由本地倍速播放实现。
+    /// Online coverage verified on 2026-11-01 by probing decodable audio across 3 providers x 30 languages; character limits retain existing conservative values.
+    /// Youdao truncates English around 800 characters and returns 400 for 1200 Chinese characters;
+    /// Baidu supports only zh/en/ja/ko; Google returns 400 at 360 characters. Speech rate for Youdao and Google is handled via local playback speed.
     static var all: [SpeechEngineDescriptor] { [
         SpeechEngineDescriptor(
             id: .system,

@@ -1,17 +1,17 @@
 import AppKit
 
-/// 朗读按钮：按 SpeechButtonAppearance 显示喇叭、加载转圈、动态喇叭、暂停或继续。
-/// 图标由内部 NSImageView 绘制；点击始终由按钮本身处理。
+/// Speech button: displays a speaker, loading spinner, animated speaker, pause, or resume icon according to SpeechButtonAppearance.
+/// Icons are drawn by an internal NSImageView; clicks are always handled by the button itself.
 final class SpeechToggleButton: SymbolButton {
     private let iconView = PassthroughImageView()
     private let spinner = NSProgressIndicator()
     private var waveTimer: Timer?
     private var waveFrame = 0
     private(set) var appearanceState: SpeechButtonAppearance?
-    /// 当前显示的符号名，加载中为 nil；供测试确认按钮任何时候都不会是空白。
+    /// Currently displayed symbol name, or nil while loading; used by tests to verify the button is never blank.
     private(set) var displayedSymbol: String?
 
-    /// 短内容播放时在两帧之间交替。
+    /// Alternates between two frames while playing short content.
     static let waveFrames = ["speaker.wave.1", "speaker.wave.2"]
     private static let waveInterval = Design.Motion.speakerFrame
     private let glyphConfiguration: NSImage.SymbolConfiguration
@@ -30,7 +30,7 @@ final class SpeechToggleButton: SymbolButton {
         spinner.translatesAutoresizingMaskIntoConstraints = false
         addSubview(iconView)
         addSubview(spinner)
-        // 以最宽的喇叭帧定宽，喇叭类图标靠左对齐：声波增减时喇叭本体不左右移动。
+        // Size to the widest speaker frame and align speaker icons leading so the speaker body stays stationary as sound waves animate.
         let speakerWidth = NSImage(systemSymbolName: "speaker.wave.2", accessibilityDescription: nil)?
             .withSymbolConfiguration(glyphConfiguration)?.size.width ?? 20
         NSLayoutConstraint.activate([
@@ -56,7 +56,7 @@ final class SpeechToggleButton: SymbolButton {
         didSet { iconView.alphaValue = isEnabled ? 1 : Design.Opacity.disabled }
     }
 
-    /// 模型每次刷新都会调用；外观未变时只更新提示文字，避免重启动画。
+    /// Called on every model refresh; when appearance is unchanged, updates only the tooltip to avoid restarting animations.
     func apply(_ appearance: SpeechButtonAppearance, symbol: String, label: String) {
         toolTip = label
         setAccessibilityLabel(label)
@@ -90,7 +90,7 @@ final class SpeechToggleButton: SymbolButton {
     private func startWaves() {
         waveFrame = 0
         show(Self.waveFrames[waveFrame])
-        // 开启“减弱动态效果”时只显示静止喇叭。
+        // Show a static speaker icon when Reduce Motion is enabled.
         guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
         waveTimer = Timer.scheduledTimer(withTimeInterval: Self.waveInterval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
@@ -111,12 +111,12 @@ final class SpeechToggleButton: SymbolButton {
         if window == nil {
             stopWaves()
         } else if appearanceState == .playingShort, waveTimer == nil {
-            // 浮窗重建时按钮会被移出再挂回，按当前状态恢复动画。
+            // When the floating panel is rebuilt, the button is removed and reattached; restore animation based on current state.
             startWaves()
         }
     }
 
-    /// 内部图标与转圈不接收点击：否则卡片标题栏会把点击判定为“不是按钮”而收起卡片。
+    /// Inner icon and spinner do not accept clicks; otherwise the card header treats the click as non-button and collapses the card.
     override func hitTest(_ point: NSPoint) -> NSView? {
         super.hitTest(point).map { _ in self }
     }

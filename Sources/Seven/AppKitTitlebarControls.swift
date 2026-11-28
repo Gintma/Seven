@@ -4,9 +4,9 @@ import Combine
 @MainActor
 final class AppKitTitlebarControls: NSView {
     private static let buttonHeight: CGFloat = 28
-    /// 每个按钮在图形左右各留出的点击余量。
+    /// Horizontal hit-target padding on each side of a button's glyph.
     private static let hitPadding = Design.Space.xs
-    /// 相邻图形之间的可见空隙，与图标到窗口顶、到输入框的距离一致（约 12），让四个图标读作一组。
+    /// Visual gap between adjacent glyphs, matching the ~12 pt distance to the window top and input field so the four icons read as a group.
     private static let iconGap = Design.Space.m
     private let model: TranslationModel
     private let pinButton = AnimatedSymbolButton(symbol: "pin", label: L10n.text("pinWindowP"))
@@ -29,7 +29,7 @@ final class AppKitTitlebarControls: NSView {
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
-        // 各图形宽度不同（图钉窄、历史宽），按实际墨迹宽度定按钮宽，可见空隙才会相等。
+        // Glyphs vary in width (pin is narrow, history is wide); size buttons by ink width so visible gaps stay uniform.
         let symbols = [["pin", "pin.fill"], ["clock.arrow.circlepath"], ["viewfinder"], ["slider.horizontal.3"]]
         for (button, names) in zip(buttons, symbols) {
             let inkWidth = names.compactMap {
@@ -42,7 +42,7 @@ final class AppKitTitlebarControls: NSView {
         }
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor),
-            // 扣除点击余量，让最右侧图形的右边缘与下方内容边线（Space.l）对齐。
+            // Subtract hit-target padding so the rightmost glyph's trailing edge aligns with the content margin below (Space.l).
             stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -(Design.Space.l - Self.hitPadding)),
             stack.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])

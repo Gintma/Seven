@@ -184,7 +184,7 @@ final class PermissionGuide {
             onDragStateChange: { [weak panel] dragging in panel?.ignoresMouseEvents = dragging }
         )
         let size = NSHostingView(rootView: ThemedContent(content: rootView)).fittingSize
-        // 由浮窗控制内容尺寸，避免 SwiftUI 固有尺寸反向改写浮窗尺寸。
+        // Let the panel drive content sizing so SwiftUI's intrinsic size does not overwrite the panel frame.
         if let hostingView {
             hostingView.rootView = ThemedContent(content: rootView)
         } else {

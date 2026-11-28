@@ -83,7 +83,7 @@ extension AppDelegate {
             self.configureScreenshotEditor(editor)
             editor.onOCR={ [weak self,weak controller] image in self?.showScreenshotOCR(image,level:controller?.window?.level) }
             self.presentScreenshotEditor(editor)
-            editor.window?.makeKey() // 仅让非激活编辑面板接收输入，不提升设置等普通窗口。
+            editor.window?.makeKey() // Only let the non-activating editor panel receive input without raising normal windows like Settings.
         }
         controller.onOCR = { [weak self, weak controller] image in self?.showScreenshotOCR(image, level: controller?.window?.level) }
         controller.onCloseAll = { ScreenshotAuxiliaryWindows.closeAllPins() }
@@ -92,7 +92,7 @@ extension AppDelegate {
 
 }
 
-/// 每个辅助窗口由此持有到关闭；通知只移除对应窗口，不读取或保存截图历史。
+/// Retains each auxiliary window until closed; the notification only removes that window without reading or saving screenshot history.
 @MainActor enum ScreenshotAuxiliaryWindows {
     private struct Entry {
         let controller: NSWindowController
@@ -120,7 +120,7 @@ extension AppDelegate {
         let id = ObjectIdentifier(window)
         if let old = entries.removeValue(forKey: id) { NotificationCenter.default.removeObserver(old.observer) }
         let observer = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
-            // 保留controller直到willClose的delegate与其他观察者都完成清理。
+            // Retain controller until willClose delegates and other observers finish cleanup.
             DispatchQueue.main.async {
                 if let entry = entries.removeValue(forKey: id) {
                     NotificationCenter.default.removeObserver(entry.observer)
@@ -134,7 +134,7 @@ extension AppDelegate {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
         } else {
-            // 截图覆盖层/采集面板不提升设置、历史等普通窗口，保持原应用的窗口顺序。
+            // Screenshot overlays/capture panels do not raise regular windows like Settings or History, preserving the original app window order.
             window.orderFrontRegardless()
         }
     }

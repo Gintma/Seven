@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// 固定高度的原生多行编辑器；占位文案只绘制，不放入 text storage 或绑定。
+/// Fixed-height native multiline editor; placeholder text is drawn only and never inserted into text storage or the binding.
 struct SettingsPromptEditor: NSViewRepresentable {
     @Binding var text: String
     let placeholder: String

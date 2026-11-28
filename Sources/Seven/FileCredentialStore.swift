@@ -14,7 +14,7 @@ enum FileCredentialError: LocalizableIssue {
     }
 }
 
-/// 明文凭据只在独立文件中存储；原子替换、跨进程文件锁，不参与设置/历史/诊断导出。
+/// Stores plaintext credentials only in a dedicated file with atomic replacement and cross-process file locking; excluded from settings, history, and diagnostic exports.
 struct FileCredentialStore: CredentialStoring {
     struct Document: Codable {
         var version = 1
@@ -44,7 +44,7 @@ struct FileCredentialStore: CredentialStoring {
     }
     func save(_ value: String, account: String) throws {
         guard let id = instanceID(account) else {
-            // 文件只接受实例账户。
+            // File store accepts instance accounts only.
             guard value.isEmpty else { throw FileCredentialError.invalidFormat(fileURL) }
             return
         }

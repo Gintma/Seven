@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 extension View {
-    /// 自身智能选区读取真实布局边界，不参与点击或公开的辅助功能导航。
+    /// Own smart selection reads real layout bounds without participating in hit-testing or public accessibility navigation.
     func settingsSmartTarget(_ role: String) -> some View {
         background { SettingsSmartSelectionBoundary(role: role).allowsHitTesting(false).accessibilityHidden(true) }
     }
@@ -30,7 +30,7 @@ final class SettingsSmartSelectionAnchor: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 
-/// 设置页共用滚动分组，关于页可在表单上方展示应用摘要。
+/// Shared scrollable grouped container for settings panes; the About pane can display an app summary above the form.
 struct SettingsForm<Header: View, Content: View>: View {
     let header: Header
     let content: Content
@@ -140,7 +140,7 @@ struct SettingsNote: View {
     }
 }
 
-/// 服务详情采用上标签、下控件的全宽字段；分组设置页保留原有行布局。
+/// Service detail uses full-width fields with the label above the control; grouped settings panes keep the standard row layout.
 struct SettingsControlRow<Control: View>: View {
     let title: String
     let control: Control
@@ -252,7 +252,7 @@ struct SettingsPickerRow<Value: Hashable, Choices: View>: View {
     }
 }
 
-/// 服务参数菜单按内容取原生尺寸并靠右，说明与设置保持在同一行组内。
+/// Service parameter menus size naturally to their content and align trailing, keeping the description in the same row group as the setting.
 struct SettingsFixedPickerRow<Value: Hashable>: View {
     let title: String
     @Binding var selection: Value
@@ -270,7 +270,7 @@ struct SettingsFixedPickerRow<Value: Hashable>: View {
     }
 }
 
-/// 自绘分段桥接的选项；图标可与文字混排，名称仍作为原生段的 AX 标题。
+/// Option for the custom-drawn segmented bridge; icons may combine with text while the name remains the native segment's AX title.
 struct SettingsSegmentedOption<Value: Hashable> {
     let value: Value
     let title: String
@@ -287,13 +287,13 @@ struct SettingsSegmentedControl<Value: Hashable>: View {
         SettingsSegmentedNativeControl(selection: selection, options: options,
             accessibilityLabel: accessibilityLabel, isEnabled: isEnabled,
             currentSelection: { selection }) { value in
-                // 只有用户动作才写入；不能用这一帧快照跳过“连点后返回初始值”的回写。
+                // Write only on user actions; do not use this frame's snapshot to skip writing back when rapid clicks return to the initial value.
                 selection = value
             }
     }
 }
 
-/// 在 SwiftUI body 中读取选择快照，避免原生更新阶段读到 Binding 的上一帧缓存。
+/// Reads the selection snapshot inside SwiftUI body to avoid reading a stale previous-frame Binding value during native updates.
 private struct SettingsSegmentedNativeControl<Value: Hashable>: NSViewRepresentable {
     @Environment(\.theme) private var theme
     let selection: Value
@@ -334,9 +334,9 @@ private struct SettingsSegmentedNativeControl<Value: Hashable>: NSViewRepresenta
             coordinator.optionValues = values
             coordinator.wasEnabled = isEnabled
         }
-        // 用户动作后的短窗口内，任何帧都可能比点击更旧：继续只更新选项与几何，
-        // 不改原生选择，避免把进行中的滑动钉到终点。确认帧到达后仍保留窗口，
-        // 因为同一批刷新里的更旧帧可能排在确认帧之后。
+        // Within a short window after a user action, any incoming frame may be older than the click: keep updating only options and geometry,
+        // without modifying the native selection so an in-flight slide is not snapped to its end. Keep the window open even after a confirming frame arrives,
+        // because older frames from the same refresh batch may still be queued after the confirming frame.
         if let accepted = coordinator.acceptedSelection {
             guard values.contains(accepted.value), ProcessInfo.processInfo.systemUptime < accepted.deadline else {
                 coordinator.clearAcceptedSelection()
@@ -344,10 +344,10 @@ private struct SettingsSegmentedNativeControl<Value: Hashable>: NSViewRepresenta
                 return
             }
             if let acceptedIndex = values.firstIndex(of: accepted.value), control.selectedSegment != acceptedIndex {
-                // 只有选项重排等几何变化才重新定位；索引不变时不碰动画。
+                // Re-layout only when geometry changes such as option reordering; leave animations untouched when the index is unchanged.
                 control.setSelectedSegment(acceptedIndex, animated: false)
             }
-            // 基线跟着已接受的值走，不跟这一帧携带的旧值，窗口到期后才不会被旧索引带偏。
+            // Track the accepted value as the baseline rather than this frame's stale value so the selection does not drift to an old index when the window expires.
             coordinator.modelIndex = values.firstIndex(of: accepted.value) ?? index
             coordinator.optionValues = values
             coordinator.wasEnabled = isEnabled
@@ -367,7 +367,7 @@ private struct SettingsSegmentedNativeControl<Value: Hashable>: NSViewRepresenta
             let value: Value
             let deadline: TimeInterval
         }
-        // 短窗口兜底：绑定拒绝写入时不会再有确认帧，到期后读取最新绑定恢复同步。
+        // Short-window fallback: if the binding rejects a write, no confirming frame arrives; once expired, read the latest binding to resync.
         private static var settleWindow: TimeInterval { 0.25 }
         var parent: SettingsSegmentedNativeControl
         var modelIndex: Int?
@@ -383,7 +383,7 @@ private struct SettingsSegmentedNativeControl<Value: Hashable>: NSViewRepresenta
             accept(value, in: control)
             parent.onSelect(value)
         }
-        /// 记录用户选择，并在窗口内保留原生选择；不延迟点击、不重放动作、不写绑定。
+        /// Records the user's choice and holds the native selection during the window without delaying clicks, replaying actions, or writing the binding.
         private func accept(_ value: Value, in control: SlidingSegmentedControl) {
             clearAcceptedSelection()
             acceptedSelection = AcceptedSelection(value: value, deadline: ProcessInfo.processInfo.systemUptime + Self.settleWindow)
@@ -410,7 +410,7 @@ private struct SettingsSegmentedNativeControl<Value: Hashable>: NSViewRepresenta
     }
 }
 
-/// 与固定菜单行共用左右结构，分段按内容取宽，不填满剩余空间。
+/// Shares the leading/trailing layout with fixed menu rows; segments size to content instead of filling remaining space.
 struct SettingsSegmentedRow<Value: Hashable>: View {
     let title: String
     @Binding var selection: Value
@@ -430,7 +430,7 @@ struct SettingsSegmentedRow<Value: Hashable>: View {
     }
 }
 
-/// 系统设置式开关行：文字靠左、开关靠右，说明属于同一行的副文本。
+/// System Settings-style toggle row: label leading, toggle trailing, and description as inline secondary text.
 struct SettingsToggleRow: View {
     @Environment(\.theme) private var theme
     @Environment(\.settingsDetailMode) private var detailMode
@@ -462,7 +462,7 @@ struct SettingsToggleRow: View {
     }
 }
 
-/// 原生语言下拉菜单支持子菜单，并在按钮上保留完整的当前语言名。
+/// Native language pop-up button supporting submenus while preserving the full current language name on the button.
 struct SettingsLanguagePickerRow: View {
     let title: String
     @ObservedObject var model: TranslationModel
@@ -571,7 +571,7 @@ struct SettingsCommonLanguages: View {
     }
 }
 
-/// 添加语言弹窗的显示与搜索数据，顺序始终来自现有语言目录。
+/// Display and search data for the Add Language sheet; ordering always comes from the existing language catalog.
 struct SettingsLanguageChoice: Identifiable {
     let id: String
     let nativeName: String
@@ -665,7 +665,7 @@ struct SettingsLanguageAddition: View {
     }
 }
 
-/// 使用系统搜索框的放大镜和清除按钮。
+/// Uses the system search field's magnifying glass and clear button.
 struct SettingsLanguageSearch: NSViewRepresentable {
     @Environment(\.theme) private var theme
     @Environment(\.isEnabled) private var isEnabled
@@ -706,7 +706,7 @@ struct SettingsLanguageSearch: NSViewRepresentable {
     }
 }
 
-/// 原生多选列表保留 ⌘／⇧ 选择和双击行为。
+/// Native multi-select list preserving ⌘/⇧ selection and double-click behavior.
 struct SettingsLanguageAdditionList: NSViewRepresentable {
     @Environment(\.theme) private var theme
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
@@ -816,7 +816,7 @@ struct SettingsButtonRow<Actions: View>: View {
     }
 }
 
-/// 下载状态与对应操作保持在同一行，长状态可换行。
+/// Keeps download status and its corresponding action on the same row while allowing long status text to wrap.
 struct SettingsStatusActionRow<Actions: View>: View {
     let title: String
     let message: String
@@ -879,7 +879,7 @@ struct SettingsTextRow: View {
     }
 }
 
-/// 只读长内容按需展开，默认只呈现摘要，不占据整页。
+/// Read-only long content expands on demand, showing only a summary by default so it does not take over the whole pane.
 struct SettingsExpandableTextRow: View {
     @Environment(\.theme) private var theme
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
@@ -943,7 +943,7 @@ struct SettingsFooter<Status: View>: View {
         self.statusContent=status()
     }
     var body: some View {
-        // 空 Section 只使用 footer 槽位，不产生单独的分组卡片。
+        // An empty Section uses only the footer slot without creating a separate group card.
         Section { EmptyView() } footer: {
             VStack(alignment: .leading, spacing: Design.Space.s) {
                 HStack(spacing: Design.Space.m) {
@@ -1036,7 +1036,7 @@ struct SettingsPermissionRow: View {
     }
 }
 
-/// 未设置用系统按钮；可修改键帽可点击，固定键帽由调用方直接展示。
+/// Unset shortcuts use a system button; editable keycaps are clickable, while fixed keycaps are rendered directly by the caller.
 struct SettingsShortcutButton:View {
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     let keys:[String]
@@ -1079,7 +1079,7 @@ struct SettingsShortcutRow: View {
     }
 }
 
-/// 一个键帽。用于设置行里的快捷键按钮与录制弹出框。尺寸跟随所用字号档位。
+/// A single keycap used in settings row shortcut buttons and the recording popover. Scales with the active font size tier.
 struct Keycap: View {
     @Environment(\.theme) private var theme
     enum Style { case normal, placeholder, accent, empty, fixed }
@@ -1135,7 +1135,7 @@ struct KeycapRow: View {
 }
 
 
-/// 二级列表使用 AppKit 表格与非焦点选中样式。
+/// Secondary list using an AppKit table view with unfocused selection styling.
 struct SettingsSecondaryItem {
     let id: String
     let title: String
@@ -1254,7 +1254,7 @@ struct SettingsSecondaryList: NSViewRepresentable {
                     name.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
                     name.trailingAnchor.constraint(equalTo: cell.trailingAnchor)
                 ])
-                // 使用比例定位第二列，让所有行的界面语言名称从同一位置开始。
+                // Position the second column proportionally so every row's interface language name aligns at the same starting x-coordinate.
                 NSLayoutConstraint(item: name, attribute: .leading, relatedBy: .equal,
                                    toItem: cell, attribute: .trailing,
                                    multiplier: Design.Settings.commonLanguageNativeColumnRatio, constant: Design.Settings.commonLanguageCardInset).isActive = true
@@ -1324,7 +1324,7 @@ struct SettingsSecondaryList: NSViewRepresentable {
     }
 }
 
-/// 原生浅灰连体加减控件：等宽、瞬时操作，不保留选中态。
+/// Native light-gray joined plus/minus control: equal widths, momentary actions, and no persistent selection state.
 struct SettingsListActions: NSViewRepresentable {
     @Environment(\.theme) private var theme
     var canRemove: Bool
@@ -1382,7 +1382,7 @@ struct SettingsListActions: NSViewRepresentable {
     }
 }
 
-/// 服务页共用说明、等高列表与详情面板、同一底线的操作区。
+/// Shared layout for service panes: description, equal-height list and detail panels, and a bottom-aligned action bar.
 struct SettingsServicePage<Sidebar: View, Detail: View, Footer: View>: View {
     let explanation: String
     @ViewBuilder var sidebar: Sidebar
@@ -1423,7 +1423,7 @@ struct SettingsPanel<Content: View>: View {
     }
 }
 
-/// 面板外的左右操作共用同一底线；不另加背景或分隔线。
+/// Leading and trailing actions outside the panels share a single baseline without extra background or dividers.
 struct SettingsServiceActionsRow<Leading: View, Trailing: View>: View {
     @ViewBuilder var leading: Leading
     @ViewBuilder var trailing: Trailing
@@ -1442,12 +1442,12 @@ struct SettingsListPanel: View {
     var move: ((IndexSet, Int) -> Void)? = nil
     var body: some View {
         SettingsSecondaryList(items: items, selection: $selection, toggle: toggle, move: move)
-            // 原生 inset 列表已提供顶部留白，避免与外层重复叠加。
+            // The native inset list already provides top padding; avoid doubling it with outer padding.
             .padding(.bottom, Design.Space.l)
     }
 }
 
-/// 纵向详情表单：标签在控件上方，滚动条由原生 overlay 管理。
+/// Vertical detail form: labels sit above controls, and scrollbars are managed by the native overlay scroller.
 struct SettingsDetailForm<Header: View, Content: View>: View {
     @ViewBuilder var header: Header
     @ViewBuilder var content: Content
@@ -1514,7 +1514,7 @@ private struct SettingsLinkLabel: View {
     }
 }
 
-/// 状态与验证按钮组成右对齐的紧凑操作组，留白只放在整组左边。
+/// Groups status and the verify button into a compact trailing-aligned cluster, placing extra spacing only to the left of the group.
 struct SettingsVerificationRow: View {
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     let isLoading: Bool
@@ -1565,7 +1565,7 @@ struct SettingsDivider: View {
     var body: some View { ThemedDivider() }
 }
 
-/// 原生 borderless 控件不保证有悬停反馈；背景桥接只绘制、不接管菜单、按键或辅助功能。
+/// Native borderless controls do not guarantee hover feedback; the background bridge only draws and never intercepts menus, key events, or accessibility.
 private struct SettingsHoverStyle: ViewModifier {
     @Environment(\.isEnabled) private var isEnabled
     func body(content: Content) -> some View {
@@ -1616,7 +1616,7 @@ private final class SettingsHoverFeedbackView: NSView, ThemeApplying {
     }
 }
 
-/// 服务参数共用文字无底框、圆底双箭头常驻的菜单入口。
+/// Shared menu trigger for service parameters: frameless text with persistent circular double-chevron indicator.
 private struct SettingsMenu<Value: Hashable>: View {
     let title: String
     @Binding var selection: Value
@@ -1627,7 +1627,7 @@ private struct SettingsMenu<Value: Hashable>: View {
     }
 }
 
-/// 添加服务的统一弹层；页面只提供已有项与添加动作。
+/// Shared sheet for adding services; each pane only supplies existing items and the add action.
 struct SettingsProviderGrid: View {
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     let addedProviders: Set<ServiceProvider>
@@ -1667,7 +1667,7 @@ struct SettingsServiceEmptyState: View {
     }
 }
 
-/// 关于页摘要与操作卡片分开，应用标识、版本和版权统一居中。
+/// Keeps the About pane summary separate from action cards, with app icon, version, and copyright centered uniformly.
 struct SettingsAboutSummary: View {
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     static var version: String {

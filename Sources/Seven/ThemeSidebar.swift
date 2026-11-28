@@ -43,7 +43,7 @@ private struct ThemeSidebar: ViewModifier {
     }
 }
 
-/// 保留 List 及系统侧栏材质，用行背景表现选中状态。
+/// Preserves List and the system sidebar material, using row backgrounds to indicate selection.
 private struct ThemeSidebarConfiguration: NSViewRepresentable {
     let theme: ThemePalette
     let sourceListOnly: Bool
@@ -74,7 +74,7 @@ private struct ThemeSidebarConfiguration: NSViewRepresentable {
         private func updateSelection() {
             applySelection()
             guard !usesSystemSelection, window != nil else { return }
-            // SwiftUI 可能在同一帧稍后挂载或配置原生列表。
+            // SwiftUI may attach or configure the native list later in the same frame.
             DispatchQueue.main.async { [weak self] in self?.applySelection() }
         }
 

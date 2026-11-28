@@ -14,7 +14,7 @@ final class OnboardingFlowTests: XCTestCase {
         let registered = fixture.defaults.volatileDomain(forName: registrationDomain)
         fixture.defaults.register(defaults: ["configured": false])
         let flow = fixture.makeFlow()
-        // 注册域在测试进程内共享，读取引导状态后恢复。
+        // The registration domain is shared within the test process; restore it after reading onboarding state.
         fixture.defaults.removeVolatileDomain(forName: registrationDomain)
         fixture.defaults.setVolatileDomain(registered, forName: registrationDomain)
         _ = SettingsStore(defaults: fixture.defaults).migrateServiceInstances()

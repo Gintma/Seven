@@ -1,6 +1,6 @@
 import AppKit
 
-/// 只接收用户拖入的文件，不读取文字或远程URL；内容仍交给统一图片导入器校验。
+/// Accepts only user-dropped files, ignoring text or remote URLs; contents are still validated by the unified image importer.
 final class OCRImageDropView: NSView {
     var onOpenFiles: (([URL]) -> Void)?
     override init(frame frameRect: NSRect) {

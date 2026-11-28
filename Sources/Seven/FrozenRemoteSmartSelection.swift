@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 
-/// 外部应用的系统 AX 查询保持在后台线程；自身窗口不进入此实现。
+/// Keeps system AX queries for external apps on a background thread; Seven's own windows never enter this path.
 struct SystemFrozenRemoteSmartSelection: FrozenSmartSelecting {
     private let accessibility = FrozenSmartAccessibilitySession()
     func finishSession() { accessibility.finish() }
@@ -20,7 +20,7 @@ struct SystemFrozenRemoteSmartSelection: FrozenSmartSelecting {
                 result = FrozenSmartTree(reader: reader).query(at: point, in: window.frame,
                     withinBudget: { !Task.isCancelled && ProcessInfo.processInfo.systemUptime < deadline })
                 remote = FrozenSmartRegion.selection(at: point, in: window.frame, ancestry: result.ancestry)
-                // 只有首次实际开启懒加载AX树时等待，不改变已就绪后的悬停节奏或查询预算。
+                // Only wait when lazily enabling an AX tree for the first time; do not alter hover cadence or query budget once ready.
                 if remote != nil || result.ancestry.contains(where: { $0.role == "AXWebArea" }) || !needsWarmup || ProcessInfo.processInfo.systemUptime >= warmupDeadline { break }
                 do { try await Task.sleep(for: FrozenSmartAccessibilitySession.warmupInterval) }
                 catch { return fallback }

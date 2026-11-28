@@ -56,7 +56,7 @@ final class InputReplacementAXReaderTests: XCTestCase {
     }
 
     private func makeRichEditorReader(selection: NSRange, backwards: Bool = false) -> InputReplacementAXReader {
-        // 模拟节点位于页面正文中，固定选区坐标需要以编辑框的起点为基准。
+        // Simulates a node inside page body content where fixed selection coordinates must be relative to the editor origin.
         let before = "Outside "
         let field = "hello 🥝hello"
         let document = (before + field + " outside") as NSString

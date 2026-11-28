@@ -1,24 +1,24 @@
 import SwiftUI
 import AppKit
 
-/// 服务图标统一为同尺寸圆角方块，单色图标以白色绘制在品牌色底上。
-/// 本身就是完整方块的官方图标（有道、Apple 翻译）按同样圆角裁切；白底方块加极淡描边。
-/// 图标资源位于 Resources/BrandIcons。
+/// Service icons are unified as equal-sized rounded squares, with monochrome glyphs rendered in white on a brand-colored background.
+/// Official icons that are already full squares (Youdao, Apple Translate) are clipped to the same corner radius; white-background tiles get a subtle border.
+/// Icon assets live in Resources/BrandIcons.
 struct BrandTile: Equatable {
     enum Glyph: Equatable {
-        /// 单色矢量图，染成白色后居中，`scale` 为占方块边长的比例。
+        /// Monochrome vector graphic tinted white and centered, with `scale` as a fraction of the tile side length.
         case monochrome(String, scale: CGFloat)
-        /// 彩色图形，原样居中绘制。
+        /// Full-color graphic drawn centered as-is.
         case color(String, scale: CGFloat)
-        /// 本身就是完整方块的官方图标，铺满后按圆角裁切。
+        /// Official icon that is already a full square, filled edge-to-edge and clipped to rounded corners.
         case fullBleed(String)
-        /// 系统符号，白色。
+        /// System symbol rendered in white.
         case symbol(String, scale: CGFloat)
     }
 
     let background: NSColor
     let glyph: Glyph
-    /// 白底方块在浅色背景上需要一圈极淡描边才能看出轮廓。
+    /// White-background tiles need a subtle border to remain legible against light backgrounds.
     let outlined: Bool
 
     init(_ background: NSColor, _ glyph: Glyph, outlined: Bool = false) {
@@ -39,7 +39,7 @@ enum ServiceBrandIconCatalog {
         }
     }
 
-    /// 自备服务按名称识别常见品牌；认不出时用中性灰底的通用图标。
+    /// Matches custom services against common brands by name; falls back to a generic icon on a neutral gray background when unrecognized.
     static func tile(named serviceName: String) -> BrandTile {
         let name = serviceName.lowercased()
         let brands: [([String], BrandTile)] = [
@@ -90,15 +90,15 @@ enum ServiceBrandIconCatalog {
     )
     static let youdao = BrandTile(Design.Palette.brand(0xFFFFFF), .fullBleed("youdao.png"))
     static let appleTranslate = BrandTile(Design.Palette.brand(0xFFFFFF), .fullBleed("apple-translate.png"))
-    /// 英汉词典（ECDICT）没有官方标识：中性深灰底 + 白色词典符号。
+    /// English-Chinese dictionary (ECDICT) has no official logo: neutral dark gray background with a white dictionary symbol.
     static let dictionary = BrandTile(
         Design.Palette.brand(0x3A3A3C), .symbol("character.book.closed.fill", scale: 0.62)
     )
-    /// 认不出品牌的自备服务。
+    /// Custom service whose brand is not recognized.
     static let generic = BrandTile(Design.Palette.brand(0x8E8E93), .symbol("sparkles", scale: 0.6))
 }
 
-/// 把 `BrandTile` 画成指定边长的图标；浮窗（AppKit）与设置页（SwiftUI）共用。
+/// Renders a `BrandTile` into an icon of the given side length; shared by the floating panel (AppKit) and settings view (SwiftUI).
 @MainActor
 enum BrandIconRenderer {
     private static var resourceCache: [String: NSImage] = [:]
@@ -108,7 +108,7 @@ enum BrandIconRenderer {
     }
 
     static func image(for requested: BrandTile, size: CGFloat) -> NSImage {
-        // 资源缺失（例如未经打包直接运行测试）时退回通用图标，不留空白。
+        // Fall back to the generic icon when resources are missing (e.g., running tests without bundling) so the slot is never blank.
         let tile = hasResource(requested.glyph) ? requested : ServiceBrandIconCatalog.generic
         let tinted = whiteGlyph(for: tile.glyph)
         let colorGlyph = colorImage(for: tile.glyph)
@@ -155,7 +155,7 @@ enum BrandIconRenderer {
         }
     }
 
-    /// 单色图形与系统符号先单独染成白色，避免着色影响方块底色。
+    /// Tint monochrome graphics and system symbols white separately first so tinting does not affect the tile background.
     private static func whiteGlyph(for glyph: BrandTile.Glyph) -> NSImage? {
         let source: NSImage?
         switch glyph {
@@ -193,7 +193,7 @@ enum BrandIconRenderer {
         return NSRect(x: rect.midX - side / 2, y: rect.midY - side / 2, width: side, height: side)
     }
 
-    /// SVG 以 1em 声明尺寸（NSImage 读成 1×1），按比例铺满目标区域。
+    /// SVGs declare their size in 1em (loaded as 1x1 by NSImage); scale proportionally to fill the target rect.
     private static func aspectFit(_ size: NSSize, in rect: NSRect) -> NSRect {
         guard size.width > 0, size.height > 0 else { return rect }
         let factor = min(rect.width / size.width, rect.height / size.height)

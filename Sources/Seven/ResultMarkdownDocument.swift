@@ -203,7 +203,7 @@ struct ResultMarkdownDocument: Equatable, Sendable {
                     if node is Strong { childStyle.insert(.bold) }
                     if node is Emphasis { childStyle.insert(.italic) }
                     if node is Strikethrough { childStyle.insert(.strike) }
-                    // 图片只保留替代文字，解析结果不保存图片地址。
+                    // Keep only alt text for images; parsed results do not retain image URLs.
                     runs += try self.runs(node.children, style: childStyle, depth: depth + 1)
                 }
             }

@@ -1,7 +1,7 @@
 import AppKit
 import os
 
-/// 集中保留所有已提交的恢复；截图关闭后任务仍属于应用退出屏障。
+/// Centrally retains all submitted restorations; after a screenshot closes, its task still participates in the app termination barrier.
 final class FrozenSmartAccessibilityRestorations: Sendable {
     static let shared = FrozenSmartAccessibilityRestorations()
     private struct State: Sendable {
@@ -20,7 +20,7 @@ final class FrozenSmartAccessibilityRestorations: Sendable {
         }
     }
 
-    /// 调用方先取消所有当前截图，再取快照；之后的新会话不得开启AX模式。
+    /// Callers must cancel all active screenshots before taking a snapshot; subsequent sessions must not enable AX mode.
     func beginTermination() -> Task<Void, Never> {
         let tasks = state.withLock { state in
             state.terminating = true
@@ -30,7 +30,7 @@ final class FrozenSmartAccessibilityRestorations: Sendable {
     }
 }
 
-/// AppKit继续处理事件，恢复完成或宽限到期时仅回复一次；不同步等待AX。
+/// AppKit continues processing events and replies at most once when restoration completes or the grace period expires; never blocks synchronously waiting on AX.
 @MainActor
 final class ScreenshotTerminationCoordinator {
     nonisolated static let gracePeriod: Duration = .seconds(2)
@@ -63,7 +63,7 @@ final class ScreenshotTerminationCoordinator {
             await barrier.value
             self?.complete()
         }
-        // 不使用等待全部子任务的task group：AX无响应时，恢复等待可能无法取消。
+        // Avoid a task group that waits for all child tasks: when AX is unresponsive, waiting for restoration may not be cancellable.
         timeout = Task { [weak self] in
             do { try await Task.sleep(until: deadline, clock: .continuous) }
             catch { return }

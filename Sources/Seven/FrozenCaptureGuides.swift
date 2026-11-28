@@ -1,6 +1,6 @@
 import AppKit
 
-/// 只作框选辅助，不接收鼠标事件，也不参与截图输出。
+/// Selection guides only; ignores mouse events and is excluded from captured output.
 final class FrozenCaptureGuidesView: ThemedDrawingView {
     static var shortcuts: [(String, String)] { [("R", L10n.text("capture.previousArea")), ("F", L10n.text("captureFullScreen")), ("⌘", L10n.text("holdToCaptureMultipleWindows")), ("C", L10n.text("copyColorValue")), ("⇧", L10n.text("holdToCaptureASquareArea"))] }
     var shortcuts: [(String, String)] = FrozenCaptureGuidesView.shortcuts { didSet { hint.shortcuts = shortcuts; needsLayout = true } }

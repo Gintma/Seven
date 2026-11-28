@@ -47,7 +47,7 @@ private actor StubFetcher: SpeechAudioFetching {
     }
 }
 
-/// 依次返回预设结果，用于模拟“第一个地址失败、第二个成功”。
+/// Returns preset results in sequence to simulate "first URL fails, second succeeds".
 private actor SequenceFetcher: SpeechAudioFetching {
     private var results: [Result<Data, Error>]
     private(set) var requestedURLs: [URL] = []
@@ -60,7 +60,7 @@ private actor SequenceFetcher: SpeechAudioFetching {
     }
 }
 
-/// 一直等待直到被取消，用于模拟持续加载。
+/// Waits indefinitely until cancelled to simulate continuous loading.
 private struct NeverFinishingFetcher: SpeechAudioFetching {
     func audio(from url: URL) async throws -> Data {
         try await Task.sleep(for: .seconds(30))
@@ -84,7 +84,7 @@ private actor GatedFetcher: SpeechAudioFetching {
     }
 }
 
-/// 不出声的播放器与合成器：保留真实的委托回调路径，只跳过实际发声。
+/// Silent player and synthesizer: preserves real delegate callback paths while skipping actual audio output.
 private final class SilentAudioPlayer: AVAudioPlayer {
     override func play() -> Bool { true }
     override func stop() {}
@@ -96,7 +96,7 @@ private final class SilentSynthesizer: AVSpeechSynthesizer {
     override func stopSpeaking(at boundary: AVSpeechBoundary) -> Bool { true }
 }
 
-/// 0.1 秒静音的 16 位单声道 WAV，供 AVAudioPlayer 解析。
+/// 0.1-second silent 16-bit mono WAV for AVAudioPlayer to parse.
 private func silentWAV() -> Data {
     let sampleRate: UInt32 = 8_000
     let samples = Data(count: Int(sampleRate) / 10 * 2)
@@ -139,7 +139,7 @@ final class OnlineSpeechTests: XCTestCase {
         }
     }
 
-    // MARK: - URL 与路由
+    // MARK: - URL & Routing
 
     private func firstURL(
         _ engine: SpeechEngineID, _ text: String, _ language: String,
@@ -240,7 +240,7 @@ final class OnlineSpeechTests: XCTestCase {
         XCTAssertNil(SpeechLanguageResolver.explicitAccent(declaredLanguage: "en"))
     }
 
-    // MARK: - 播放与兜底
+    // MARK: - Playback & Fallback
 
     func testOnlinePlaybackLoadsThenPlaysWithDictionaryAccentOverridingSetting() async throws {
         let fetcher = StubFetcher(.success(audio))
@@ -553,7 +553,7 @@ final class OnlineSpeechTests: XCTestCase {
         XCTAssertEqual(system.spoken.first?.rate, .slow)
     }
 
-    // MARK: - 联网检查（默认跳过）
+    // MARK: - Live Network Checks (Skipped by Default)
 
     func testLiveEnginesReturnAudioForWordsAndSentences() async throws {
         guard ProcessInfo.processInfo.environment["SEVEN_LIVE_SPEECH_TESTS"] == "1" else {
@@ -563,7 +563,7 @@ final class OnlineSpeechTests: XCTestCase {
             "zh-Hans": "你好", "zh-Hant": "你好", "en": "hello", "ja": "こんにちは",
             "ko": "안녕하세요", "fr": "bonjour", "de": "hallo", "es": "hola", "ru": "привет"
         ]
-        // 整句不在词典中，用来发现“只收录词条”的接口。
+        // Full sentences are absent from dictionaries, catching endpoints that only index single entries.
         let sentences = [
             "zh-Hans": "我们明天去公园散步，好不好？", "zh-Hant": "我們明天去公園散步，好不好？",
             "en": "The cat sat on the purple mat yesterday.", "ja": "明日は公園を散歩しましょう。",
@@ -575,7 +575,7 @@ final class OnlineSpeechTests: XCTestCase {
         for engine in SpeechEngineCatalog.all where engine.isOnline {
             for language in engine.supportedLanguages where words[language] != nil {
                 for text in [try XCTUnwrap(words[language]), try XCTUnwrap(sentences[language])] {
-                    // 只测首选地址：有道签名常量失效时应在这里失败，而不是被词典接口掩盖。
+                    // Test only the primary URL: invalid Youdao signing constants should fail here instead of being masked by the dictionary endpoint.
                     let attempt = try XCTUnwrap(OnlineSpeechURLBuilder.attempts(
                         engine: engine.id, text: text, language: language, accent: .us, rate: .normal
                     ).first)

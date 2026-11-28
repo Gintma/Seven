@@ -4,7 +4,7 @@ extension SettingsView {
     var speechPane: some View { SettingsSpeechPane(speech: model.speech) }
 }
 
-/// 直接观察朗读状态；服务能力和选项只读取 SpeechEngineCatalog。
+/// Observes speech state directly; service capabilities and options are read solely from SpeechEngineCatalog.
 private struct SettingsSpeechPane: View {
     @ObservedObject private var interfaceLanguage = InterfaceLanguageState.shared
     @ObservedObject var speech: SpeechController

@@ -1,6 +1,6 @@
 import AppKit
 
-/// 对齐钉图的物理像素边界，并按滚轮幅度调整尺寸步进。
+/// Snaps pinned image frames to physical pixel boundaries and scales resize steps with scroll-wheel magnitude.
 enum ScreenshotPinGeometry {
     static func aligned(_ frame:CGRect,scale:CGFloat)->CGRect {
         let scale=max(1,scale)
@@ -24,7 +24,7 @@ enum ScreenshotPinGeometry {
             if Int(base.width * CGFloat(scale) / 100) <= 59 { scale = Int(60 / base.width * 100) }
             if Int(base.height * CGFloat(scale) / 100) <= 29 { scale = Int(30 / base.height * 100) }
         }
-        // 很长的文字钉图初次适屏后可能不足1%，不能把实际倍率舍入为0再做鼠标锚点除法。
+        // Very tall text pins can fit below 1% initially; do not round the actual scale to 0 before dividing for cursor-anchored zoom.
         let previous = old.width / base.width * 100
         let size = NSSize(width: Int(base.width * CGFloat(scale) / 100), height: Int(base.height * CGFloat(scale) / 100))
         let origin = NSPoint(x: Int(mouse.x) - Int((mouse.x - old.minX) / previous * CGFloat(scale)),
@@ -33,7 +33,7 @@ enum ScreenshotPinGeometry {
     }
 }
 
-/// 钉图保留原图，圆角、不透明度与阴影仅作用于悬浮显示。
+/// Preserves the original pinned image; corner radius, opacity, and shadow apply only to the floating display.
 @MainActor final class ScreenshotPinWindowController: NSWindowController, NSWindowDelegate {
     let originalImage: NSImage
     private(set) var annotationDocument=ScreenshotEditorDocument()
@@ -123,7 +123,7 @@ enum ScreenshotPinGeometry {
     }
     var editingContext: ScreenshotCenteredEditorContext? {
         guard let frame = window?.screen?.frame ?? NSScreen.main?.frame else { return nil }
-        // 编辑已存在的图片不必重新采屏，也不额外申请屏幕录制权限。
+        // Editing an existing image does not need to recapture the screen or request Screen Recording permission.
         return ScreenshotCenteredEditorContext(screenFrame:frame,background:nil,placement:contentFrame)
     }
     var contentFrame:CGRect {

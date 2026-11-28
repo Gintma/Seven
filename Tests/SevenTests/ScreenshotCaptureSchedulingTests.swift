@@ -21,13 +21,13 @@ import XCTest
         let done=expectation(description:"连续采集4帧")
         let controller=ScreenshotScrollWindowController(rect:screen,capture:{ _,_ in
             times.append(ProcessInfo.processInfo.systemUptime)
-            // 模拟比100ms周期略慢的后端；不截图、不投递真实滚轮、不访问凭据。
+            // Simulates a backend slightly slower than the 100ms interval; performs no capture, posts no real scroll events, and touches no credentials.
             Thread.sleep(forTimeInterval:0.115)
             if times.count==4 {done.fulfill()}
             return cg
         },completed:{_ in})
         defer {controller.close()}
-        // 仅调用本地处理函数标记滚动活跃；不向系统投递任何事件。
+        // Calls only the local handler to mark scrolling active; posts no events to the system.
         let wheel = try XCTUnwrap(CGEvent(scrollWheelEvent2Source:nil,units:.pixel,wheelCount:1,wheel1:-10,wheel2:0,wheel3:0))
         controller.wheel(try XCTUnwrap(NSEvent(cgEvent:wheel)))
         controller.showWindow(nil)

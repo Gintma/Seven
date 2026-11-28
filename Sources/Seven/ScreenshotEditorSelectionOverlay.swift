@@ -1,6 +1,6 @@
 import AppKit
 
-/// 框选 mouseUp 后仍保留冻结屏幕；标注工具栏独立浮动，选区框继续接收移动和八方向 resize。
+/// Keeps the frozen screen after selection mouseUp; the annotation toolbar floats independently while the selection frame continues accepting moves and 8-way resize.
 @MainActor final class ScreenshotEditorSelectionOverlay: NSView {
     let context: FrozenSelectionContext
     let canvas: ScreenshotEditorCanvas
@@ -82,7 +82,7 @@ import AppKit
     override func mouseExited(with event: NSEvent) { NSCursor.arrow.set() }
     override func resetCursorRects() {
         let t = Design.ScreenshotEditor.handleSize
-        // 为四周背景注册原生箭头区域，不能仅依赖 mouseMoved 覆盖上一次的小手。
+        // Register native arrow cursor rects for the surrounding backdrop rather than relying solely on mouseMoved to override the previous hand cursor.
         let outside = [
             CGRect(x: bounds.minX, y: bounds.minY, width: selection.minX - bounds.minX, height: bounds.height),
             CGRect(x: selection.maxX, y: bounds.minY, width: bounds.maxX - selection.maxX, height: bounds.height),

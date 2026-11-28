@@ -271,7 +271,7 @@ extension FrozenSmartSelectionTests {
         defer { selection.cancelSmartSelection() }
         selection.refreshHover(at: CGPoint(x: 150, y: 120))
         try await settle(mock)
-        selection.refreshHover(at: CGPoint(x: 550, y: 120)) // B上停住，不再制造mouseMoved事件。
+        selection.refreshHover(at: CGPoint(x: 550, y: 120)) // Stop on B and emit no further mouseMoved events.
         let pending = await mock.queriedWindows
         XCTAssertEqual(pending, [11])
         await mock.release()

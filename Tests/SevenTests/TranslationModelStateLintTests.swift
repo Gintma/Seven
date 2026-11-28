@@ -1,18 +1,18 @@
 import Foundation
 import XCTest
 
-/// 模型拆为跨文件扩展后，以源码守护补足原 private / private(set) 的写入边界。
+/// Source lint guard enforcing the original private / private(set) write boundaries after splitting the model into cross-file extensions.
 final class TranslationModelStateLintTests: XCTestCase {
     private static let protectedProperties = [
-        // 模型管理的状态；服务实例列表取代旧单配置与 configured。
-        // 以后新增由模型管理的 @Published 状态，默认加入本清单；设置项等有意可写的属性除外。
+        // Model-managed state; the service instance list replaces the legacy single config and configured flag.
+        // Add new model-managed @Published state to this list by default, excluding intentionally writable properties like settings.
         "input", "detectedSource", "serviceResults", "isLoading",
         "status", "errorMessage", "serviceInstances", "recoveryAction",
         "primaryLanguage", "commonLanguages", "secondaryLanguage", "resolvedTarget",
         "isTestingConfiguration", "configurationTestMessage", "configurationTestSucceeded",
         "inputMaximumHeight", "maximumWindowHeightRatio", "panelScreenHeight",
         "expandedProviders", "appleTranslationRequest",
-        // 原 private 存储中可变的缓存、识别状态及任务句柄；不包含只读注入依赖和常量。
+        // Mutable caches, detection state, and task handles from formerly private storage; excludes read-only injected dependencies and constants.
         "confirmedDetection", "localDetectionCache", "detectionTask", "detectingText", "isDetectingOnline",
         "translateAfterDetection", "retryAfterDetection", "serviceTasks",
         "configurationTestTask", "generation", "primaryResultID", "historyRound", "systemTranslationBridgeAvailable"
@@ -25,14 +25,14 @@ final class TranslationModelStateLintTests: XCTestCase {
     private static func writeRanges(in source: String) throws -> [NSRange] {
         let properties = protectedProperties.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
         let property = #"\.\s*(?:"# + properties + #")\b"#
-        // 同时检查下标和成员写回，例如 serviceResults[index].phase =、historyRound?.record =。
+        // Also checks subscript and member write-backs such as serviceResults[index].phase = and historyRound?.record =.
         let memberPath = #"(?:\s*\?\s*)?(?:\s*\[[^\]\n]*\]|\s*\??\.\s*[A-Za-z_][A-Za-z0-9_]*)*"#
         let mutatingMethod = #"(?:append\w*|insert\w*|remove\w*|replaceSubrange|replace|swapAt|sort|shuffle|reverse|formUnion|formIntersection|formSymmetricDifference|subtract|updateValue|merge|reserveCapacity|toggle|cancel)"#
         let patterns = [
             property + memberPath + #"\s*(?:=(?!=)|[+\-*/%&|^]=|&[+\-*]=)"#,
             property + memberPath + #"\s*\??\.\s*"# + mutatingMethod + #"\s*\("#,
-            // $model.input 是可写绑定；model.$serviceResults 是只读 Publisher，不应拦截。
-            // 设置页局部 @State 的 $primaryLanguage 同样不是模型绑定。
+            // $model.input is a writable binding; model.$serviceResults is a read-only Publisher and should not be blocked.
+            // Local @State $primaryLanguage in Settings views is likewise not a model binding.
             #"\$[A-Za-z_][A-Za-z0-9_]*(?:\s*\??\.\s*[A-Za-z_][A-Za-z0-9_]*)*"# + property,
             #"(?:^|[(,:])\s*&(?!&)\s*[A-Za-z_][A-Za-z0-9_]*(?:\s*\??\.\s*[A-Za-z_][A-Za-z0-9_]*)*"# + property
         ]

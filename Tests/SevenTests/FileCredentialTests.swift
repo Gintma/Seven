@@ -23,7 +23,7 @@ final class FileCredentialTests: XCTestCase {
                            "com.crissun.seven.HUD", "com.crissun.seven.a/b", "com.crissun.seven.a.b"] {
             XCTAssertEqual(FileCredentialStore.defaultDirectory(homeDirectory: home, bundleIdentifier: identifier), base)
         }
-        // 只向临时 home 推导的目录注入存储，不接触真实凭据。
+        // Inject storage only into directories derived from a temporary home, never touching real credentials.
         let store = FileCredentialStore(directory: hud)
         try store.save("variant-fixture", account: "service-instance.v1.test")
         XCTAssertEqual(try store.read(account: "service-instance.v1.test"), "variant-fixture")

@@ -7,7 +7,7 @@ protocol ThemeApplying: AnyObject {
     func applyTheme(_ palette: ThemePalette)
 }
 
-/// 应用外观与当前色板的唯一状态源。
+/// Single source of truth for app appearance and the active color palette.
 @MainActor @Observable
 final class ThemeManager {
     static let shared = ThemeManager()
@@ -42,7 +42,7 @@ final class ThemeManager {
         application.appearance = appearanceMode.appearance
         refresh()
         appearanceObservation = application.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
-            // 退出 KVO 回调后再读取最新的有效外观，避免在 AppKit 外观传播期间刷新视图。
+            // Read the latest effective appearance after exiting the KVO callback to avoid refreshing views during AppKit appearance propagation.
             Task { @MainActor [weak self] in self?.refresh() }
         }
         systemColorsObservation = NotificationCenter.default.publisher(for: NSColor.systemColorsDidChangeNotification)
@@ -89,7 +89,7 @@ final class ThemeManager {
         guard palette.id != id || palette.variant != variant || refreshSystemColors else { return }
         let next: ThemePalette
         if id == ThemePalette.systemID {
-            // 系统色对象可能仍相等，递增修订号让 SwiftUI 与 AppKit 都收到更新。
+            // System color instances may still compare equal; increment the revision so both SwiftUI and AppKit receive updates.
             let revision = palette.systemColorRevision &+ (refreshSystemColors ? 1 : 0)
             next = ThemeResolver.system(variant, colorRevision: revision)
         } else {

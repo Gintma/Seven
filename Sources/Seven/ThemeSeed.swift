@@ -1,4 +1,4 @@
-/// 色板的原始输入。预设角色可由纯计算补齐，手动覆盖在最后应用。
+/// Raw palette input. Preset roles can be derived purely by computation, with manual overrides applied last.
 struct ThemeSeed {
     enum Semantic {
         case error, warning, favorite
