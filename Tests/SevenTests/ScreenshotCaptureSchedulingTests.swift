@@ -35,7 +35,11 @@ import XCTest
         controller.close()
         let gaps=zip(times,times.dropFirst()).map {$1-$0}.sorted()
         XCTAssertGreaterThanOrEqual(gaps.count,3)
-        XCTAssertLessThan(gaps[gaps.count/2],0.19,"115ms处理不能被固定timer网格变成200ms以上的帧间隔")
+        // After a slow (>100ms) frame completes, the next sample must be scheduled immediately (delay == 0) instead of waiting another 100ms grid interval.
+        XCTAssertGreaterThanOrEqual(controller.scheduledSampleDelays.count, 4)
+        XCTAssertEqual(controller.scheduledSampleDelays.first, ScreenshotScrollPolicy.sampleInterval)
+        XCTAssertTrue(controller.scheduledSampleDelays.dropFirst().prefix(3).allSatisfy { $0 == 0 },
+                      "Slow frames exceeding the 100ms sample interval must schedule the next frame immediately without waiting another interval: \(controller.scheduledSampleDelays)")
     }
     func testScreenEditorAndCaptureCannotBecomeMainWindows() throws {
         _ = NSApplication.shared

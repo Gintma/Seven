@@ -33,12 +33,16 @@ enum OCRImageAnalysisInput {
 
     @MainActor static func prepare(_ image: NSImage) async throws -> Self? {
         try Task.checkCancellation()
-        guard image.representations.contains(where: {
-            scale(width: $0.pixelsWide, height: $0.pixelsHigh) < 1
-        }) else { return .original(image) }
-        guard let raster = autoreleasepool(invoking: {
-            image.cgImage(forProposedRect: nil, context: nil, hints: nil)
-        }) else { return nil }
+        guard image.representations.contains(where: { $0.pixelsWide > 0 && $0.pixelsHigh > 0 }) else {
+            return .original(image)
+        }
+        // Inspect the backing raster directly so 1x displays do not under-report 2x snapshot dimensions.
+        guard let raster = autoreleasepool(invoking: { ScreenshotSaving.cgImage(image) }) else {
+            return .original(image)
+        }
+        guard scale(width: raster.width, height: raster.height) < 1 else {
+            return .original(image)
+        }
         let resizing = Task.detached(priority: .userInitiated) {
             try Task.checkCancellation()
             return autoreleasepool { resizedRaster(raster) }

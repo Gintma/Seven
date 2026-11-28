@@ -275,8 +275,10 @@ private actor ScreenshotScrollProcessor {
         }
         return true
     }
+    private(set) var scheduledSampleDelays: [TimeInterval] = []
     private func scheduleNextSample(after delay: TimeInterval) {
         guard schedulesSamples,!sharingServiceActive,!stopped else { return }
+        scheduledSampleDelays.append(delay)
         timer?.invalidate()
         let next = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.timer = nil; self?.tick() }

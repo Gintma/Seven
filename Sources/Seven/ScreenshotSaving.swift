@@ -30,13 +30,13 @@ final class ScreenshotSavePreferences {
         return "Seven_\(formatter.string(from:date)).\(format.fileExtension)"
     }
     static func cgImage(_ image: NSImage) -> CGImage? {
-        cgImage(image, from: largestPixelRepresentation(of: image))
+        largestRasterRepresentation(of: image)?.raster ?? image.cgImage(forProposedRect: nil, context: nil, hints: nil)
     }
 
     static func bitmap(_ image: NSImage) -> NSBitmapImageRep? {
-        let representation = largestPixelRepresentation(of: image)
-        if let bitmap = representation as? NSBitmapImageRep { return bitmap }
-        guard let raster = cgImage(image, from: representation) else { return nil }
+        let best = largestRasterRepresentation(of: image)
+        if let bitmap = best?.representation as? NSBitmapImageRep { return bitmap }
+        guard let raster = best?.raster ?? image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
         let bitmap = NSBitmapImageRep(cgImage: raster)
         let size = image.size
         if size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 {
@@ -45,18 +45,19 @@ final class ScreenshotSavePreferences {
         return bitmap
     }
 
-    private static func largestPixelRepresentation(of image: NSImage) -> NSImageRep? {
-        image.representations.filter { $0.pixelsWide > 0 && $0.pixelsHigh > 0 }.max {
-            Double($0.pixelsWide) * Double($0.pixelsHigh) < Double($1.pixelsWide) * Double($1.pixelsHigh)
-        }
-    }
-
-    private static func cgImage(_ image: NSImage, from representation: NSImageRep?) -> CGImage? {
-        guard let representation else {
-            return image.cgImage(forProposedRect: nil, context: nil, hints: nil)
-        }
-        if let bitmap = representation as? NSBitmapImageRep { return bitmap.cgImage }
-        return representation.cgImage(forProposedRect: nil, context: nil, hints: nil)
+    private static func largestRasterRepresentation(of image: NSImage) -> (representation: NSImageRep, raster: CGImage?, pixels: Double)? {
+        image.representations.compactMap { representation -> (representation: NSImageRep, raster: CGImage?, pixels: Double)? in
+            guard representation.pixelsWide > 0, representation.pixelsHigh > 0 else { return nil }
+            if let bitmap = representation as? NSBitmapImageRep {
+                let pixels = Double(bitmap.pixelsWide) * Double(bitmap.pixelsHigh)
+                return (bitmap, bitmap.cgImage, pixels)
+            }
+            // On 1x displays, NSCGImageSnapshotRep.pixelsWide reports logical 1x dimensions while cgImage retains the full backing pixels.
+            let raster = representation.cgImage(forProposedRect: nil, context: nil, hints: nil)
+            let width = max(representation.pixelsWide, raster?.width ?? 0)
+            let height = max(representation.pixelsHigh, raster?.height ?? 0)
+            return (representation, raster, Double(width) * Double(height))
+        }.max { $0.pixels < $1.pixels }
     }
     static func data(_ image:NSImage,format:ScreenshotSaveFormat)->Data? {
         let bitmap=bitmap(image)

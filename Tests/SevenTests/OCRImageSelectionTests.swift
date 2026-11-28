@@ -50,6 +50,43 @@ import XCTest
         XCTAssertNil(originalReference, "分析尚未返回时也必须能释放原图")
     }
 
+    func testPrepareDownscalesBackingRasterEvenWhenRepReports1xPixels() async throws {
+        // Simulates NSCGImageSnapshotRep on a 1x display where pixelsWide reports 3840x2160 while cgImage holds 7680x4320.
+        final class ScaledSnapshotRep: NSImageRep {
+            private let backing: CGImage
+            init(backing: CGImage, reportedWidth: Int, reportedHeight: Int, logicalSize: CGSize) {
+                self.backing = backing
+                super.init()
+                self.size = logicalSize
+                self.pixelsWide = reportedWidth
+                self.pixelsHigh = reportedHeight
+            }
+            required init?(coder: NSCoder) { nil }
+            override func cgImage(
+                forProposedRect proposedDestRect: UnsafeMutablePointer<NSRect>?,
+                context: NSGraphicsContext?,
+                hints: [NSImageRep.HintKey: Any]?
+            ) -> CGImage? {
+                backing
+            }
+        }
+
+        let context = try XCTUnwrap(CGContext(data: nil, width: 7_680, height: 4_320,
+            bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue))
+        let raster = try XCTUnwrap(context.makeImage())
+        let logicalSize = CGSize(width: 3_840, height: 2_160)
+        let image = NSImage(size: logicalSize)
+        image.addRepresentation(ScaledSnapshotRep(backing: raster, reportedWidth: 3_840, reportedHeight: 2_160, logicalSize: logicalSize))
+
+        let prepared = try await OCRImageAnalysisInput.prepare(image)
+        guard case .raster(let resized) = prepared else {
+            return XCTFail("Expected oversized 8K backing raster to be downscaled even on a 1x display")
+        }
+        XCTAssertLessThanOrEqual(resized.width * resized.height, 8 * 1_024 * 1_024)
+        XCTAssertEqual(Double(resized.width) / Double(resized.height), 7_680.0 / 4_320.0, accuracy: 0.001)
+    }
+
     func testHidingPreviewCancelsPendingAnalysisAndReopeningRestartsIt() async throws {
         let analyzer = HeldImageAnalysis()
         let preview = OCRImagePreview(image: NSImage(size: CGSize(width: 100, height: 100)), analyzer: analyzer)

@@ -35,6 +35,45 @@ final class ScreenshotSavingTests: XCTestCase {
         }
     }
 
+    func testMixedRepresentationsUseBackingRasterSizeWhenRepReports1xPixels() throws {
+        // Simulates NSCGImageSnapshotRep on a 1x display where pixelsWide reports logical 1x width while cgImage holds 2x pixels.
+        final class ScaledSnapshotRep: NSImageRep {
+            private let backing: CGImage
+            init(backing: CGImage, reportedWidth: Int, reportedHeight: Int, logicalSize: CGSize) {
+                self.backing = backing
+                super.init()
+                self.size = logicalSize
+                self.pixelsWide = reportedWidth
+                self.pixelsHigh = reportedHeight
+            }
+            required init?(coder: NSCoder) { nil }
+            override func cgImage(
+                forProposedRect proposedDestRect: UnsafeMutablePointer<NSRect>?,
+                context: NSGraphicsContext?,
+                hints: [NSImageRep.HintKey: Any]?
+            ) -> CGImage? {
+                backing
+            }
+        }
+
+        let low = NSBitmapImageRep(cgImage: try solidImage(width: 100, height: 65, color: .blue))
+        let high = ScaledSnapshotRep(
+            backing: try solidImage(width: 200, height: 130, color: .red),
+            reportedWidth: 100,
+            reportedHeight: 65,
+            logicalSize: logicalSize
+        )
+        for representations in [[low, high], [high, low]] {
+            let mixed = NSImage(size: logicalSize)
+            representations.forEach(mixed.addRepresentation)
+            let raster = try XCTUnwrap(ScreenshotSaving.cgImage(mixed))
+            XCTAssertEqual(raster.width, 200)
+            XCTAssertEqual(raster.height, 130)
+            let bitmap = try XCTUnwrap(ScreenshotSaving.bitmap(mixed))
+            XCTAssertGreaterThan(try XCTUnwrap(bitmap.colorAt(x: 25, y: 25)?.usingColorSpace(.deviceRGB)).redComponent, 0.9)
+        }
+    }
+
     func testPDFWithoutNativePixelDimensionsCanBeRasterizedAndExported() throws {
         let data = NSMutableData()
         let consumer = try XCTUnwrap(CGDataConsumer(data: data))
