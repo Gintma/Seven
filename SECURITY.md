@@ -1,15 +1,24 @@
 # Security Policy
 
-Seven handles sensitive local context including user API keys, clipboard contents, accessibility text, and screen captures. Security and privacy issues are taken seriously.
+## Supported Versions
+
+Security fixes are released for the latest public version of Seven listed on [GitHub Releases](https://github.com/crismakes/Seven/releases/latest) and the [Sparkle update feed](appcast.xml).
 
 ## Reporting a Vulnerability
 
-Please **do not** open a public GitHub Issue for security or privacy vulnerabilities.
+Please do not open a public GitHub issue for security or privacy vulnerabilities.
 
-Instead, report vulnerabilities privately through [GitHub Security Advisories](https://github.com/crismakes/Seven/security/advisories/new) with:
+Use GitHub's [private vulnerability reporting](https://github.com/crismakes/Seven/security/advisories/new) to share:
 
-- A clear description of the issue and its impact
-- Steps to reproduce or a minimal proof of concept
-- Affected macOS and Seven versions
+- Affected version and macOS release
+- Steps to reproduce or proof of concept
+- Potential impact (for example, credential exposure, unauthorized file/network access, or update verification bypass)
 
-Reports will be reviewed and addressed as quickly as possible.
+You can expect an initial response within a few days.
+
+## Security & Privacy Model
+
+- **Zero telemetry**: Seven collects no analytics or usage tracking.
+- **Local credentials**: API keys are stored only on your Mac in a local file (`0700` directory, `0600` file permissions) and are excluded from exports and logs.
+- **Verified updates**: Official releases are signed with an Apple Developer ID certificate, notarized by Apple, and verified by Sparkle using EdDSA signatures.
+- **On-device OCR**: Text recognition runs locally through Apple Vision; online translation and speech requests are sent only to the services you enable.
