@@ -27,8 +27,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="Docs/assets/hero-dark-zh-CN.png" />
-    <img src="Docs/assets/hero-light-zh-CN.png" width="840" alt="Seven 翻译浮窗，展示英文原文、简体中文译文，以及含表格、列表和可复制代码块的 Markdown 结果" />
+    <source media="(prefers-color-scheme: dark)" srcset="Docs/assets/ui-overview-dark-zh-CN.png" />
+    <img src="Docs/assets/ui-overview-zh-CN.png" width="840" alt="Seven 功能总览：多服务翻译、翻译历史与收藏、OCR 原图对照、截图标注、滚动长截图和翻译服务设置。" />
   </picture>
 </p>
 
@@ -52,36 +52,18 @@
 - **区域、整窗与智能选区** —— 冻结屏幕后拖选区域或点选窗口，也可组合多个窗口、恢复上次选区或复制 HEX 色值。开启智能选区后可选取窗口里的控件。
 - **无损标注** —— 添加箭头、形状、序号、文字、马赛克或聚焦高亮。可撤销、重做，并按原始分辨率导出 PNG/JPG 或通过 macOS 分享。比如用箭头标出网页上需要同事修改的按钮。
 
-<p align="center">
-  <img src="Docs/assets/screenshot-editor.png" width="840" alt="Seven 截图编辑器，展示公开科普网页上的箭头、矩形和序号标注，以及浮动工具条" />
-</p>
-
 #### 滚动长截图
 
 向上或向下滚动时实时拼接并预览。完成后可继续标注、复制、保存、分享、钉图或提取文字。
-
-<p align="center">
-  <img src="Docs/assets/scroll-capture-zh-CN.png" width="840" alt="向下滚动后的网页选区、Seven 的完整长截图预览及中文拼接状态" />
-</p>
 
 #### 悬浮钉图
 
 将截图、剪贴板图片或文字固定在其他窗口上方。可调整缩放和不透明度，也可在原处重新标注。做设计时，可以钉住参考图，边做边对照。
 
-<p align="center">
-  <img src="Docs/assets/floating-pin.png" width="840" alt="珊瑚照片悬浮在原网页正文上方，方便边阅读边对照" />
-</p>
-
 ### 在本机提取文字
 
 - **本机 OCR 与智能排版** —— Vision 在设备上识别文字。识别后可在原图中直接选择文字，在旁边编辑、整理段落、翻译或导出 TXT。想引用扫描件里的一段话，可以先对照原图校对，再复制到笔记里。
 - **静默 OCR 与图片导入** —— 将识别结果直接复制到剪贴板，或通过 Finder「打开方式」、拖放和剪贴板导入图片。也可直接导入本地图片进行标注。
-
-<p align="center">
-  <img src="Docs/assets/ocr-window-zh-CN.png" width="840" alt="Seven 的 OCR 窗口，左侧为公开科普网页截取的原图，右侧为可编辑的识别文本" />
-</p>
-
-截图素材来自 [NOAA 国家海洋局的珊瑚科普文章](https://oceanservice.noaa.gov/facts/coral.html)。
 
 ### 按自己的习惯设置
 
