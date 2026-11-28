@@ -51,14 +51,8 @@ Read a foreign-language document, reply in another language, or mark up a screen
 
 - **Regions, windows, and smart selection** — Freeze the screen to select an area or window, combine multiple windows, restore the last region, or copy a HEX color. Enable smart selection to pick controls inside windows.
 - **Non-destructive annotation** — Add arrows, shapes, numbered callouts, text, pixelation, or a spotlight. Undo or redo edits, export PNG or JPG at the original resolution, or use the macOS Share menu. For example, point an arrow at the button you want a teammate to change.
-
-#### Scrolling capture
-
-Scroll up or down to stitch a long screenshot with a live preview. Annotate, copy, save, share, pin, or extract text from the result.
-
-#### Floating pins
-
-Keep a screenshot, clipboard image, or text above other windows. Adjust zoom and opacity or annotate the pin in place. Pin a reference image to keep it visible while you work on a design.
+- **Scrolling capture** — Scroll up or down to stitch a long screenshot with a live preview. Annotate, copy, save, share, pin, or extract text from the result.
+- **Floating pins** — Keep a screenshot, clipboard image, or text above other windows. Adjust zoom and opacity or annotate the pin in place. Pin a reference image to keep it visible while you work on a design.
 
 ### Extract text on your Mac
 
