@@ -27,8 +27,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="Docs/assets/hero-dark.png" />
-    <img src="Docs/assets/hero-light.png" width="840" alt="Seven's translation panel with English input, a Spanish translation, and a Markdown result with a table, list, and copyable code block" />
+    <source media="(prefers-color-scheme: dark)" srcset="Docs/assets/ui-overview-dark.png" />
+    <img src="Docs/assets/ui-overview.png" width="840" alt="Seven at a glance: multi-service translation, history and favorites, OCR with the original image, screenshot annotation, scrolling capture, and translation service settings." />
   </picture>
 </p>
 
@@ -51,37 +51,13 @@ Read a foreign-language document, reply in another language, or mark up a screen
 
 - **Regions, windows, and smart selection** — Freeze the screen to select an area or window, combine multiple windows, restore the last region, or copy a HEX color. Enable smart selection to pick controls inside windows.
 - **Non-destructive annotation** — Add arrows, shapes, numbered callouts, text, pixelation, or a spotlight. Undo or redo edits, export PNG or JPG at the original resolution, or use the macOS Share menu. For example, point an arrow at the button you want a teammate to change.
-
-<p align="center">
-  <img src="Docs/assets/screenshot-editor.png" width="840" alt="Seven's screenshot editor with a floating toolbar, an arrow, a rectangle, and a numbered callout on a public science article" />
-</p>
-
-#### Scrolling capture
-
-Scroll up or down to stitch a long screenshot with a live preview. Annotate, copy, save, share, pin, or extract text from the result.
-
-<p align="center">
-  <img src="Docs/assets/scroll-capture.png" width="840" alt="A scrolled selection beside Seven’s live stitched preview and capture controls" />
-</p>
-
-#### Floating pins
-
-Keep a screenshot, clipboard image, or text above other windows. Adjust zoom and opacity or annotate the pin in place. Pin a reference image to keep it visible while you work on a design.
-
-<p align="center">
-  <img src="Docs/assets/floating-pin.png" width="840" alt="A floating coral photo pinned above the public article for reference" />
-</p>
+- **Scrolling capture** — Scroll up or down to stitch a long screenshot with a live preview. Annotate, copy, save, share, pin, or extract text from the result.
+- **Floating pins** — Keep a screenshot, clipboard image, or text above other windows. Adjust zoom and opacity or annotate the pin in place. Pin a reference image to keep it visible while you work on a design.
 
 ### Extract text on your Mac
 
 - **On-device OCR and smart layout** — Apple Vision recognizes text on your Mac. Select text directly on the image and use the adjacent pane to edit, reflow paragraphs, translate, or export it as TXT. You can check a quote against a scanned page before copying it into your notes.
 - **Silent OCR and image import** — Copy recognition results straight to the clipboard, or send an image to OCR from Finder's Open With menu, drag and drop, or the clipboard. You can also open local images for annotation.
-
-<p align="center">
-  <img src="Docs/assets/ocr-window.png" width="840" alt="Seven's OCR window showing a crop from a public science article next to its editable recognized text" />
-</p>
-
-The screenshots use a public [NOAA National Ocean Service article about corals](https://oceanservice.noaa.gov/facts/coral.html).
 
 ### Make it yours
 
