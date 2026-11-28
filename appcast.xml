@@ -6,6 +6,15 @@
     <description>Seven for macOS releases</description>
     <!-- Tools/release.sh adds the signed enclosure for each release. -->
     <item>
+      <title>Seven 0.16.8</title>
+      <link>https://github.com/crismakes/Seven/releases/tag/v0.16.8</link>
+      <pubDate>Sat, 28 Nov 2026 03:08:08 GMT</pubDate>
+      <sparkle:version>73</sparkle:version>
+      <sparkle:shortVersionString>0.16.8</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/crismakes/Seven/releases/download/v0.16.8/Seven-0.16.8.zip" sparkle:edSignature="scHeD3xqD392b2qXGmfRDjc+sb39CidbqucbFQ+iKTEFDsE5LRmAZ4yND64y/ntW/oMdcldykaKTUhijd2BTDQ==" length="11545540" type="application/octet-stream" />
+    </item>
+    <item>
       <title>Seven 0.16.7</title>
       <link>https://github.com/crismakes/Seven/releases/tag/v0.16.7</link>
       <pubDate>Thu, 26 Nov 2026 09:11:40 GMT</pubDate>
