@@ -267,7 +267,7 @@ extension ScreenshotEditorTests {
         XCTAssertEqual(ScreenshotSelectionSizing.pixelSize(rect, context: context), CGSize(width: 399, height: 201))
         XCTAssertEqual(rect.minX, context.localSelection.minX)
         XCTAssertEqual(rect.maxY, context.localSelection.maxY)
-        let image = try XCTUnwrap(context.croppedImage(in: rect)?.cgImage(forProposedRect: nil, context: nil, hints: nil))
+        let image = try XCTUnwrap(context.croppedImage(in: rect).flatMap(ScreenshotSaving.cgImage))
         XCTAssertEqual(image.width, 399); XCTAssertEqual(image.height, 201)
     }
 
