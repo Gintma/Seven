@@ -124,6 +124,12 @@ See [engineering guidelines](AGENTS.md) and the [maintainer release guide (Simpl
 
 </details>
 
+## Acknowledgments
+
+Seven is built with [Sparkle](https://sparkle-project.org/) for app updates, [swift-markdown](https://github.com/swiftlang/swift-markdown) for native Markdown rendering, and [ECDICT](https://github.com/skywind3000/ECDICT) for the optional offline English–Chinese dictionary.
+
+Its workflow is also inspired by great macOS utilities such as Bob, Easydict, and Snipaste.
+
 ## License & Feedback
 
 Seven is open source under the [MIT License](LICENSE). Bug reports and feature ideas are welcome on [GitHub Issues](https://github.com/crismakes/Seven/issues).
